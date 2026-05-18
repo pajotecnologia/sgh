@@ -1,0 +1,296 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================================================
+   DESIGN TOKENS — Sistema de Gerenciamento Hospitalar
+   ============================================================================= */
+@layer base {
+  :root {
+    /* Cores base — tema claro */
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Azul primário hospitalar */
+    --primary: 213 94% 44%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 210 40% 94%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 213 94% 44%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar */
+    --sidebar-width: 260px;
+    --sidebar-bg: 222 47% 11%;
+    --sidebar-fg: 210 40% 96%;
+  }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 213 94% 55%;
+    --primary-foreground: 222 47% 8%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 40%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 213 94% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Scrollbar customizada */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground;
+  }
+
+  /* Tipografia de código (números de atendimento, CIDs) */
+  .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+}
+
+/* =============================================================================
+   COMPONENTES GLOBAIS
+   ============================================================================= */
+@layer components {
+
+  /* Layout do dashboard */
+  .dashboard-layout {
+    @apply flex h-screen overflow-hidden bg-background;
+  }
+
+  .dashboard-main {
+    @apply flex-1 flex flex-col overflow-hidden;
+  }
+
+  .dashboard-content {
+    @apply flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6;
+  }
+
+  /* Cards de estatísticas */
+  .stat-card {
+    @apply bg-card rounded-xl border border-border p-5 shadow-sm
+           hover:shadow-md transition-shadow duration-200;
+  }
+
+  /* Badges do Protocolo Manchester */
+  .badge-manchester {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+           text-xs font-semibold text-white uppercase tracking-wide;
+  }
+
+  .badge-vermelho { @apply badge-manchester bg-red-600; }
+  .badge-laranja  { @apply badge-manchester bg-orange-500; }
+  .badge-amarelo  { @apply badge-manchester bg-yellow-500 text-yellow-900; }
+  .badge-verde    { @apply badge-manchester bg-green-600; }
+  .badge-azul     { @apply badge-manchester bg-blue-600; }
+  .badge-cinza    { @apply badge-manchester bg-gray-500; }
+
+  /* Linha de separação de seção com label */
+  .section-divider {
+    @apply flex items-center gap-3 my-6;
+  }
+  .section-divider::before,
+  .section-divider::after {
+    @apply flex-1 h-px bg-border content-[''];
+  }
+
+  /* Inputs do formulário — estilo uniforme */
+  .form-field {
+    @apply flex flex-col gap-1.5;
+  }
+
+  /* Alert de tempo de triagem excedido */
+  .alert-triagem-urgente {
+    @apply animate-pulse-alert border-l-4 border-red-600 bg-red-50 dark:bg-red-950/30;
+  }
+}
+
+/* =============================================================================
+   PAINEL DE CHAMADA — estilos específicos para /painel (tela cheia)
+   ============================================================================= */
+.painel-nome-paciente {
+  font-size: clamp(4rem, 10vw, 8rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.painel-numero-atendimento {
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Borda lateral colorida por cor de triagem no painel */
+.painel-borda-vermelho { border-left: 12px solid #DC2626; }
+.painel-borda-laranja  { border-left: 12px solid #EA580C; }
+.painel-borda-amarelo  { border-left: 12px solid #CA8A04; }
+.painel-borda-verde    { border-left: 12px solid #16A34A; }
+.painel-borda-azul     { border-left: 12px solid #2563EB; }
+.painel-borda-cinza    { border-left: 12px solid #6B7280; }
+
+/* =============================================================================
+   UTILITÁRIOS
+   ============================================================================= */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Truncar texto com ellipsis em número fixo de linhas */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Gradiente azul hospitalar */
+  .gradient-hospitalar {
+    background: linear-gradient(135deg, hsl(213, 94%, 44%) 0%, hsl(230, 80%, 50%) 100%);
+  }
+}
+
+/* =============================================================================
+   IMPRESSÃO — Ficha do Paciente (PDF via window.print)
+   ============================================================================= */
+@media print {
+  /* Ocultar elementos de navegação */
+  .dashboard-layout > aside,
+  .dashboard-layout > div > header,
+  .no-print,
+  .dashboard-layout .dashboard-main > header,
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+
+  /* Layout sem sidebar — altura/overflow liberados para paginação A4 */
+  .dashboard-layout {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+  .dashboard-main {
+    display: block !important;
+    margin-left: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    flex: none !important;
+  }
+  .dashboard-content {
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    flex: none !important;
+  }
+
+  /* Quebra explícita entre páginas da ficha de impressão */
+  .ficha-urgencia {
+    display: block !important;
+    overflow: visible !important;
+  }
+  .ficha-print-page-1 {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  /* Reset de cores para impressão */
+  html,
+  body {
+    background: white !important;
+    color: black !important;
+    height: auto !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    font-size: 11pt;
+  }
+
+  /* Cards com borda fina */
+  .print-section {
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 12pt;
+  }
+
+  /* Tabelas */
+  table { font-size: 9pt; }
+  th, td { padding: 4pt 8pt !important; }
+
+  /* Página A4 */
+  @page {
+    size: A4;
+    margin: 15mm 20mm;
+  }
+}

@@ -1,0 +1,24 @@
+# PostgreSQL local — compatível com DATABASE_URL do .env.example
+# Uso: docker compose up -d
+# Em seguida: npm run db:migrate — npm run db:seed — npm run dev
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: senha
+      POSTGRES_DB: sgh_db
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sgh_db"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    volumes:
+      - sgh_pgdata:/var/lib/postgresql/data
+
+volumes:
+  sgh_pgdata:

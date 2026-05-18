@@ -1,0 +1,735 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Usuário do sistema (profissional de saúde ou administrativo)
+model Usuario {
+  id                 String                 @id @default(uuid())
+  email              String                 @unique
+  /// Senha armazenada como hash bcrypt
+  senhaHash          String
+  nome               String
+  role               Role
+  /// CRM para médicos
+  crm                String?
+  /// COREN para enfermeiros
+  coren              String?
+  /// CPF criptografado
+  cpf                String?                @unique
+  telefone           String?
+  ativo              Boolean                @default(true)
+  /// MFA — segredo TOTP (opcional, armazenado criptografado)
+  mfaSecret          String?
+  mfaAtivo           Boolean                @default(false)
+  /// Último acesso
+  ultimoAcesso       DateTime?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  /// Soft delete
+  deletedAt          DateTime?
+  aplicacoesMed      AplicacaoMedicamento[]
+  atendimentosMedico Atendimento[]          @relation("MedicoRef")
+  chamadaePainel     ChamadaPainel[]
+  evolucoes          EvolucaoMedica[]
+  logsAuditoria            LogAuditoria[]
+  triagensRealizadas       Triagem[]                 @relation("TriadorRef")
+  tokensRedefinicaoSenha   TokenRedefinicaoSenha[]
+
+  @@index([email])
+  @@map("usuarios")
+}
+
+/// Token único (hash SHA-256) para fluxo «esqueci minha senha»
+model TokenRedefinicaoSenha {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  usuarioId String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("tokens_redefinicao_senha")
+}
+
+/// Ficha do paciente — dados sensíveis são criptografados (AES-256)
+model Paciente {
+  id                    String                @id @default(uuid())
+  /// CPF criptografado — usado como identificador único
+  cpfCriptografado      String                @unique
+  /// Hash do CPF para busca rápida sem descriptografar
+  cpfHash               String                @unique
+  /// Nome completo criptografado
+  nomeCriptografado     String
+  /// Nome em texto plano para exibição (apenas nome, sem sobrenome completo)
+  nomeExibicao          String
+  /// RG criptografado
+  rgCriptografado       String?
+  dataNascimento        DateTime
+  sexoBiologico         SexoBiologico
+  /// Gênero — campo livre
+  genero                String?
+  /// Telefone criptografado
+  telefoneCriptografado String?
+  tipoSanguineo         TipoSanguineo         @default(DESCONHECIDO)
+  /// Convênio/plano de saúde (null = particular)
+  convenio              String?
+  numeroCarteirinha     String?
+  /// Observações iniciais da recepção
+  observacoesIniciais   String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  /// Soft delete
+  deletedAt             DateTime?
+  acompanhanteNome      String?
+  acompanhanteTelefone  String?
+  cns                   String?
+  escolaridade          String?
+  naturalidade          String?
+  nomeMae               String?
+  profissao             String?
+  racaCor               String?
+  alergias              Alergia[]
+  atendimentos          Atendimento[]
+  documentos            DocumentoPaciente[]
+  endereco              Endereco?
+  medicamentosCont      MedicamentoContinuo[]
+
+  @@index([cpfHash])
+  @@index([nomeExibicao])
+  @@index([createdAt])
+  @@map("pacientes")
+}
+
+/// Endereço do paciente (preenchido via ViaCEP)
+model Endereco {
+  id          String   @id @default(uuid())
+  pacienteId  String   @unique
+  cep         String
+  logradouro  String
+  numero      String
+  complemento String?
+  bairro      String
+  cidade      String
+  estado      String   @db.Char(2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  paciente    Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@map("enderecos")
+}
+
+/// Alergias conhecidas do paciente (tag input)
+model Alergia {
+  id         String   @id @default(uuid())
+  pacienteId String
+  /// Ex: "Dipirona", "Penicilina", "Látex"
+  descricao  String
+  /// Leve / Moderada / Grave
+  gravidade  String?
+  createdAt  DateTime @default(now())
+  paciente   Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@index([pacienteId])
+  @@map("alergias")
+}
+
+/// Medicamentos de uso contínuo do paciente
+model MedicamentoContinuo {
+  id          String   @id @default(uuid())
+  pacienteId  String
+  nome        String
+  /// Ex: "500mg", "10ml"
+  dose        String
+  /// Ex: "1x ao dia", "a cada 8h"
+  frequencia  String
+  observacoes String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  paciente    Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@index([pacienteId])
+  @@map("medicamentos_continuos")
+}
+
+/// Documentos enviados pelo paciente (RG, cartão convênio, laudos)
+model DocumentoPaciente {
+  id             String   @id @default(uuid())
+  pacienteId     String
+  /// "RG", "CARTAO_CONVENIO", "LAUDO", "OUTRO"
+  tipo           String
+  nomeArquivo    String
+  mimeType       String
+  tamanhoBytes   Int
+  /// Caminho relativo ao diretório de uploads (NUNCA expor path absoluto)
+  caminhoArquivo String
+  createdAt      DateTime @default(now())
+  paciente       Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@index([pacienteId])
+  @@map("documentos_pacientes")
+}
+
+/// Atendimento — une recepção, triagem e consulta médica
+model Atendimento {
+  id                String            @id @default(uuid())
+  /// Número único de atendimento: 20240315-XXXX (gerado na recepção)
+  numeroAtendimento String            @unique
+  pacienteId        String
+  medicoId          String?
+  status            StatusAtendimento @default(AGUARDANDO_TRIAGEM)
+  /// Setor/área de atendimento (Pronto-Socorro, Ambulatório, etc.)
+  setor             String?
+  /// Sala ou consultório
+  sala              String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  /// Soft delete
+  deletedAt         DateTime?
+  /// Origem do paciente (SAMU, Demanda Espontânea, etc.)
+  origemId          String?
+  medico            Usuario?          @relation("MedicoRef", fields: [medicoId], references: [id])
+  origem            OrigemPaciente?   @relation(fields: [origemId], references: [id])
+  paciente          Paciente          @relation(fields: [pacienteId], references: [id])
+  chamadas          ChamadaPainel[]
+  prontuario        ProntuarioMedico?
+  triagem           Triagem?
+
+  @@index([pacienteId])
+  @@index([numeroAtendimento])
+  @@index([status])
+  @@index([createdAt])
+  @@map("atendimentos")
+}
+
+/// Triagem pelo Protocolo de Manchester
+model Triagem {
+  id                   String        @id @default(uuid())
+  atendimentoId        String        @unique
+  /// Enfermeiro que realizou a triagem
+  triadorId            String
+  corClassificacao     CorTriagem
+  queixaPrincipal      String
+  /// Categoria da queixa: dor, dispneia, alteracao_consciencia, trauma, febre, etc.
+  categoriaQueixa      String?
+  /// Timestamp de entrada na fila de triagem
+  entradaTriagem       DateTime      @default(now())
+  /// Timestamp em que a classificação foi atribuída
+  classificadoEm       DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  acidenteTrabalho     Boolean       @default(false)
+  alergias             String?
+  discriminador        String?
+  doencasPreexistentes String?
+  especialidade        String?
+  fluxograma           String?
+  irradiacao           String?
+  medicacoes           String?
+  nivelConsciencia     String?
+  regraDor             String?
+  ritmo                String?
+  tempoQueixa          String?
+  tipoDorToracica      String?
+  duracaoDor           String?
+  localizacaoDor       String?
+  /// Marcadores de irradiação (CSV de chaves, ex.: BRACO_E,ABDOME)
+  irradiacaoDorSites String?
+  /// Estado/consciência/sinais (CSV de chaves)
+  estadoConscienciaSinais String?
+  sinaisVitais         SinaisVitais?
+  atendimento          Atendimento   @relation(fields: [atendimentoId], references: [id])
+  triador              Usuario       @relation("TriadorRef", fields: [triadorId], references: [id])
+
+  @@index([corClassificacao])
+  @@index([createdAt])
+  @@map("triagens")
+}
+
+/// Sinais vitais coletados na triagem (e atualizáveis no atendimento)
+model SinaisVitais {
+  id                 String   @id @default(uuid())
+  triagemId          String   @unique
+  /// Pressão arterial sistólica (mmHg)
+  paSistolica        Int?
+  /// Pressão arterial diastólica (mmHg)
+  paDiastolica       Int?
+  /// Frequência cardíaca (bpm)
+  frequenciaCardiaca Int?
+  /// Frequência respiratória (irpm)
+  frequenciaResp     Int?
+  /// Saturação de O2 (%)
+  spo2               Decimal? @db.Decimal(5, 2)
+  /// Temperatura (°C)
+  temperatura        Decimal? @db.Decimal(4, 1)
+  /// Glicemia capilar (mg/dL)
+  glicemia           Int?
+  /// Escala de dor 0-10
+  escalaDor          Int?
+  /// Peso em kg
+  peso               Decimal? @db.Decimal(5, 2)
+  /// Altura em cm
+  altura             Int?
+  /// IMC calculado automaticamente
+  imc                Decimal? @db.Decimal(4, 2)
+  coletadoEm         DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  triagem            Triagem  @relation(fields: [triagemId], references: [id], onDelete: Cascade)
+
+  @@map("sinais_vitais")
+}
+
+/// Registro de cada chamada feita pelo painel de espera
+model ChamadaPainel {
+  id            String      @id @default(uuid())
+  atendimentoId String
+  /// Médico ou enfermeiro que acionou a chamada
+  chamadoPorId  String
+  /// Sala/consultório para onde o paciente foi chamado
+  salaDestino   String
+  /// Setor do painel (suporte a múltiplos painéis)
+  setorPainel   String      @default("GERAL")
+  chamadoEm     DateTime    @default(now())
+  atendimento   Atendimento @relation(fields: [atendimentoId], references: [id])
+  chamadoPor    Usuario     @relation(fields: [chamadoPorId], references: [id])
+
+  @@index([setorPainel])
+  @@index([chamadoEm])
+  @@map("chamadas_painel")
+}
+
+/// Prontuário eletrônico — agrupa todos os registros de um atendimento
+model ProntuarioMedico {
+  id              String            @id @default(uuid())
+  atendimentoId   String            @unique
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  anamnese        Anamnese?
+  diagnosticos    Diagnostico[]
+  encaminhamentos Encaminhamento[]
+  evolucoes       EvolucaoMedica[]
+  prescricoes     Prescricao[]
+  atendimento     Atendimento       @relation(fields: [atendimentoId], references: [id])
+  requisicoes     RequisicaoExame[]
+
+  @@index([atendimentoId])
+  @@map("prontuarios_medicos")
+}
+
+/// Anamnese completa do atendimento médico
+model Anamnese {
+  id              String           @id @default(uuid())
+  prontuarioId    String           @unique
+  /// Queixa principal (herdada da triagem, editável pelo médico)
+  queixaPrincipal String
+  /// História da doença atual (HDA) — rich text sanitizado
+  hda             String?
+  /// Antecedentes pessoais
+  antecedentesP   String?
+  /// Antecedentes familiares
+  antecedentesF   String?
+  /// Antecedentes cirúrgicos
+  antecedentesC   String?
+  /// Hábitos de vida (JSON estruturado)
+  /// { tabagismo: boolean, etilismo: boolean, atividadeFisica: string, alimentacao: string }
+  habitosVida     Json?
+  /// Revisão de sistemas (JSON por aparelho)
+  revisaoSistemas Json?
+  /// Exame físico por sistema (JSON)
+  exameFisico     Json?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  prontuario      ProntuarioMedico @relation(fields: [prontuarioId], references: [id], onDelete: Cascade)
+
+  @@map("anamneses")
+}
+
+/// Diagnóstico com código CID-10
+model Diagnostico {
+  id           String           @id @default(uuid())
+  prontuarioId String
+  /// Código CID-10 (ex: "J18.1")
+  codigoCid    String
+  /// Descrição do CID
+  descricaoCid String
+  /// Hipótese diagnóstica em texto livre
+  hipotese     String?
+  /// Principal = diagnóstico primário; false = secundário/comorbidade
+  principal    Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  prontuario   ProntuarioMedico @relation(fields: [prontuarioId], references: [id], onDelete: Cascade)
+
+  @@index([prontuarioId])
+  @@index([codigoCid])
+  @@map("diagnosticos")
+}
+
+/// Prescrição médica (cabeçalho)
+model Prescricao {
+  id               String           @id @default(uuid())
+  prontuarioId     String
+  /// Número sequencial da prescrição no atendimento
+  numeroPrescricao Int              @default(1)
+  /// Data de emissão
+  emitidaEm        DateTime         @default(now())
+  /// Validade da prescrição
+  validaAte        DateTime?
+  observacoes      String?
+  /// PDF gerado (caminho ou URL)
+  pdfCaminho       String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  itens            ItemPrescricao[]
+  prontuario       ProntuarioMedico @relation(fields: [prontuarioId], references: [id], onDelete: Cascade)
+
+  @@index([prontuarioId])
+  @@map("prescricoes")
+}
+
+/// Item individual da prescrição (medicamento)
+model ItemPrescricao {
+  id              String                 @id @default(uuid())
+  prescricaoId    String
+  /// Nome do medicamento (comercial ou princípio ativo)
+  nomeMedicamento String
+  /// Ex: "500mg", "10ml"
+  dose            String
+  via             ViaAdministracao
+  /// Frequência: "1x ao dia", "a cada 8h", "08h - 14h - 20h"
+  frequencia      String
+  /// Duração em dias
+  duracaoDias     Int?
+  observacoes     String?
+  status          StatusPrescricaoItem   @default(PENDENTE)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  aplicacoes      AplicacaoMedicamento[]
+  prescricao      Prescricao             @relation(fields: [prescricaoId], references: [id], onDelete: Cascade)
+
+  @@index([prescricaoId])
+  @@map("itens_prescricao")
+}
+
+/// Registro de cada aplicação de medicamento realizada pela enfermagem
+model AplicacaoMedicamento {
+  id                  String           @id @default(uuid())
+  itemPrescricaoId    String
+  /// Enfermeiro responsável
+  aplicadoPorId       String
+  /// Dose efetivamente aplicada (pode diferir da prescrita em casos especiais)
+  doseAplicada        String
+  via                 ViaAdministracao
+  aplicadoEm          DateTime
+  /// Checklist dos 5 certos — confirmação obrigatória antes de salvar
+  /// { pacienteCerto, medicamentoCerto, doseCerta, viaCerta, horarioCerto }
+  checklistConfirmado Json
+  observacoes         String?
+  createdAt           DateTime         @default(now())
+  aplicadoPor         Usuario          @relation(fields: [aplicadoPorId], references: [id])
+  itemPrescricao      ItemPrescricao   @relation(fields: [itemPrescricaoId], references: [id])
+
+  @@index([itemPrescricaoId])
+  @@index([aplicadoEm])
+  @@map("aplicacoes_medicamentos")
+}
+
+/// Requisição de exames (laboratório, imagem, cardiologia, etc.)
+model RequisicaoExame {
+  id           String           @id @default(uuid())
+  prontuarioId String
+  categoria    CategoriaExame
+  urgencia     UrgenciaExame    @default(ROTINA)
+  /// Indicação clínica (obrigatória para convênios)
+  indicacao    String
+  /// PDF gerado da requisição
+  pdfCaminho   String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  itens        ItemRequisicao[]
+  prontuario   ProntuarioMedico @relation(fields: [prontuarioId], references: [id], onDelete: Cascade)
+
+  @@index([prontuarioId])
+  @@map("requisicoes_exames")
+}
+
+/// Item individual da requisição de exame
+model ItemRequisicao {
+  id           String          @id @default(uuid())
+  requisicaoId String
+  /// Nome do exame (ex: "Hemograma completo", "Raio-X tórax PA")
+  nomeExame    String
+  /// Código TUSS ou similar (preparado para FHIR R4)
+  codigoTuss   String?
+  observacoes  String?
+  /// Resultado em texto (digitado ou importado)
+  resultado    String?
+  /// PDF do resultado
+  resultadoPdf String?
+  realizadoEm  DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  requisicao   RequisicaoExame @relation(fields: [requisicaoId], references: [id], onDelete: Cascade)
+
+  @@index([requisicaoId])
+  @@map("itens_requisicao")
+}
+
+/// Evolução médica — imutável após criação (append-only para auditoria)
+model EvolucaoMedica {
+  id           String           @id @default(uuid())
+  prontuarioId String
+  autorId      String
+  /// Conteúdo rich text (sanitizado com DOMPurify)
+  conteudo     String
+  /// Template usado: SOAP, livre, etc.
+  template     String?
+  /// Timestamp automático — nunca editável
+  registradoEm DateTime         @default(now())
+  autor        Usuario          @relation(fields: [autorId], references: [id])
+  prontuario   ProntuarioMedico @relation(fields: [prontuarioId], references: [id])
+
+  @@index([prontuarioId])
+  @@index([registradoEm])
+  @@map("evolucoes_medicas")
+}
+
+/// Encaminhamento interno, externo ou solicitação de internação
+model Encaminhamento {
+  id              String             @id @default(uuid())
+  prontuarioId    String
+  tipo            TipoEncaminhamento
+  /// Especialidade de destino (ex: "Cardiologia", "UTI")
+  especialidade   String
+  /// Para encaminhamento interno: ID do médico de destino
+  medicoDestinoId String?
+  /// Alta, Média, Baixa
+  prioridade      String?
+  /// Resumo clínico para o receptor
+  resumoClinco    String?
+  /// Justificativa (obrigatória para externos)
+  justificativa   String?
+  /// Para internação: tipo de leito (UTI, Enfermaria, Isolamento)
+  tipoLeito       String?
+  setor           String?
+  cidInternacao   String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  prontuario      ProntuarioMedico   @relation(fields: [prontuarioId], references: [id], onDelete: Cascade)
+
+  @@index([prontuarioId])
+  @@map("encaminhamentos")
+}
+
+/// Log de auditoria imutável — registra toda alteração no sistema
+/// NUNCA deve ter UPDATE ou DELETE — apenas INSERT
+model LogAuditoria {
+  id            String            @id @default(uuid())
+  usuarioId     String?
+  acao          TipoAcaoAuditoria
+  /// Entidade afetada: "Paciente", "Triagem", "Prescricao", etc.
+  entidade      String
+  entidadeId    String?
+  /// Campo alterado (para ações de atualização)
+  campo         String?
+  /// Valor anterior (para ações de atualização)
+  valorAnterior String?
+  /// Novo valor (para ações de atualização)
+  valorNovo     String?
+  /// IP da requisição
+  ipOrigem      String?
+  /// User-Agent do cliente
+  userAgent     String?
+  registradoEm  DateTime          @default(now())
+  usuario       Usuario?          @relation(fields: [usuarioId], references: [id])
+
+  @@index([usuarioId])
+  @@index([entidade, entidadeId])
+  @@index([registradoEm])
+  @@map("logs_auditoria")
+}
+
+/// Configurações gerais da instituição / Município
+model Instituicao {
+  id              String   @id @default(uuid())
+  nomeMunicipio   String
+  nomeInstituicao String
+  endereco        String?
+  bairro          String?
+  cidade          String?
+  estado          String?  @db.Char(2)
+  cep             String?
+  logomarcaUrl    String?
+  updatedAt       DateTime @updatedAt
+
+  @@map("instituicoes")
+}
+
+/// Configurações do Painel de Chamadas
+model ConfigPainel {
+  id              String   @id @default(uuid())
+  vozAtiva         Boolean  @default(true)
+  tipoVoz         String   @default("feminina") // "masculina" | "feminina"
+  corPrimaria     String   @default("#2563eb")
+  corSecundaria   String   @default("#f8fafc")
+  corTexto        String   @default("#1e293b")
+  mensagemPadrao  String   @default("Comparecer ao consultório")
+  velocidadeVoz   Float    @default(1.0)
+  updatedAt       DateTime @updatedAt
+
+  @@map("config_painel")
+}
+
+/// Configuração SMTP (linha única `id = default`)
+model ConfigSmtp {
+  id                 String   @id
+  host               String   @default("")
+  porta              Int      @default(587)
+  secure             Boolean  @default(false)
+  usuario            String   @default("")
+  senhaCriptografada String   @default("")
+  emailRemetente     String   @default("")
+  nomeRemetente      String?
+  ativo              Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("config_smtp")
+}
+
+/// Origem do paciente (Demanda espontânea, SAMU, Transferência)
+model OrigemPaciente {
+  id                String        @id @default(uuid())
+  descricao         String        @unique
+  ativo             Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  /// Quadrícula “procedência” na ficha de urgência (configurável em Origens)
+  procedenciaFicha  String?
+  atendimentos      Atendimento[]
+
+  @@map("origens_pacientes")
+}
+
+/// Roles de acesso do sistema (RBAC)
+enum Role {
+  ADMIN
+  MEDICO
+  ENFERMEIRO
+  TECNICO_ENFERMAGEM
+  RECEPCIONISTA
+  DIRETOR_CLINICO
+}
+
+/// Classificação do Protocolo de Manchester
+enum CorTriagem {
+  /// Emergência — atendimento imediato
+  VERMELHO
+  /// Muito urgente — ≤ 10 min
+  LARANJA
+  /// Urgente — ≤ 30 min
+  AMARELO
+  /// Pouco urgente — ≤ 60 min
+  VERDE
+  /// Não urgente — ≤ 120 min
+  AZUL
+  /// Observação/aguardando — sem prazo
+  CINZA
+}
+
+/// Status do atendimento
+enum StatusAtendimento {
+  AGUARDANDO_TRIAGEM
+  EM_TRIAGEM
+  AGUARDANDO_ATENDIMENTO
+  EM_ATENDIMENTO
+  CONCLUIDO
+  INTERNADO
+  TRANSFERIDO
+  ALTA
+  OBITO
+}
+
+/// Tipo sanguíneo
+enum TipoSanguineo {
+  A_POSITIVO
+  A_NEGATIVO
+  B_POSITIVO
+  B_NEGATIVO
+  AB_POSITIVO
+  AB_NEGATIVO
+  O_POSITIVO
+  O_NEGATIVO
+  DESCONHECIDO
+}
+
+/// Sexo biológico
+enum SexoBiologico {
+  MASCULINO
+  FEMININO
+  INTERSEXO
+}
+
+/// Via de administração de medicamento
+enum ViaAdministracao {
+  /// VO — Via oral
+  ORAL
+  /// IV — Intravenosa
+  INTRAVENOSA
+  /// IM — Intramuscular
+  INTRAMUSCULAR
+  /// SC — Subcutânea
+  SUBCUTANEA
+  TOPICA
+  INALATORIA
+  SUBLINGUAL
+  RETAL
+  OFTALMICA
+  OTOLOGICA
+  NASAL
+}
+
+/// Status de item de prescrição
+enum StatusPrescricaoItem {
+  PENDENTE
+  APLICADO
+  RECUSADO
+  SUSPENSO
+}
+
+/// Urgência de exame
+enum UrgenciaExame {
+  ROTINA
+  URGENTE
+  EMERGENCIAL
+}
+
+/// Categoria de exame
+enum CategoriaExame {
+  LABORATORIO
+  IMAGEM
+  CARDIOLOGIA
+  PROCEDIMENTO
+  OUTRO
+}
+
+/// Tipo de encaminhamento
+enum TipoEncaminhamento {
+  INTERNO
+  EXTERNO
+  INTERNACAO
+}
+
+/// Tipo de conteúdo de auditoria
+enum TipoAcaoAuditoria {
+  CRIACAO
+  ATUALIZACAO
+  EXCLUSAO
+  VISUALIZACAO
+  LOGIN
+  LOGOUT
+  CHAMADA_PAINEL
+}

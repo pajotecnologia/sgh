@@ -1,0 +1,42 @@
+# Dependências
+node_modules/
+.npm
+
+# Next.js
+.next/
+out/
+build/
+
+# Pacote de deploy gerado (npm run build:release)
+release/**
+!release/.gitkeep
+
+# Ambiente (NUNCA commitar .env com segredos!)
+.env
+.env.local
+.env.production
+
+# Uploads de pacientes (dados sensíveis)
+uploads/
+# Resultados de exame em PDF (servidos em /public; não versionar ficheiros)
+public/uploads/exames/*.pdf
+
+# Logs
+*.log
+logs/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testes
+coverage/
