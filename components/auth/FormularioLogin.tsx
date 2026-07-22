@@ -1,17 +1,17 @@
 // components/auth/FormularioLogin.tsx
 // Formulário de login com React Hook Form + Zod + NextAuth
 
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import Link from 'next/link';
-import { Loader2, Eye, EyeOff, LogIn } from 'lucide-react';
-import { toast } from 'sonner';
+import { Suspense, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { signIn } from 'next-auth/react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import Link from 'next/link'
+import { Loader2, Eye, EyeOff, LogIn } from 'lucide-react'
+import { toast } from 'sonner'
 
 const schemaLogin = z.object({
   email: z
@@ -21,139 +21,189 @@ const schemaLogin = z.object({
   senha: z
     .string()
     .min(6, 'Senha deve ter pelo menos 6 caracteres.'),
-});
+})
 
-type LoginForm = z.infer<typeof schemaLogin>;
+type LoginForm = z.infer<typeof schemaLogin>
 
-export function FormularioLogin() {
-  const router = useRouter();
-  const [mostrarSenha, setMostrarSenha] = useState(false);
+const CREDENCIAIS_DEMO = [
+  { perfil: 'Administrador', email: 'admin@hospital.com' },
+  { perfil: 'Farmácia', email: 'farmacia@hospital.com' },
+  { perfil: 'Médico', email: 'medico@hospital.com' },
+  { perfil: 'Enfermeiro', email: 'enfermeiro@hospital.com' },
+  { perfil: 'Recepção', email: 'recepcao@hospital.com' },
+] as const
+
+const SENHA_DEMO = 'Sgh@2024!'
+
+async function checarBancoComTimeout(ms = 8000): Promise<boolean> {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), ms)
+  try {
+    const res = await fetch('/api/auth/health-database', { signal: ctrl.signal })
+    const json = await res.json().catch(() => ({ ok: false }))
+    return res.ok && Boolean((json as { ok?: boolean }).ok)
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+function FormularioLoginInner() {
+  const searchParams = useSearchParams()
+  const emailUrl = searchParams.get('email')?.trim().toLowerCase() ?? ''
+  const senhaUrl = searchParams.get('senha') ?? ''
+  const [mostrarSenha, setMostrarSenha] = useState(false)
 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({
     resolver: zodResolver(schemaLogin),
-  });
+    defaultValues: { email: '', senha: '' },
+  })
+
+  const emailRegister = register('email')
+  const senhaValor = watch('senha') ?? ''
+
+  useEffect(() => {
+    if (emailUrl) setValue('email', emailUrl, { shouldValidate: true })
+    if (senhaUrl) setValue('senha', senhaUrl, { shouldValidate: true })
+  }, [emailUrl, senhaUrl, setValue])
+
+  const handlePreencherDemo = (email: string) => {
+    setValue('email', email, { shouldValidate: true })
+    setValue('senha', SENHA_DEMO, { shouldValidate: true })
+  }
+
+  const handleToggleSenha = () => {
+    setMostrarSenha((prev) => !prev)
+  }
 
   async function onSubmit(dados: LoginForm) {
     try {
-      const checagemDb = await fetch('/api/auth/health-database');
-      const corpoDb = await checagemDb.json().catch(() => ({ ok: false }));
-      if (!checagemDb.ok || !(corpoDb as { ok?: boolean }).ok) {
-        toast.error('Banco de dados offline', {
-          description:
-            (corpoDb as { message?: string }).message ??
-            'PostgreSQL não responde. Inicie o servidor e confira DATABASE_URL no .env.',
-        });
-        return;
+      const bancoOk = await checarBancoComTimeout()
+      if (!bancoOk) {
+        toast.warning('Banco de dados lento ou offline', {
+          description: 'Tentando login mesmo assim. Se falhar, rode npm run db:compose:up e npm run db:seed.',
+        })
       }
 
       const resultado = await signIn('credentials', {
         email: dados.email.toLowerCase().trim(),
         senha: dados.senha,
         redirect: false,
-      });
+        callbackUrl: '/entrando',
+      })
 
       if (resultado?.error) {
+        if (resultado.error === 'Configuration') {
+          toast.error('Configuração do servidor', {
+            description:
+              'Defina NEXTAUTH_SECRET no .env (veja .env.example), reinicie com npm run dev e use http://localhost:3000/login',
+          })
+          return
+        }
+
         toast.error('Credenciais inválidas', {
           description:
-            'E-mail ou senha incorretos — ou usuários ainda não foram criados. Rode npm run db:seed. Exemplo: admin@hospital.com e senha Sgh@2024!',
-        });
-        return;
+            'Use admin@hospital.com / Sgh@2024! (após npm run db:seed). Clique em Entrar — não use só a URL com senha.',
+        })
+        return
       }
 
       if (resultado?.ok) {
-        toast.success('Login realizado com sucesso!');
-        // Redirecionar para o dashboard — o middleware cuidará do role
-        router.push('/dashboard');
-        router.refresh();
+        toast.success('Login realizado! Redirecionando…')
+        // Navegação completa garante que o cookie de sessão seja aplicado antes do redirect por perfil
+        window.location.assign('/entrando')
+        return
       }
+
+      toast.error('Não foi possível entrar', {
+        description: 'Tente http://localhost:3000/login (evite 127.0.0.1 se o login falhar).',
+      })
     } catch {
       toast.error('Erro inesperado', {
-        description: 'Tente novamente em instantes.',
-      });
+        description: 'Verifique se o servidor está rodando (npm run dev).',
+      })
     }
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-      {/* E-mail */}
       <div className="form-field">
-        <label
-          htmlFor="email"
-          className="text-sm font-medium text-foreground"
-        >
+        <label htmlFor="email" className="text-sm font-medium text-foreground">
           E-mail institucional
         </label>
         <input
           id="email"
           type="email"
           autoComplete="email"
-          placeholder="seu@hospital.com.br"
+          placeholder="admin@hospital.com"
           className={`
             w-full px-3.5 py-2.5 rounded-lg border bg-background text-sm
             outline-none transition-all duration-150
             focus:ring-2 focus:ring-primary/30 focus:border-primary
             disabled:opacity-50 disabled:cursor-not-allowed
-            ${errors.email
-              ? 'border-destructive focus:ring-destructive/30'
-              : 'border-input'
-            }
+            ${errors.email ? 'border-destructive focus:ring-destructive/30' : 'border-input'}
           `}
           disabled={isSubmitting}
-          {...register('email')}
+          name={emailRegister.name}
+          ref={emailRegister.ref}
+          onBlur={emailRegister.onBlur}
+          onChange={emailRegister.onChange}
         />
-        {errors.email && (
+        {errors.email ? (
           <p className="text-xs text-destructive">{errors.email.message}</p>
-        )}
+        ) : null}
       </div>
 
-      {/* Senha */}
       <div className="form-field">
-        <label
-          htmlFor="senha"
-          className="text-sm font-medium text-foreground"
-        >
+        <label htmlFor="senha" className="text-sm font-medium text-foreground">
           Senha
         </label>
         <div className="relative">
           <input
             id="senha"
-            type={mostrarSenha ? 'text' : 'password'}
+            name="senha"
             autoComplete="current-password"
-            placeholder="••••••••"
+            placeholder="Sgh@2024!"
+            disabled={isSubmitting}
+            value={senhaValor}
+            onChange={(e) => setValue('senha', e.target.value, { shouldValidate: true, shouldDirty: true })}
+            onBlur={() => undefined}
+            type={mostrarSenha ? 'text' : 'password'}
             className={`
-              w-full px-3.5 py-2.5 pr-10 rounded-lg border bg-background text-sm
+              w-full px-3.5 py-2.5 pr-11 rounded-lg border bg-background text-sm
               outline-none transition-all duration-150
               focus:ring-2 focus:ring-primary/30 focus:border-primary
               disabled:opacity-50 disabled:cursor-not-allowed
-              ${errors.senha
-                ? 'border-destructive focus:ring-destructive/30'
-                : 'border-input'
-              }
+              ${errors.senha ? 'border-destructive focus:ring-destructive/30' : 'border-input'}
             `}
-            disabled={isSubmitting}
-            {...register('senha')}
+            aria-label="Senha de acesso"
           />
           <button
             type="button"
-            onClick={() => setMostrarSenha(!mostrarSenha)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            tabIndex={-1}
+            onClick={handleToggleSenha}
+            onMouseDown={(e) => e.preventDefault()}
+            className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            tabIndex={0}
             aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+            aria-pressed={mostrarSenha}
           >
             {mostrarSenha ? (
-              <EyeOff className="h-4 w-4" />
+              <EyeOff className="h-4 w-4" aria-hidden />
             ) : (
-              <Eye className="h-4 w-4" />
+              <Eye className="h-4 w-4" aria-hidden />
             )}
           </button>
         </div>
-        {errors.senha && (
+        {errors.senha ? (
           <p className="text-xs text-destructive">{errors.senha.message}</p>
-        )}
+        ) : null}
         <p className="text-right">
           <Link href="/recuperar-senha" className="text-xs font-medium text-primary hover:underline">
             Esqueci minha senha
@@ -161,7 +211,6 @@ export function FormularioLogin() {
         </p>
       </div>
 
-      {/* Botão de submit */}
       <button
         type="submit"
         disabled={isSubmitting}
@@ -179,16 +228,48 @@ export function FormularioLogin() {
       >
         {isSubmitting ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             Entrando...
           </>
         ) : (
           <>
-            <LogIn className="h-4 w-4" />
+            <LogIn className="h-4 w-4" aria-hidden />
             Entrar no sistema
           </>
         )}
       </button>
+
+      <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 space-y-2">
+        <p className="text-xs font-semibold text-foreground">Acesso demonstração</p>
+        <p className="text-[11px] text-muted-foreground">
+          Senha padrão: <span className="font-mono font-semibold text-foreground">{SENHA_DEMO}</span>
+        </p>
+        <p className="text-[11px] text-muted-foreground">
+          Use <strong className="text-foreground">http://localhost:3000/login</strong>, preencha os campos e clique em Entrar.
+        </p>
+        <ul className="flex flex-wrap gap-1.5">
+          {CREDENCIAIS_DEMO.map((c) => (
+            <li key={c.email}>
+              <button
+                type="button"
+                onClick={() => handlePreencherDemo(c.email)}
+                className="rounded-md border border-border bg-background px-2 py-1 text-[10px] font-semibold hover:bg-muted/60"
+                aria-label={`Preencher login ${c.perfil}`}
+              >
+                {c.perfil}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
     </form>
-  );
+  )
+}
+
+export function FormularioLogin() {
+  return (
+    <Suspense fallback={<p className="text-sm text-muted-foreground">Carregando formulário…</p>}>
+      <FormularioLoginInner />
+    </Suspense>
+  )
 }

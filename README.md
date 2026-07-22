@@ -1,48 +1,85 @@
 # SGH — Sistema de Gerenciamento Hospitalar
 
-## Módulos Implementados
+Sistema hospitalar completo para unidades de urgência/emergência e internação: recepção, triagem (Protocolo de Manchester), atendimento médico, prescrição, farmácia hospitalar, internação e prontuário eletrônico — com trilha de auditoria, criptografia de dados sensíveis e painel de chamadas em tempo real.
 
-| Sessão | Módulo | Status |
-|--------|--------|--------|
-| 1 | Recepção / Ficha do Paciente | ✅ Completo |
-| 2 | Triagem — Protocolo Manchester | ✅ Completo |
-| 2 | Painel de Chamada (tela cheia) | ✅ Completo |
-| 3 | Atendimento Médico (Anamnese, CID-10, Prescrição) | ✅ Completo |
-| 4 | Aplicação de Meds, Exames, Evolução, Encaminhamentos | ✅ Completo (API + UI médico + `/enfermagem`) |
-| 5 | Prontuário Eletrônico + Auditoria | ✅ Base (`/prontuario`, `/auditoria`) |
-| 6 | Testes, PWA, Relatórios PDF | ✅ Parcial (`pdf-lib`: relatório diário + upload PDF em exames; PWA sem ícones dedicados) |
+## Stack
+
+| Camada | Tecnologia |
+|--------|-----------|
+| Framework | Next.js 16 (App Router) + React 19 |
+| Linguagem | TypeScript 5 |
+| Banco | PostgreSQL + Prisma 7 (adapter `pg`) |
+| Autenticação | NextAuth 4 (JWT 8h) + RBAC |
+| Tempo real | Pusher (WebSockets) com fallback por polling |
+| UI | Tailwind CSS 3 + Radix UI + shadcn |
+| Formulários | React Hook Form + Zod |
+| PDF | pdf-lib |
+| E-mail | Nodemailer (SMTP configurável) |
+| Testes | Vitest + Testing Library |
 
 ---
 
-## 🚀 Como Iniciar
+## Estado atual dos módulos
 
-### 1. Configurar variáveis de ambiente
+| Módulo | Rota | Status |
+|--------|------|--------|
+| Recepção / Ficha do paciente | `/recepcao` | ✅ Cadastro multi-etapa, edição, ViaCEP, upload de documentos |
+| Triagem — Protocolo Manchester | `/triagem` | ✅ Classificação por cor, sinais vitais, IMC, discriminadores |
+| Painel de chamada (TV) | `/painel` | ✅ Tela cheia, voz, mídia rotativa, múltiplos setores |
+| Atendimento médico | `/atendimento` | ✅ Anamnese, CID-10, prescrição, evolução, exames, encaminhamentos |
+| Medicação (PS, não internados) | `/medicacao` | ✅ Fila + aplicação com checklist dos 5 certos |
+| Internamento | `/internamento` | ✅ Admissões, evolução por turno, sinais vitais 24h, SAE, multidisciplinar, CCIH, obstetrícia, berçário |
+| Farmácia hospitalar | `/farmacia` | ✅ Catálogo, lotes (FEFO), entrada por NF-e (XML), dispensação, matriz de interações |
+| Prontuário eletrônico | `/prontuario` | ✅ Busca de atendimentos + histórico consolidado |
+| Evoluções | `/evolucoes` | ✅ Registro cronológico multiprofissional |
+| Auditoria (LGPD) | `/auditoria` | ✅ Logs imutáveis (admin) |
+| Cadastros | `/cadastros` | ✅ Leitos, clínicas, origens, prescrições-padrão |
+| Configurações | `/configuracoes` | ✅ Instituição, painel, SMTP |
+| Relatórios | `/relatorios` | ✅ PDF de atendimentos do dia |
+
+---
+
+## Como iniciar
+
+### 1. Variáveis de ambiente
 
 ```bash
-copy .env.example .env
+cp .env.example .env
 ```
 
-Edite o `.env` e preencha **obrigatoriamente**:
+Preencha **obrigatoriamente**:
 
-| Variável | Como gerar |
-|----------|-----------|
-| `DATABASE_URL` | `postgresql://postgres:senha@localhost:5432/sgh_db` |
+| Variável | Como gerar / obter |
+|----------|--------------------|
+| `DATABASE_URL` | `postgresql://postgres:senha@127.0.0.1:5432/sgh_db` |
 | `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
-| `ENCRYPTION_KEY` | `openssl rand -hex 32` (64 chars hex) |
-| `PUSHER_APP_ID`, `PUSHER_KEY`, `PUSHER_SECRET`, `PUSHER_CLUSTER` | Criar em pusher.com (gratuito) |
-| `NEXT_PUBLIC_PUSHER_KEY`, `NEXT_PUBLIC_PUSHER_CLUSTER` | Mesmos valores do servidor |
+| `ENCRYPTION_KEY` | `openssl rand -hex 32` (exatamente 64 caracteres hex) |
+| `PUSHER_APP_ID` / `PUSHER_KEY` / `PUSHER_SECRET` / `PUSHER_CLUSTER` | Criar app gratuito em [pusher.com](https://pusher.com) |
+| `NEXT_PUBLIC_PUSHER_KEY` / `NEXT_PUBLIC_PUSHER_CLUSTER` | Mesmos valores do servidor |
 
-### 2. Criar banco e rodar migrations
+Opcionais: `UPLOAD_DIR`, `MAX_FILE_SIZE`, dados do hospital (`HOSPITAL_*`), `LOG_LEVEL`.
 
-```bash
-npm run db:migrate
-```
-
-### 3. Popular usuários iniciais
+### 2. Banco de dados
 
 ```bash
-npm run db:seed
+# Com Docker (recomendado)
+npm run db:compose:up      # sobe Postgres via docker-compose
+npm run db:push            # aplica o schema
+npm run db:seed            # popula usuários iniciais
+
+# Ou com Postgres local já instalado
+npm run db:bootstrap       # cria banco + aplica migrations + seed
 ```
+
+### 3. Iniciar
+
+```bash
+npm run dev
+```
+
+Acesse http://localhost:3000
+
+### Usuários iniciais (seed)
 
 | E-mail | Senha | Role |
 |--------|-------|------|
@@ -52,176 +89,106 @@ npm run db:seed
 | recepcao@hospital.com | Sgh@2024! | RECEPCIONISTA |
 | diretor@hospital.com | Sgh@2024! | DIRETOR_CLINICO |
 
-> ⚠️ Troque as senhas imediatamente em produção!
-
-### 4. Iniciar
-
-```bash
-npm run dev
-```
-
-Acesse: http://localhost:3000
+> ⚠️ Troque todas as senhas antes de qualquer uso em produção.
 
 ---
 
-## 📁 Estrutura do Projeto
+## Scripts úteis
+
+| Comando | Descrição |
+|---------|-----------|
+| `npm run dev` | Garante o banco e sobe o servidor de desenvolvimento |
+| `npm run build` | Build de produção |
+| `npm run build:instalador` | Build + empacota release + gera instalador Windows |
+| `npm test` | Testes unitários (Vitest, watch) |
+| `npm run test:run` | Testes em modo CI (single-run) |
+| `npm run db:migrate` | Migrations em desenvolvimento |
+| `npm run db:migrate:deploy` | Migrations em produção |
+| `npm run db:studio` | Prisma Studio |
+| `npm run db:seed` | Popula usuários iniciais |
+| `npm run smoke:rbac` | Smoke test das permissões por role |
+| `npm run lint` | ESLint |
+
+---
+
+## Papéis de acesso (RBAC)
+
+`ADMIN` · `MEDICO` · `ENFERMEIRO` · `TECNICO_ENFERMAGEM` · `RECEPCIONISTA` · `DIRETOR_CLINICO` · `FARMACEUTICO`
+
+As permissões são verificadas no middleware (proteção de rotas) e em cada endpoint via `getServerSession`.
+
+---
+
+## Segurança
+
+- Dados sensíveis do paciente (CPF, RG, nome, telefone) criptografados com **AES-256-GCM**; hash do CPF para busca sem descriptografar.
+- Trilha de auditoria imutável (append-only) — inclui log LGPD específico da farmácia.
+- Soft delete nas entidades principais.
+- Senhas com bcrypt; suporte a MFA/TOTP no modelo de usuário.
+- JWT com expiração de 8h, sem dados sensíveis no token.
+- O painel de chamadas (`/painel`) é público (para TVs) — recomenda-se rate limit na borda (nginx/Vercel Edge).
+
+---
+
+## O que falta / próximos passos
+
+### Segurança e produção
+- [ ] **MFA/TOTP** — o schema já tem `mfaSecret`/`mfaAtivo`, mas o fluxo de ativação e verificação no login ainda não está implementado.
+- [ ] **Rate limiting** no painel público e nos endpoints de autenticação.
+- [ ] Rotação de `ENCRYPTION_KEY` e estratégia de re-criptografia.
+- [ ] Revisão de políticas de retenção/anonimização (LGPD).
+
+### Testes e qualidade
+- [ ] Ampliar cobertura: hoje há testes unitários focados (criptografia, CPF, Manchester, IMC, validações Zod da Sessão 4). Faltam testes de integração de API e testes E2E dos fluxos completos (recepção → triagem → atendimento → internação).
+- [ ] Testes dos módulos de farmácia e internação (evolução por turno, SAE, CCIH, obstetrícia).
+- [ ] CI configurado para rodar `test:run` + `lint` + `build`.
+
+### Funcionalidades
+- [ ] **PWA / offline** — dependências e estrutura existem, mas faltam ícones dedicados e service worker configurado.
+- [ ] **FHIR R4** — o schema já reserva campos (ex.: `codigoTuss` em exames); integração/exportação ainda não implementada.
+- [ ] Relatórios gerenciais além do "atendimentos do dia" (indicadores de fila, tempos por cor Manchester, ocupação de leitos).
+- [ ] Importação/lançamento de resultados de exames vindos de laboratório (hoje é manual: texto + PDF anexado).
+- [ ] Assinatura digital de prescrições e laudos.
+
+### Infraestrutura
+- [ ] Documentar o processo de deploy (VPS / Windows via instalador) em detalhe.
+- [ ] Backup automatizado do banco e dos uploads.
+- [ ] Observabilidade: métricas e alertas (hoje há logging com pino).
+
+> Nota: há cerca de 200 marcadores `TODO`/pendências espalhados no código-fonte — vale uma varredura dedicada (`grep -ri "TODO"`) para priorizar os itens acima com base nos pontos já sinalizados pela equipe.
+
+---
+
+## Estrutura do projeto
 
 ```
 sgh/
 ├── app/
-│   ├── (auth)/login/             # Tela de login premium
-│   ├── (dashboard)/              # Área protegida por NextAuth
-│   │   ├── layout.tsx            # Sidebar + Header por role
-│   │   ├── dashboard/            # Visão geral + stats do dia
-│   │   ├── recepcao/             # Módulo 1 ✅
-│   │   │   └── novo/             # Cadastro multi-step 4 etapas
-│   │   ├── triagem/              # Módulo 2 ✅
-│   │   │   └── [atendimentoId]/  # Formulário de triagem individual
-│   │   ├── atendimento/          # Módulo 3 + Sessão 4 ✅
-│   │   │   ├── [atendimentoId]/  # Workspace (Anamnese, CID, Prescrição, Evolução, Exames, Encaminhamentos)
-│   │   │   └── imprimir/         # Ficha preenchida (médico)
-│   │   ├── enfermagem/          # Sessão 4 — aplicação de medicamentos ✅
-│   │   ├── prontuario/           # Sessão 5 — busca de atendimentos ✅
-│   │   ├── auditoria/          # Sessão 5 — logs (admin) ✅
-│   │   └── relatorios/           # Sessão 6 — PDF atendimentos do dia (admin/diretor)
-│   ├── painel/                   # Módulo 3 ✅ (rota pública, tela cheia)
-│   ├── acesso-negado/            # Página de erro de permissão
-│   └── api/
-│       ├── auth/[...nextauth]/   # NextAuth
-│       ├── pacientes/            # GET (busca+paginação) + POST (cadastro)
-│       ├── triagem/              # POST (registrar) + fila/GET (fila tempo real)
-│       ├── atendimento/          # Mesa médica + Sessão 4
-│       │   └── [atendimentoId]/
-│       │       ├── prontuario/   # GET (lazy creation; inclui exames e aplicações)
-│       │       ├── anamnese/     # POST
-│       │       ├── diagnostico/  # POST/GET
-│       │       ├── prescricao/   # POST (alergias / interações)
-│       │       ├── evolucao/     # GET/POST (append-only)
-│       │       ├── exames/       # GET/POST + item PATCH (texto) + item/.../pdf POST
-│       │       ├── encaminhamento/ # GET/POST
-│       │       └── aplicacao/    # POST (5 certos — enfermagem)
-│       ├── cid10/                # GET (Busca local)
-│       ├── relatorios/           # GET atendimentos-dia?data= (PDF)
-│       └── painel/
-│           ├── chamar/           # POST (chamar + evento Pusher)
-│           └── historico/        # GET (últimas N chamadas)
-├── components/
-│   ├── auth/FormularioLogin
-│   ├── recepcao/FormularioCadastroPaciente
-│   ├── triagem/
-│   │   ├── BadgeManchester      # Badge 6 cores, 3 tamanhos
-│   │   ├── CardPacienteEspera   # Tempo real + barra de progresso + alerta
-│   │   ├── FilaTriagem          # Pusher + polling fallback + filtros
-│   │   ├── FormularioTriagem    # Sinais vitais + IMC automático + slider dor
-│   │   └── ModalChamarPaciente  # Grade de salas + setor de painel
-│   ├── painel/PainelChamada     # Tela cheia TV + Pusher + relógio + som
-│   ├── enfermagem/              # FormularioAplicacaoMedicamento (5 certos)
-│   ├── ficha/FichaUrgenciaDocumento
-│   └── shared/Sidebar, Header
-├── lib/
-│   ├── auth.ts                  # NextAuth + RBAC + JWT 8h
-│   ├── encryption.ts            # AES-256-GCM
-│   ├── cep.ts                   # ViaCEP
-│   ├── attendance.ts            # Número de atendimento único
-│   ├── pusher.ts                # Servidor + cliente + canais nomeados
-│   ├── utils.ts                 # cn(), IMC, alertas Manchester
-│   ├── cid10.ts                 # Base e busca CID-10 (Módulo 4)
-│   ├── interacoes-medicamentosas.ts # Alergias e Interações (Módulo 4)
-│   └── validations/
-│       ├── paciente.ts          # Zod: CPF, endereço, saúde
-│       ├── triagem.ts           # Zod: sinais vitais, chamada painel
-│       └── atendimento.ts       # Zod: anamnese, prescrição, evolução
+│   ├── (auth)/login/            # Login
+│   ├── (dashboard)/             # Área protegida (NextAuth + RBAC)
+│   │   ├── recepcao/            # Cadastro e ficha do paciente
+│   │   ├── triagem/             # Protocolo de Manchester
+│   │   ├── atendimento/         # Mesa médica
+│   │   ├── medicacao/           # Medicação PS
+│   │   ├── internamento/        # Internação + fichas
+│   │   ├── farmacia/            # Farmácia hospitalar
+│   │   ├── prontuario/          # Busca / histórico
+│   │   ├── evolucoes/           # Evolução multiprofissional
+│   │   ├── cadastros/           # Leitos, clínicas, origens, modelos
+│   │   ├── configuracoes/       # Instituição, painel, SMTP
+│   │   ├── auditoria/           # Logs (admin)
+│   │   └── relatorios/          # PDF
+│   ├── painel/                  # Painel de chamadas (rota pública, TV)
+│   └── api/                     # Rotas de API por domínio
+├── components/                  # UI por módulo + componentes compartilhados (ui/)
+├── lib/                         # Regras de negócio, integrações e helpers
+│   ├── auth.ts, encryption.ts, prisma.ts, pusher.ts
+│   ├── farmacia-*, internacao-*, ficha-*, evolucao-*
+│   └── validations/             # Schemas Zod
 ├── prisma/
-│   ├── schema.prisma            # 20+ tabelas
+│   ├── schema.prisma            # 53 modelos + 25 enums
+│   ├── migrations/
 │   └── seed.ts
-├── types/index.ts               # Tipos centralizados + PROTOCOLO_MANCHESTER[]
-├── middleware.ts                # Proteção de rotas por role
-└── tests/unit/
-    ├── sgh.test.ts              # AES, CPF, atendimento, IMC, Manchester
-    ├── triagem.test.ts          # Triagem Zod, tempos Manchester, IMC completo
-    └── atendimento.test.ts      # Alergias cruzadas, Interações, CID-10
+├── scripts/                     # Setup de banco, release, instalador Windows
+└── tests/unit/                  # Vitest
 ```
-
----
-
-## 🔌 Endpoints — Sessões 1 e 2
-
-### Módulo 1 — Recepção
-
-| Método | Rota | Role | Descrição |
-|--------|------|------|-----------|
-| GET | `/api/pacientes?cpf=` | Todos | Busca por CPF (anti-duplicidade) |
-| GET | `/api/pacientes?busca=&pagina=` | Todos | Lista paginada |
-| POST | `/api/pacientes` | ADMIN, RECEPCIONISTA | Cadastrar paciente |
-
-### Módulo 2 — Triagem
-
-| Método | Rota | Role | Descrição |
-|--------|------|------|-----------|
-| POST | `/api/triagem` | ADMIN, ENFERMEIRO | Registrar triagem + emite evento Pusher |
-| GET | `/api/triagem/fila` | Todos | Fila de espera ordenada por prioridade |
-
-### Módulo 3 — Painel de Chamada
-
-| Método | Rota | Role | Descrição |
-|--------|------|------|-----------|
-| POST | `/api/painel/chamar` | ADMIN, ENFERMEIRO, MEDICO | Chamar paciente + emite evento Pusher |
-| GET | `/api/painel/historico?setor=` | Público | Últimas N chamadas (sem auth) |
-| — | `/painel?setor=GERAL` | Público | Tela cheia para TVs da sala de espera |
-
-### Módulo 4 — Atendimento Médico
-
-| Método | Rota | Role | Descrição |
-|--------|------|------|-----------|
-| GET | `/api/atendimento/[id]/prontuario` | ADMIN, MEDICO | Carrega/cria prontuário do atendimento |
-| POST | `/api/atendimento/[id]/anamnese` | ADMIN, MEDICO | Salva/atualiza anamnese |
-| POST | `/api/atendimento/[id]/diagnostico`| ADMIN, MEDICO | Adiciona CID-10 (gerencia flag principal) |
-| POST | `/api/atendimento/[id]/prescricao` | ADMIN, MEDICO | Cria prescrição (avalia alergias/interações) |
-| GET | `/api/cid10?q=` | Todos | Autocomplete CID-10 |
-| GET/POST | `/api/atendimento/[id]/evolucao` | ADMIN, MEDICO, DIRETOR_CLINICO | Lista / nova evolução (imutável) |
-| GET/POST | `/api/atendimento/[id]/exames` | GET: + ENFERMEIRO; POST: médico/admin/diretor | Requisições de exames |
-| PATCH | `/api/atendimento/[id]/exames/item/[itemId]` | Clínica + enfermagem | Lançar/atualizar resultado em texto e data de realização |
-| POST | `/api/atendimento/[id]/exames/item/[itemId]/pdf` | Clínica + enfermagem | Anexar PDF do resultado (`multipart/form-data`, campo `arquivo`; opcional `realizadoEm`) |
-| GET/POST | `/api/atendimento/[id]/encaminhamento` | GET: + ENFERMEIRO; POST: médico/admin/diretor | Encaminhamentos |
-| GET | `/api/relatorios/atendimentos-dia?data=YYYY-MM-DD` | ADMIN, DIRETOR_CLINICO | PDF com atendimentos criados nesse dia (hora local do servidor) |
-| POST | `/api/atendimento/[id]/aplicacao` | ADMIN, ENFERMEIRO, TECNICO_ENFERMAGEM | Aplicação com checklist dos 5 certos |
-
----
-
-## 🔴 Painel de Chamada — Como usar
-
-1. Abrir `/painel?setor=GERAL` em uma TV ou monitor (qualquer navegador, tela cheia `F11`)
-2. Suporta múltiplos painéis por setor: `/painel?setor=EMERGENCIA`, `/painel?setor=AMBULATORIO`
-3. No dashboard, ao clicar "Chamar para atendimento" → selecionar sala → evento Pusher atualiza o painel instantaneamente
-4. Histórico das últimas 4 chamadas exibido no rodapé
-5. Toggle de som no canto superior direito
-6. Status de conexão Pusher (verde = online, vermelho = offline com polling de fallback)
-
----
-
-## 🧪 Testes
-
-```bash
-npm test
-```
-
-Cobertura total (Sessões 1 + 2): **25+ testes unitários**
-
-- ✅ Criptografia AES-256-GCM
-- ✅ Validação CPF (dígitos verificadores)
-- ✅ Geração de número de atendimento
-- ✅ Schema Zod de triagem (sinais vitais com limites fisiológicos)
-- ✅ Protocolo Manchester — configuração das 6 cores
-- ✅ Alertas de tempo por cor (LARANJA 10min, AMARELO 30min, etc.)
-- ✅ Cálculo IMC — todos os 6 intervalos de classificação
-
----
-
-## 🔐 Segurança
-
-- Dados sensíveis criptografados com AES-256-GCM (CPF, RG, nome, telefone)
-- JWT expira em 8h, sem dados sensíveis no token
-- Trilha de auditoria imutável em toda criação/modificação
-- Soft delete em todas as tabelas
-- Roles verificadas em todos os endpoints via `getServerSession`
-- Painel público com rate limit recomendado via Vercel Edge ou nginx
