@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { schemaAnamnese } from '@/lib/validations/atendimento';
+import { prontuarioEstaEncerrado } from '@/lib/atendimento-prontuario'
 
 export async function POST(
   req: NextRequest,
@@ -19,6 +20,10 @@ export async function POST(
   }
 
   try {
+    if (await prontuarioEstaEncerrado(atendimentoId)) {
+      return NextResponse.json({ sucesso: false, erro: 'Prontuário encerrado. Edição não permitida.' }, { status: 409 })
+    }
+
     const body = await req.json();
     const validacao = schemaAnamnese.safeParse({ ...body, atendimentoId });
 

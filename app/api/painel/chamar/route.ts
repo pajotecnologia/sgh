@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { schemaChamarPaciente } from '@/lib/validations/triagem';
+import { mensagemErroValidacaoApi } from '@/lib/validations/id';
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao';
 import { dispararEventoPusher, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher';
 import type { ApiResponse, ChamadaPainelDTO } from '@/types';
@@ -25,8 +26,13 @@ export async function POST(req: NextRequest) {
     const validacao = schemaChamarPaciente.safeParse(body);
 
     if (!validacao.success) {
+      const detalhe = mensagemErroValidacaoApi(validacao.error.flatten().fieldErrors);
       return NextResponse.json(
-        { sucesso: false, erro: 'Dados inválidos.', detalhes: validacao.error.flatten().fieldErrors },
+        {
+          sucesso: false,
+          erro: detalhe ?? 'Dados inválidos.',
+          detalhes: validacao.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }

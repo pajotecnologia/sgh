@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { FlaskConical, Loader2, Plus, Trash2, ClipboardList, FileUp, ExternalLink } from 'lucide-react';
 import { textoCadastroMaiusculo } from '@/lib/cadastro-maiusculo';
@@ -194,22 +194,50 @@ const URGENCIAS = [
 
 type ItemLinha = { nomeExame: string; codigoTuss: string; observacoes: string };
 
+export type PrefillExamesForm = {
+  categoria?: string;
+  urgencia?: string;
+  indicacao?: string;
+  linhas?: ItemLinha[];
+};
+
 export function FormularioExames({
   atendimentoId,
   prontuarioId,
   requisicoesIniciais,
   onSalvo,
+  prefill,
+  ocultarHistorico = false,
+  ocultarFormularioNova = false,
+  onRepetirRequisicao,
 }: {
   atendimentoId: string;
   prontuarioId: string;
   requisicoesIniciais: any[];
   onSalvo: () => void;
+  prefill?: PrefillExamesForm;
+  /** Oculta a seção de histórico (quando o painel pai exibe histórico customizado). */
+  ocultarHistorico?: boolean;
+  /** Oculta o formulário de nova requisição (somente leitura). */
+  ocultarFormularioNova?: boolean;
+  /** Exibe botão para carregar requisição anterior como nova. */
+  onRepetirRequisicao?: (requisicao: any) => void;
 }) {
-  const [categoria, setCategoria] = useState<string>('LABORATORIO');
-  const [urgencia, setUrgencia] = useState<string>('ROTINA');
-  const [indicacao, setIndicacao] = useState('');
-  const [linhas, setLinhas] = useState<ItemLinha[]>([{ nomeExame: '', codigoTuss: '', observacoes: '' }]);
+  const [categoria, setCategoria] = useState<string>(prefill?.categoria ?? 'LABORATORIO');
+  const [urgencia, setUrgencia] = useState<string>(prefill?.urgencia ?? 'ROTINA');
+  const [indicacao, setIndicacao] = useState(prefill?.indicacao ?? '');
+  const [linhas, setLinhas] = useState<ItemLinha[]>(
+    prefill?.linhas?.length ? prefill.linhas : [{ nomeExame: '', codigoTuss: '', observacoes: '' }]
+  );
   const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => {
+    if (!prefill) return;
+    if (prefill.categoria) setCategoria(prefill.categoria);
+    if (prefill.urgencia) setUrgencia(prefill.urgencia);
+    if (prefill.indicacao !== undefined) setIndicacao(prefill.indicacao);
+    if (prefill.linhas?.length) setLinhas(prefill.linhas);
+  }, [prefill]);
 
   function addLinha() {
     setLinhas((s) => [...s, { nomeExame: '', codigoTuss: '', observacoes: '' }]);
@@ -267,6 +295,7 @@ export function FormularioExames({
 
   return (
     <div className="space-y-8">
+      {ocultarFormularioNova ? null : (
       <form onSubmit={salvar} className="bg-card border border-border rounded-xl p-6 space-y-4">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <FlaskConical className="h-5 w-5 text-primary" />
@@ -364,7 +393,9 @@ export function FormularioExames({
           Salvar requisição
         </button>
       </form>
+      )}
 
+      {ocultarHistorico ? null : (
       <div>
         <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
           Requisições anteriores
@@ -381,6 +412,15 @@ export function FormularioExames({
                   <span>{r.urgencia}</span>
                   <span>·</span>
                   <span>{new Date(r.createdAt).toLocaleString('pt-BR')}</span>
+                  {onRepetirRequisicao ? (
+                    <button
+                      type="button"
+                      onClick={() => onRepetirRequisicao(r)}
+                      className="ml-auto text-xs font-semibold text-primary hover:underline"
+                    >
+                      Carregar como nova requisição
+                    </button>
+                  ) : null}
                 </div>
                 <p className="text-xs text-foreground mb-2 whitespace-pre-wrap">{r.indicacao}</p>
                 <ul className="space-y-3 pl-0">
@@ -398,6 +438,7 @@ export function FormularioExames({
           </ul>
         )}
       </div>
+      )}
     </div>
   );
 }

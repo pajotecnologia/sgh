@@ -7,7 +7,14 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { schemaCriarPrescricao } from '@/lib/validations/atendimento';
 import { verificarInteracoes, verificarAlergiaMedicamento } from '@/lib/interacoes-medicamentosas';
-import { prontuarioPertenceAoAtendimento } from '@/lib/atendimento-prontuario';
+import { prontuarioPertenceAoAtendimento, prontuarioEstaEncerrado } from '@/lib/atendimento-prontuario';
+import { detectarInteracoesPorPrincipioAtivo } from '@/lib/farmacia-interacoes';
+import { auditarLgpd } from '@/lib/auditoria-lgpd';
+import { resolverMedicamentoCatalogo } from '@/lib/medicamento-catalogo-match';
+
+function normTexto(s: string): string {
+  return s.trim().toLowerCase();
+}
 
 export async function POST(
   req: NextRequest,
@@ -31,7 +38,12 @@ export async function POST(
       );
     }
 
-    const { prontuarioId, observacoes, itens } = validacao.data;
+    const { prontuarioId, observacoes, itens, justificativaMedicaCritica, tipo, confirmarDuplicada } = validacao.data;
+    const tipoPrescricao = tipo ?? 'PS';
+
+    if (tipoPrescricao === 'PS' && (await prontuarioEstaEncerrado(atendimentoId))) {
+      return NextResponse.json({ sucesso: false, erro: 'Prontuário encerrado. Edição não permitida.' }, { status: 409 })
+    }
 
     const pertence = await prontuarioPertenceAoAtendimento(atendimentoId, prontuarioId);
     if (!pertence) {
@@ -56,6 +68,23 @@ export async function POST(
 
     const alergiasPaciente = prontuario.atendimento.paciente.alergias.map((a) => a.descricao);
     const nomesMedicamentos = itens.map((i) => i.nomeMedicamento);
+    const principiosAtivosItens = itens
+      .map((i) => (i.principioAtivo ?? '').trim())
+      .filter(Boolean);
+
+    // === Vincular catálogo de medicamentos (tb_medicamento) ===
+    // Regra: matching com normalização, sinônimos e fallback por contains (scoring).
+    const matches = await Promise.all(
+      itens.map(async (it) => {
+        const m = await resolverMedicamentoCatalogo({
+          nomeMedicamento: it.nomeMedicamento,
+          principioAtivo: it.principioAtivo ?? '',
+        });
+        return { key: it.nomeMedicamento, match: m };
+      })
+    );
+    const matchPorNome = new Map<string, (typeof matches)[number]['match']>();
+    for (const m of matches) matchPorNome.set(m.key, m.match);
 
     // === Verificação de alergias ===
     const alertasAlergia: Array<{ medicamento: string; alergias: string[] }> = [];
@@ -68,6 +97,35 @@ export async function POST(
 
     // === Verificação de interações ===
     const { interacoes } = verificarInteracoes(nomesMedicamentos);
+
+    // === Verificação de interações por princípio ativo (matriz tb_interacao_matriz) ===
+    // Regra: se CRÍTICO, bloquear e exigir justificativa >= 15 caracteres para prosseguir.
+    const interacoesCriticas: Array<{
+      principioAtivoNovo: string;
+      principioAtivoExistente: string;
+      efeitoClinico: string;
+      sugestaoSistema: string;
+    }> = [];
+
+    for (const it of itens) {
+      const paNovo = (it.principioAtivo ?? '').trim();
+      if (!paNovo) continue;
+      const outros = principiosAtivosItens.filter((x) => x.toLowerCase() !== paNovo.toLowerCase());
+      const achadas = await detectarInteracoesPorPrincipioAtivo({
+        principioAtivoNovo: paNovo,
+        principiosAtivosExistentes: outros,
+      });
+      for (const a of achadas) {
+        if (a.risco === 'CRITICO') {
+          interacoesCriticas.push({
+            principioAtivoNovo: a.principioAtivoNovo,
+            principioAtivoExistente: a.principioAtivoExistente,
+            efeitoClinico: a.efeitoClinico,
+            sugestaoSistema: a.sugestaoSistema,
+          });
+        }
+      }
+    }
 
     // Bloquear apenas se houver alergia GRAVE detectada
     // (interações são avisos, não bloqueios — médico decide)
@@ -82,6 +140,75 @@ export async function POST(
       }, { status: 422 }); // Unprocessable Entity
     }
 
+    if (interacoesCriticas.length > 0) {
+      const just = (justificativaMedicaCritica ?? '').trim();
+      if (just.length < 15) {
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro: 'INTERAÇÃO CRÍTICA: Justificativa médica obrigatória (mín. 15 caracteres) para prosseguir.',
+            tipo: 'INTERACAO_CRITICA',
+            interacoesCriticas,
+          },
+          { status: 409 }
+        );
+      }
+    }
+
+    // === Aviso de prescrição idêntica já emitida hoje (mesmo prontuário e tipo) ===
+    // Regra: mesmo conjunto de medicamentos (por nome) em prescrição criada no mesmo dia.
+    // Não bloqueia: o médico pode confirmar e emitir mesmo assim (confirmarDuplicada).
+    if (!confirmarDuplicada) {
+      const assinaturaItens = (lista: { nomeMedicamento: string }[]) =>
+        [...new Set(lista.map((i) => normTexto(i.nomeMedicamento)))].sort().join('|');
+      const assinaturaNova = assinaturaItens(itens);
+
+      const inicioDia = new Date();
+      inicioDia.setHours(0, 0, 0, 0);
+      const fimDia = new Date();
+      fimDia.setHours(23, 59, 59, 999);
+
+      const prescricoesHoje = await prisma.prescricao.findMany({
+        where: {
+          prontuarioId,
+          tipo: tipoPrescricao,
+          createdAt: { gte: inicioDia, lte: fimDia },
+        },
+        include: { itens: { select: { nomeMedicamento: true } } },
+      });
+
+      const duplicada = prescricoesHoje.find(
+        (p) => assinaturaItens(p.itens) === assinaturaNova
+      );
+
+      if (duplicada) {
+        return NextResponse.json(
+          {
+            sucesso: false,
+            tipo: 'PRESCRICAO_DUPLICADA',
+            erro: 'Já existe uma prescrição idêntica emitida hoje para este paciente.',
+            duplicada: {
+              numeroPrescricao: duplicada.numeroPrescricao,
+              emitidaEm: duplicada.createdAt,
+              medicamentos: [...new Set(itens.map((i) => i.nomeMedicamento.trim()))],
+            },
+          },
+          { status: 409 }
+        );
+      }
+    }
+
+    const validaAte =
+      tipoPrescricao === 'RECEITA_ALTA'
+        ? (() => {
+            const d = new Date()
+            d.setDate(d.getDate() + 30)
+            return d
+          })()
+        : null
+
+    const statusItemReceita = tipoPrescricao === 'RECEITA_ALTA' ? ('APLICADO' as const) : ('PENDENTE' as const)
+
     // Contar prescrições anteriores para numeração sequencial
     const totalPrescricoes = await prisma.prescricao.count({ where: { prontuarioId } });
 
@@ -90,22 +217,81 @@ export async function POST(
       const nova = await tx.prescricao.create({
         data: {
           prontuarioId,
+          tipo: tipoPrescricao,
           numeroPrescricao: totalPrescricoes + 1,
           observacoes: observacoes || null,
+          validaAte,
           itens: {
             createMany: {
               data: itens.map((item) => ({
                 nomeMedicamento: item.nomeMedicamento,
                 dose: item.dose,
+                unidadeMedida: item.unidadeMedida?.trim() || null,
                 via: item.via,
                 frequencia: item.frequencia,
                 duracaoDias: item.duracaoDias ?? null,
                 observacoes: item.observacoes || null,
+                status: statusItemReceita,
               })),
             },
           },
         },
         include: { itens: true },
+      });
+
+      if (tipoPrescricao === 'RECEITA_ALTA') {
+        await tx.logAuditoria.create({
+          data: {
+            usuarioId: sessao.usuario.id,
+            acao: 'CRIACAO',
+            entidade: 'Prescricao',
+            entidadeId: nova.id,
+            valorNovo: `RECEITA_ALTA — ${itens.length} item(s)`,
+            ipOrigem: req.headers.get('x-forwarded-for') ?? null,
+          },
+        });
+        return nova;
+      }
+
+      // Criar versão integrada à farmácia (tb_prescricao_*) — somente PS
+      // Apenas 1 cabeçalho ativo por atendimento: desativar o anterior antes de inserir o novo
+      await tx.tbPrescricaoCabecalho.updateMany({
+        where: { atendimentoId, ativa: true },
+        data: { ativa: false },
+      });
+
+      const cab = await tx.tbPrescricaoCabecalho.create({
+        data: {
+          atendimentoId,
+          criadoPorId: sessao.usuario.id,
+          statusValidacao: 'AGUARDANDO_TRIAGEM',
+          observacoes: observacoes || null,
+          ativa: true,
+          itens: {
+            create: itens.map((it) => ({
+              medicamentoNome: it.nomeMedicamento,
+              medicamentoId: (() => {
+                const m = matchPorNome.get(it.nomeMedicamento) ?? null;
+                return m?.medicamentoId ?? null;
+              })(),
+              principioAtivo: (() => {
+                const fallback = ((it.principioAtivo ?? '').trim() || it.nomeMedicamento.trim().toLowerCase()).trim();
+                const m = matchPorNome.get(it.nomeMedicamento) ?? null;
+                return (m?.principioAtivoCanonico ?? fallback).trim();
+              })(),
+              quantidadeSolicitada: (it.quantidadeSolicitada as number | undefined) ?? 1,
+              dose: [it.dose, it.unidadeMedida?.trim()].filter(Boolean).join(' '),
+              via: it.via,
+              frequencia: it.frequencia,
+              duracaoDias: it.duracaoDias ?? null,
+              observacoes: it.observacoes || null,
+              justificativaMedica: interacoesCriticas.length > 0 ? (justificativaMedicaCritica || null) : null,
+              alertasInteracao: interacoesCriticas.length > 0 ? { criticas: interacoesCriticas } : undefined,
+              statusValidacao: 'AGUARDANDO_TRIAGEM',
+              dispensacao: { create: { status: 'AGUARDANDO_TRIAGEM' } },
+            })),
+          },
+        },
       });
 
       await tx.logAuditoria.create({
@@ -119,15 +305,57 @@ export async function POST(
         },
       });
 
+      await tx.tbAuditoriaLog.create({
+        data: {
+          usuarioId: sessao.usuario.id,
+          role: sessao.usuario.role,
+          atendimentoId,
+          acao: 'CRIACAO',
+          entidade: 'TbPrescricaoCabecalho',
+          entidadeId: cab.id,
+          ipOrigem: req.headers.get('x-forwarded-for') ?? null,
+          userAgent: req.headers.get('user-agent') ?? null,
+          detalhes: interacoesCriticas.length > 0 ? { interacoesCriticas } : undefined,
+        },
+      });
+
       return nova;
     });
 
+    if (tipoPrescricao === 'PS') {
+    await auditarLgpd({
+      usuarioId: sessao.usuario.id,
+      role: sessao.usuario.role as never,
+      atendimentoId,
+      acao: 'CRIACAO',
+      entidade: 'PrescricaoIntegradaFarmacia',
+      entidadeId: prescricao.id,
+      ipOrigem: req.headers.get('x-forwarded-for') ?? null,
+      userAgent: req.headers.get('user-agent') ?? null,
+      detalhes: {
+        itens: itens.map((it) => ({
+          medicamentoNome: it.nomeMedicamento,
+          principioAtivo: it.principioAtivo ?? '',
+          quantidadeSolicitada: it.quantidadeSolicitada ?? 1,
+        })),
+        interacoesCriticas: interacoesCriticas.length,
+      },
+    });
+    }
+
     return NextResponse.json({
       sucesso: true,
-      dados: { id: prescricao.id, numeroPrescricao: prescricao.numeroPrescricao },
+      dados: {
+        id: prescricao.id,
+        numeroPrescricao: prescricao.numeroPrescricao,
+        tipo: tipoPrescricao,
+      },
       // Retornar interações como avisos (não bloquearam)
       avisos: interacoes.length > 0 ? { interacoes } : undefined,
-      mensagem: 'Prescrição criada com sucesso.',
+      mensagem:
+        tipoPrescricao === 'RECEITA_ALTA'
+          ? 'Receita de alta registrada.'
+          : 'Prescrição criada com sucesso.',
     }, { status: 201 });
   } catch (erro) {
     console.error('[POST /api/atendimento/prescricao]', erro);
@@ -153,6 +381,18 @@ export async function GET(
           orderBy: { createdAt: 'desc' },
         },
       },
+    });
+
+    await auditarLgpd({
+      usuarioId: sessao.usuario.id,
+      role: sessao.usuario.role as never,
+      atendimentoId,
+      acao: 'LEITURA',
+      entidade: 'Prescricao',
+      entidadeId: atendimentoId,
+      ipOrigem: req.headers.get('x-forwarded-for') ?? null,
+      userAgent: req.headers.get('user-agent') ?? null,
+      detalhes: { total: (prontuario?.prescricoes ?? []).length },
     });
 
     return NextResponse.json({ sucesso: true, dados: prontuario?.prescricoes ?? [] });

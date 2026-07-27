@@ -2,10 +2,13 @@
 // Layout raiz — providers globais: NextAuth, Sonner (toasts), ThemeProvider
 
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Geist } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { Providers } from '@/components/providers';
 import './globals.css';
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({
   subsets: ['latin'],
@@ -16,7 +19,10 @@ const inter = Inter({
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: [{ media: '(prefers-color-scheme: light)', color: '#f8fafc' }],
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#2563eb' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
+  ],
 };
 
 export const metadata: Metadata = {
@@ -36,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body className={inter.className}>
         <Providers>
           {children}

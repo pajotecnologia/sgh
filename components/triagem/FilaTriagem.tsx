@@ -8,7 +8,9 @@ import { RefreshCw, Users } from 'lucide-react';
 import { CardPacienteEspera } from './CardPacienteEspera';
 import { ModalChamarPaciente } from './ModalChamarPaciente';
 import { getPusherCliente, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher';
+import { escutarFilaAtualizada, fetchFilaTriagem } from '@/lib/fila-triagem-sync';
 import { cn } from '@/lib/utils';
+import { EnvoltorioListaPaginada } from '@/components/shared/EnvoltorioListaPaginada';
 import type { CorTriagem } from '@/types';
 
 interface PacienteNaFila {
@@ -35,23 +37,30 @@ const FILTROS_COR = [
 ] as const;
 
 interface FilaTriagemProps {
-  /** Mostrar botão "Chamar para atendimento" (role MEDICO/ENFERMEIRO/ADMIN) */
   podeCharmar?: boolean;
+  compacto?: boolean;
+  mostrarLinkAtendimento?: boolean;
+  titulo?: string;
 }
 
-export function FilaTriagem({ podeCharmar = false }: FilaTriagemProps) {
+export function FilaTriagem({
+  podeCharmar = false,
+  compacto = false,
+  mostrarLinkAtendimento = false,
+  titulo = 'Fila de Espera',
+}: FilaTriagemProps) {
   const [fila, setFila] = useState<PacienteNaFila[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [filtro, setFiltro] = useState<string>('TODOS');
   const [atendimentoParaChamar, setAtendimentoParaChamar] = useState<string | null>(null);
 
-  const carregarFila = useCallback(async () => {
+  const carregarFila = useCallback(async (silencioso = false) => {
     try {
-      const res = await fetch('/api/triagem/fila?status=AGUARDANDO_ATENDIMENTO');
+      const res = await fetchFilaTriagem('/api/triagem/fila?tipo=pos-triagem');
       const json = await res.json();
       if (json.sucesso) setFila(json.dados);
     } catch {
-      toast.error('Erro ao carregar fila de triagem.');
+      if (!silencioso) toast.error('Erro ao carregar fila de triagem.');
     } finally {
       setCarregando(false);
     }
@@ -62,41 +71,40 @@ export function FilaTriagem({ podeCharmar = false }: FilaTriagemProps) {
     carregarFila();
   }, [carregarFila]);
 
-  // Escutar eventos Pusher para atualização em tempo real; sem credenciais, só polling mais frequente
+  // Polling + sync entre abas + Pusher
   useEffect(() => {
+    const polling = setInterval(() => carregarFila(true), 5_000);
+    const pararEscuta = escutarFilaAtualizada(() => carregarFila(true));
+
     const pusher = getPusherCliente();
-    if (!pusher) {
-      const polling = setInterval(carregarFila, 15_000);
-      return () => clearInterval(polling);
+    if (pusher) {
+      const canal = pusher.subscribe(CANAIS_PUSHER.filaTriagem);
+      canal.bind(EVENTOS_PUSHER.FILA_ATUALIZADA, (data: { nomePaciente: string; corClassificacao: string }) => {
+        if (data.corClassificacao === 'VERMELHO' || data.corClassificacao === 'LARANJA') {
+          toast.warning(`⚠️ Paciente ${data.nomePaciente} — ${data.corClassificacao}`, {
+            description: 'Triagem de alta prioridade registrada!',
+            duration: 8000,
+          });
+          try {
+            const audio = new Audio('/sons/alerta-urgente.mp3');
+            audio.volume = 0.7;
+            audio.play().catch(() => {});
+          } catch {}
+        }
+        carregarFila(true);
+      });
+
+      return () => {
+        clearInterval(polling);
+        pararEscuta();
+        canal.unbind_all();
+        pusher.unsubscribe(CANAIS_PUSHER.filaTriagem);
+      };
     }
 
-    const canal = pusher.subscribe(CANAIS_PUSHER.filaTriagem);
-
-    canal.bind(EVENTOS_PUSHER.FILA_ATUALIZADA, (data: { nomePaciente: string; corClassificacao: string }) => {
-      // Tocar alerta sonoro para vermelhos e laranjas
-      if (data.corClassificacao === 'VERMELHO' || data.corClassificacao === 'LARANJA') {
-        toast.warning(`⚠️ Paciente ${data.nomePaciente} — ${data.corClassificacao}`, {
-          description: 'Triagem de alta prioridade registrada!',
-          duration: 8000,
-        });
-        // Tentar tocar som de alerta
-        try {
-          const audio = new Audio('/sons/alerta-urgente.mp3');
-          audio.volume = 0.7;
-          audio.play().catch(() => {});
-        } catch {}
-      }
-      // Recarregar fila
-      carregarFila();
-    });
-
-    // Polling de fallback a cada 60s (caso Pusher falhe)
-    const polling = setInterval(carregarFila, 60_000);
-
     return () => {
-      canal.unbind_all();
-      pusher.unsubscribe(CANAIS_PUSHER.filaTriagem);
       clearInterval(polling);
+      pararEscuta();
     };
   }, [carregarFila]);
 
@@ -107,44 +115,38 @@ export function FilaTriagem({ podeCharmar = false }: FilaTriagemProps) {
   const totalAlertas = fila.filter((p) => p.alertaUltrapassado).length;
 
   return (
-    <div className="space-y-4">
-      {/* Cabeçalho da fila */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-muted-foreground" />
-            <span className="font-semibold">
-              Fila de Espera
-            </span>
-            <span className="px-2 py-0.5 bg-muted rounded-full text-xs font-medium">
-              {fila.length} paciente{fila.length !== 1 ? 's' : ''}
-            </span>
-          </div>
+    <div className={cn('space-y-3', compacto && 'text-xs')}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Users className={cn('text-muted-foreground shrink-0', compacto ? 'h-4 w-4' : 'h-5 w-5')} />
+          <span className={cn('font-semibold truncate', compacto ? 'text-xs' : 'text-sm')}>{titulo}</span>
+          <span className="px-1.5 py-0.5 bg-muted rounded-full text-[10px] font-medium shrink-0">
+            {fila.length}
+          </span>
           {totalAlertas > 0 && (
-            <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-semibold animate-pulse">
-              {totalAlertas} com tempo excedido!
+            <span className="px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full text-[10px] font-semibold animate-pulse shrink-0">
+              {totalAlertas}!
             </span>
           )}
         </div>
 
         <button
-          onClick={carregarFila}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-muted transition-colors"
+          onClick={() => carregarFila()}
+          className="flex items-center gap-1 px-2 py-1 text-[10px] border border-border rounded-md hover:bg-muted transition-colors shrink-0"
           aria-label="Atualizar fila"
         >
-          <RefreshCw className="h-3.5 w-3.5" />
+          <RefreshCw className="h-3 w-3" />
           Atualizar
         </button>
       </div>
 
-      {/* Filtros por cor */}
-      <div className="flex gap-1.5 flex-wrap">
+      <div className="flex gap-1 flex-wrap">
         {FILTROS_COR.map((f) => (
           <button
             key={f.valor}
             onClick={() => setFiltro(f.valor)}
             className={cn(
-              'px-3 py-1 rounded-full text-xs font-medium border transition-all',
+              'px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all',
               filtro === f.valor
                 ? 'border-primary bg-primary text-white'
                 : 'border-border bg-background hover:bg-muted'
@@ -168,28 +170,38 @@ export function FilaTriagem({ podeCharmar = false }: FilaTriagemProps) {
 
       {/* Lista de pacientes */}
       {carregando ? (
-        <div className="grid gap-3">
+        <div className={cn('grid', compacto ? 'gap-1.5' : 'gap-3')}>
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 bg-muted rounded-xl animate-pulse" />
+            <div key={i} className={cn('bg-muted rounded-lg animate-pulse', compacto ? 'h-14' : 'h-28')} />
           ))}
         </div>
       ) : filaFiltrada.length === 0 ? (
-        <div className="py-16 text-center text-muted-foreground">
-          <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm font-medium">Nenhum paciente na fila{filtro !== 'TODOS' ? ` (${filtro})` : ''}.</p>
+        <div className={cn('text-center text-muted-foreground', compacto ? 'py-8' : 'py-16')}>
+          <Users className={cn('mx-auto mb-2 opacity-30', compacto ? 'h-7 w-7' : 'h-10 w-10')} />
+          <p className={compacto ? 'text-[11px]' : 'text-sm font-medium'}>Nenhum paciente na fila{filtro !== 'TODOS' ? ` (${filtro})` : ''}.</p>
         </div>
       ) : (
-        <div className="grid gap-3" role="list" aria-label="Fila de espera">
-          {filaFiltrada.map((p) => (
+        <EnvoltorioListaPaginada
+          items={filaFiltrada}
+          chaveReset={`${filaFiltrada.length}-${filtro}`}
+          compacto={compacto}
+        >
+          {(fatia) => (
+        <div className={cn('grid max-h-[calc(100vh-220px)] overflow-y-auto pr-1', compacto ? 'gap-1.5' : 'gap-3')} role="list" aria-label="Fila de espera">
+          {fatia.map((p) => (
             <div key={p.atendimentoId} role="listitem">
               <CardPacienteEspera
                 {...p}
+                compacto={compacto}
                 mostrarBotaoChamar={podeCharmar}
+                mostrarLinkAtendimento={mostrarLinkAtendimento}
                 onChamar={(id) => setAtendimentoParaChamar(id)}
               />
             </div>
           ))}
         </div>
+          )}
+        </EnvoltorioListaPaginada>
       )}
 
       {/* Modal de chamada */}

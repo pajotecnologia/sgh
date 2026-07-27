@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { Trash2, Star, StarOff, Loader2, Plus } from 'lucide-react';
 import { BuscaCid10 } from './BuscaCid10';
 import { cn } from '@/lib/utils';
-import type { EntraCid10 } from '@/lib/cid10';
 
 interface Diagnostico {
   id: string;
@@ -29,14 +28,22 @@ export function FormularioDiagnostico({
   diagnosticosIniciais = [],
 }: FormularioDiagnosticoProps) {
   const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>(diagnosticosIniciais);
+  const [codigoCid, setCodigoCid] = useState('');
+  const [descricaoCid, setDescricaoCid] = useState('');
   const [hipoteseTemp, setHipoteseTemp] = useState('');
   const [ePrincipal, setEPrincipal] = useState(diagnosticosIniciais.length === 0);
   const [salvando, setSalvando] = useState(false);
-  const [cidSelecionado, setCidSelecionado] = useState<EntraCid10 | null>(null);
 
   async function adicionarDiagnostico() {
-    if (!cidSelecionado) {
-      toast.error('Selecione um CID-10 primeiro.');
+    const codigo = codigoCid.trim().toUpperCase();
+    const descricao = descricaoCid.trim();
+
+    if (codigo.length < 3) {
+      toast.error('Informe o código CID (mín. 3 caracteres).');
+      return;
+    }
+    if (descricao.length < 2) {
+      toast.error('Informe a descrição do diagnóstico.');
       return;
     }
 
@@ -47,8 +54,8 @@ export function FormularioDiagnostico({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prontuarioId,
-          codigoCid: cidSelecionado.codigo,
-          descricaoCid: cidSelecionado.descricao,
+          codigoCid: codigo,
+          descricaoCid: descricao,
           hipotese: hipoteseTemp,
           principal: ePrincipal,
         }),
@@ -65,10 +72,11 @@ export function FormularioDiagnostico({
       ]);
 
       // Resetar
-      setCidSelecionado(null);
+      setCodigoCid('');
+      setDescricaoCid('');
       setHipoteseTemp('');
       setEPrincipal(false);
-      toast.success(`CID ${cidSelecionado.codigo} adicionado!`);
+      toast.success(`CID ${codigo} adicionado!`);
     } catch {
       toast.error('Erro ao adicionar diagnóstico.');
     } finally {
@@ -135,28 +143,39 @@ export function FormularioDiagnostico({
       <div className="bg-card border border-dashed border-border rounded-xl p-5 space-y-3">
         <h4 className="text-sm font-semibold text-muted-foreground">Adicionar Diagnóstico</h4>
 
-        {/* Busca CID-10 */}
+        {/* Busca CID-10 — preenche os campos abaixo, que continuam editáveis */}
         <BuscaCid10
-          onSelecionar={(cid) => setCidSelecionado(cid)}
+          onSelecionar={(cid) => {
+            setCodigoCid(cid.codigo);
+            setDescricaoCid(cid.descricao);
+          }}
           placeholder="Buscar CID-10 por código ou descrição..."
         />
 
-        {/* CID selecionado */}
-        {cidSelecionado && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/20 rounded-lg">
-            <span className="font-mono text-sm font-bold text-primary">{cidSelecionado.codigo}</span>
-            <span className="text-sm text-foreground flex-1">{cidSelecionado.descricao}</span>
-            <button type="button" onClick={() => setCidSelecionado(null)} className="text-primary hover:text-primary/70">
-              ×
-            </button>
-          </div>
-        )}
+        {/* Código + descrição (digitáveis manualmente) */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            value={codigoCid}
+            onChange={(e) => setCodigoCid(e.target.value.toUpperCase())}
+            placeholder="Código CID (ex.: I10)"
+            className="w-full sm:w-40 px-3.5 py-2.5 border border-input rounded-lg bg-background text-sm font-mono outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            aria-label="Código CID"
+          />
+          <input
+            value={descricaoCid}
+            onChange={(e) => setDescricaoCid(e.target.value)}
+            placeholder="Descrição do diagnóstico..."
+            className="flex-1 px-3.5 py-2.5 border border-input rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            aria-label="Descrição do diagnóstico"
+          />
+        </div>
 
         {/* Hipótese diagnóstica */}
-        <input
+        <textarea
           value={hipoteseTemp}
           onChange={(e) => setHipoteseTemp(e.target.value)}
-          placeholder="Hipótese diagnóstica (opcional)..."
+          placeholder="Hipótese diagnóstica / texto do médico (opcional)..."
+          rows={2}
           className="w-full px-3.5 py-2.5 border border-input rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
         />
 
@@ -177,7 +196,7 @@ export function FormularioDiagnostico({
           <button
             type="button"
             onClick={adicionarDiagnostico}
-            disabled={!cidSelecionado || salvando}
+            disabled={codigoCid.trim().length < 3 || descricaoCid.trim().length < 2 || salvando}
             id="btn-adicionar-diagnostico"
             className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
           >

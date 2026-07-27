@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2, Plus, X, Tag } from 'lucide-react';
+import { notificarFilaAtualizada } from '@/lib/fila-triagem-sync';
 
 interface BotaoNovoAtendimentoProps {
   pacienteId: string;
@@ -16,6 +17,8 @@ export function BotaoNovoAtendimento({ pacienteId }: BotaoNovoAtendimentoProps) 
   const [origens, setOrigens] = useState<{id: string, descricao: string}[]>([]);
   const [origemId, setOrigemId] = useState('');
   const [carregandoOrigens, setCarregandoOrigens] = useState(false);
+  const [obstetrico, setObstetrico] = useState(false);
+  const [vaiInternar, setVaiInternar] = useState(false);
 
   useEffect(() => {
     if (modalAberto && origens.length === 0) {
@@ -28,10 +31,10 @@ export function BotaoNovoAtendimento({ pacienteId }: BotaoNovoAtendimentoProps) 
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/pacientes/${pacienteId}`);
-        const json = await res.json();
-        if (cancelled || !json.sucesso || !json.dados?.origemId) return;
-        setOrigemId(json.dados.origemId);
+        const res = await fetch('/api/configuracoes/origens');
+        const jsonOrigens = await res.json();
+        if (cancelled || !jsonOrigens.sucesso || !jsonOrigens.dados?.length) return;
+        if (!origemId) setOrigemId(jsonOrigens.dados[0].id);
       } catch {
         /* ignora */
       }
@@ -39,7 +42,7 @@ export function BotaoNovoAtendimento({ pacienteId }: BotaoNovoAtendimentoProps) 
     return () => {
       cancelled = true;
     };
-  }, [modalAberto, pacienteId]);
+  }, [modalAberto, origemId]);
 
   const buscarOrigens = async () => {
     setCarregandoOrigens(true);
@@ -64,10 +67,11 @@ export function BotaoNovoAtendimento({ pacienteId }: BotaoNovoAtendimentoProps) 
     try {
       const res = await fetch('/api/atendimentos', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ pacienteId, origemId })
+        body: JSON.stringify({ pacienteId, origemId, obstetrico, vaiInternar })
       });
       
       const json = await res.json();
@@ -81,6 +85,8 @@ export function BotaoNovoAtendimento({ pacienteId }: BotaoNovoAtendimentoProps) 
         description: 'Paciente encaminhado para a fila de Triagem.'
       });
       
+      notificarFilaAtualizada('NOVO_ATENDIMENTO');
+      setTimeout(() => notificarFilaAtualizada('NOVO_ATENDIMENTO'), 400);
       setModalAberto(false);
       router.refresh();
       
@@ -136,6 +142,27 @@ export function BotaoNovoAtendimento({ pacienteId }: BotaoNovoAtendimentoProps) 
                     ))}
                   </select>
                 )}
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={obstetrico}
+                    onChange={(e) => setObstetrico(e.target.checked)}
+                    className="rounded border-input"
+                  />
+                  <span>Atendimento obstétrico (gestante/puérpera)</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={vaiInternar}
+                    onChange={(e) => setVaiInternar(e.target.checked)}
+                    className="rounded border-input"
+                  />
+                  <span>Indicação de internação</span>
+                </label>
               </div>
             </div>
 

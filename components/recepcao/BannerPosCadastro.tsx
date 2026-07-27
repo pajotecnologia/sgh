@@ -18,7 +18,9 @@ export function BannerPosCadastro() {
   if (!visible || !raw || raw === '0') return null;
 
   let mensagem = 'Paciente cadastrado com sucesso.';
-  if (raw !== '1' && raw !== 'ok') {
+  if (raw === 'triagem') {
+    mensagem = 'Paciente cadastrado e encaminhado para a fila de triagem.';
+  } else if (raw !== '1' && raw !== 'ok') {
     try {
       mensagem = decodeURIComponent(raw);
     } catch {
@@ -41,8 +43,8 @@ export function BannerPosCadastro() {
     >
       <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" aria-hidden />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold">Cadastro concluído</p>
-        <p className="text-sm opacity-90">{mensagem}</p>
+        <p className="text-xs font-semibold">Cadastro concluído</p>
+        <p className="text-xs opacity-90">{mensagem}</p>
       </div>
       <button
         type="button"

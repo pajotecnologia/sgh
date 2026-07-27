@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { schemaCriarPaciente } from '@/lib/validations/paciente';
-import { criptografar, descriptografar } from '@/lib/encryption';
+import { criptografar, descriptografarSeguro, encryptionKeyConfigurada, mensagemErroEncryptionKey } from '@/lib/encryption';
 import type { ApiResponse } from '@/types';
 
 export async function GET(
@@ -28,16 +28,17 @@ export async function GET(
       return NextResponse.json({ sucesso: false, erro: 'Paciente não encontrado' }, { status: 404 });
     }
 
-    // Descriptografar CPF para preenchimento (se necessário)
     let cpfLimpo = '';
-    try {
-      cpfLimpo = descriptografar(paciente.cpfCriptografado);
-    } catch {}
+    const nomeCompleto =
+      descriptografarSeguro(paciente.nomeCriptografado) ?? paciente.nomeExibicao;
+    cpfLimpo = descriptografarSeguro(paciente.cpfCriptografado) ?? '';
 
     const pacienteDecrypted = {
       ...paciente,
       cpfCriptografado: cpfLimpo,
-      nomeExibicao: paciente.nomeCriptografado ? descriptografar(paciente.nomeCriptografado) : paciente.nomeExibicao
+      nomeExibicao: nomeCompleto,
+      rgCriptografado: descriptografarSeguro(paciente.rgCriptografado) ?? '',
+      telefoneCriptografado: descriptografarSeguro(paciente.telefoneCriptografado) ?? '',
     };
 
     return NextResponse.json({ sucesso: true, dados: pacienteDecrypted });
@@ -56,6 +57,13 @@ export async function PUT(
   const { id } = await params;
 
   try {
+    if (!encryptionKeyConfigurada()) {
+      return NextResponse.json(
+        { sucesso: false, erro: mensagemErroEncryptionKey() },
+        { status: 503 }
+      );
+    }
+
     const body = await req.json();
     const validacao = schemaCriarPaciente.safeParse(body);
 

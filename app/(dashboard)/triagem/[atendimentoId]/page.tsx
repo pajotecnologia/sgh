@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { FormularioTriagem } from '@/components/triagem/FormularioTriagem';
+import { ToggleObstetrico } from '@/components/atendimento/ToggleObstetrico';
 import { parseEstadoConscienciaSinaisCsv } from '@/lib/triagem-estado-consciencia-sinais';
 import { descriptografar } from '@/lib/encryption';
 import Link from 'next/link';
@@ -60,6 +61,14 @@ export default async function PaginaRealizarTriagem({
 
   const procedenciaTexto = atendimento.origem?.descricao?.trim() || null;
 
+  const alergiasPreCadastro = atendimento.paciente.alergias
+    .map((a) => (a.gravidade ? `${a.descricao} (${a.gravidade})` : a.descricao))
+    .join(', ');
+
+  const medicacoesPreCadastro = atendimento.paciente.medicamentosCont
+    .map((m) => [m.nome, m.dose, m.frequencia].filter(Boolean).join(' — '))
+    .join('; ');
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Breadcrumb */}
@@ -71,40 +80,9 @@ export default async function PaginaRealizarTriagem({
         <span className="text-foreground font-medium">Realizar Triagem</span>
       </div>
 
-      {/* Alertas de segurança clínica */}
-      {atendimento.paciente.alergias.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 dark:bg-red-950/20">
-          <p className="text-sm font-semibold text-red-700 mb-1">
-            ⚠️ Alergias registradas:
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {atendimento.paciente.alergias.map((a, i) => (
-              <span
-                key={i}
-                className="px-2 py-0.5 bg-red-100 text-red-700 border border-red-200 rounded-full text-xs"
-              >
-                {a.descricao}
-                {a.gravidade && ` (${a.gravidade})`}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {atendimento.paciente.medicamentosCont.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 dark:bg-blue-950/20">
-          <p className="text-sm font-semibold text-blue-700 mb-2">
-            💊 Medicamentos de uso contínuo:
-          </p>
-          <div className="space-y-1">
-            {atendimento.paciente.medicamentosCont.map((m, i) => (
-              <p key={i} className="text-xs text-blue-700">
-                {m.nome} — {m.dose} — {m.frequencia}
-              </p>
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="flex justify-end">
+        <ToggleObstetrico atendimentoId={atendimento.id} inicial={atendimento.obstetrico} />
+      </div>
 
       {/* Formulário principal */}
       <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
@@ -113,6 +91,8 @@ export default async function PaginaRealizarTriagem({
           nomePaciente={nomeCompleto}
           numeroAtendimento={atendimento.numeroAtendimento}
           procedenciaTexto={procedenciaTexto}
+          alergiasPreCadastro={alergiasPreCadastro || undefined}
+          medicacoesPreCadastro={medicacoesPreCadastro || undefined}
           triagemInicial={
             atendimento.triagem
               ? {
@@ -125,8 +105,7 @@ export default async function PaginaRealizarTriagem({
                   alergias: atendimento.triagem.alergias ?? undefined,
                   acidenteTrabalho: atendimento.triagem.acidenteTrabalho ?? false,
                   regraDor: atendimento.triagem.regraDor ?? undefined,
-                  tipoDorToracica: (atendimento.triagem.tipoDorToracica ?? '') as any,
-                  irradiacao: (atendimento.triagem.irradiacao ?? '') as any,
+                  tipoDorToracica: (atendimento.triagem.tipoDorToracica ?? '') as '' | 'NORMAL' | 'QUEIMACAO' | 'APERTO' | 'PONTADA',
                   duracaoDor: atendimento.triagem.duracaoDor ?? undefined,
                   localizacaoDor: atendimento.triagem.localizacaoDor ?? undefined,
                   irradiacaoDorSites: atendimento.triagem.irradiacaoDorSites

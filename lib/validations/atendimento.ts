@@ -2,6 +2,7 @@
 // Schemas Zod para Módulo 4 — Atendimento Médico
 
 import { z } from 'zod';
+import { schemaIdEntidade } from '@/lib/validations/id';
 
 // =============================================================================
 // 4A — ANAMNESE
@@ -46,22 +47,44 @@ function preprocessDuracaoDiasItem(val: unknown) {
 
 export const schemaItemPrescricao = z.object({
   nomeMedicamento: z.string().min(2, 'Nome do medicamento obrigatório.').max(200),
+  /** Princípio ativo (para engine de interações + farmácia). Se vazio, o backend tentará inferir. */
+  principioAtivo: z.string().max(120).optional().or(z.literal('')),
   dose: z.string().min(1, 'Dose obrigatória.').max(100),
   via: z.enum([
     'ORAL', 'INTRAVENOSA', 'INTRAMUSCULAR', 'SUBCUTANEA',
     'TOPICA', 'INALATORIA', 'SUBLINGUAL', 'RETAL', 'OFTALMICA', 'OTOLOGICA', 'NASAL',
   ], { errorMap: () => ({ message: 'Via de administração inválida.' }) }),
   frequencia: z.string().min(2, 'Frequência obrigatória.').max(200),
+  quantidadeSolicitada: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return 1
+      if (typeof val === 'number' && Number.isNaN(val)) return 1
+      const n = typeof val === 'string' ? Number(val) : val
+      return n
+    },
+    z.number().int().min(1).max(999).default(1)
+  ),
   duracaoDias: z.preprocess(
     preprocessDuracaoDiasItem,
     z.number().int().min(1).max(365).optional()
   ),
   observacoes: z.string().max(1000).optional().or(z.literal('')),
+  unidadeMedida: z.string().max(30).optional().or(z.literal('')),
+});
+
+/** Item de prescrição na internação — exige unidade de medida */
+export const schemaItemPrescricaoInternacao = schemaItemPrescricao.extend({
+  unidadeMedida: z.string().min(1, 'Unidade de medida obrigatória.').max(30),
 });
 
 export const schemaCriarPrescricao = z.object({
   prontuarioId: z.string().uuid(),
+  tipo: z.enum(['PS', 'RECEITA_ALTA']).default('PS'),
   observacoes: z.string().max(2000).optional().or(z.literal('')),
+  /** Obrigatória quando há interação CRÍTICA e o médico decide prosseguir. */
+  justificativaMedicaCritica: z.string().max(4000).optional().or(z.literal('')),
+  /** Quando true, ignora o aviso de prescrição idêntica já emitida no mesmo dia. */
+  confirmarDuplicada: z.boolean().optional(),
   itens: z
     .array(schemaItemPrescricao)
     .min(1, 'Adicione pelo menos um medicamento à prescrição.'),
@@ -88,7 +111,7 @@ export const schemaChecklistCincoCertos = z.object({
 });
 
 export const schemaAplicacaoMedicamento = z.object({
-  itemPrescricaoId: z.string().uuid(),
+  itemPrescricaoId: schemaIdEntidade,
   doseAplicada: z.string().min(1).max(100),
   via: z.enum([
     'ORAL', 'INTRAVENOSA', 'INTRAMUSCULAR', 'SUBCUTANEA',
@@ -96,6 +119,8 @@ export const schemaAplicacaoMedicamento = z.object({
   ]),
   checklistConfirmado: schemaChecklistCincoCertos,
   observacoes: z.string().max(2000).optional().or(z.literal('')),
+  /** medicacao = PS; internacao | enfermagem = paciente internado no prontuário */
+  contexto: z.enum(['medicacao', 'enfermagem', 'internacao']).default('internacao'),
 });
 
 // =============================================================================
@@ -127,14 +152,12 @@ export const schemaAtualizarItemExame = z.object({
 // =============================================================================
 export const schemaEncaminhamento = z.object({
   prontuarioId: z.string().uuid(),
-  tipo: z.enum(['INTERNO', 'EXTERNO', 'INTERNACAO']),
+  tipo: z.enum(['EXTERNO', 'INTERNACAO']),
   especialidade: z.string().min(2).max(200),
   medicoDestinoId: z.string().uuid().optional().nullable(),
   prioridade: z.enum(['Alta', 'Média', 'Baixa']).optional().nullable(),
   resumoClinco: z.string().max(4000).optional().or(z.literal('')),
   justificativa: z.string().max(4000).optional().or(z.literal('')),
-  tipoLeito: z.string().max(100).optional().or(z.literal('')),
-  setor: z.string().max(200).optional().or(z.literal('')),
   cidInternacao: z.string().max(12).optional().or(z.literal('')),
 });
 

@@ -36,8 +36,14 @@ model Usuario {
   chamadaePainel     ChamadaPainel[]
   evolucoes          EvolucaoMedica[]
   logsAuditoria            LogAuditoria[]
+  tbPrescricoesCriadas     TbPrescricaoCabecalho[]
+  tbFarmaciaValidacoes     TbFarmaciaDispensacao[]
+  tbAuditoriaLog           TbAuditoriaLog[]
+  tbFarmaciaEntradasNf     TbFarmaciaEntradaNf[]
+  tbFarmaciaSaidas         TbFarmaciaSaida[]
   triagensRealizadas       Triagem[]                 @relation("TriadorRef")
   tokensRedefinicaoSenha   TokenRedefinicaoSenha[]
+  prontuariosEncerrados    ProntuarioMedico[]         @relation("ProntuarioEncerradoPor")
 
   @@index([email])
   @@map("usuarios")
@@ -186,24 +192,145 @@ model Atendimento {
   setor             String?
   /// Sala ou consultório
   sala              String?
+  /// Leito atual (internação)
+  leitoId           String?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   /// Soft delete
   deletedAt         DateTime?
   /// Origem do paciente (SAMU, Demanda Espontânea, etc.)
   origemId          String?
+  /// Atendimento obstétrico (gestante/puérpera) — habilita fichas obstétricas e berçário
+  obstetrico        Boolean           @default(false)
+  /// Indicação de internação registrada no cadastro/atendimento
+  vaiInternar       Boolean           @default(false)
   medico            Usuario?          @relation("MedicoRef", fields: [medicoId], references: [id])
   origem            OrigemPaciente?   @relation(fields: [origemId], references: [id])
   paciente          Paciente          @relation(fields: [pacienteId], references: [id])
   chamadas          ChamadaPainel[]
   prontuario        ProntuarioMedico?
   triagem           Triagem?
+  laudoInternacao   LaudoInternacao?
+  fichaInternacaoAlta       FichaInternacaoAlta?
+  fichaCcih                 FichaCcih?
+  fichaMultidisciplinar     FichaMultidisciplinar?
+  fichasEvolucaoTurno       FichaEvolucaoTurno[]
+  fichasSinaisVitais        FichaSinaisVitais[]
+  fichasSae                 FichaSae[]
+  evolucoesMultiprofissional EvolucaoMultiprofissional[]
+  fichaInternacaoObstetrica  FichaInternacaoObstetrica?
+  fichaBercario              FichaBercario?
+  tbPrescricoes     TbPrescricaoCabecalho[]
+  tbAuditoriaLog    TbAuditoriaLog[]
+  tbFarmaciaSaidas  TbFarmaciaSaida[]
+  leito             Leito?            @relation(fields: [leitoId], references: [id])
 
   @@index([pacienteId])
   @@index([numeroAtendimento])
   @@index([status])
+  @@index([leitoId])
   @@index([createdAt])
   @@map("atendimentos")
+}
+
+enum TipoLeitoHospitalar {
+  UTI
+  ENFERMARIA
+  ISOLAMENTO
+  OBSERVACAO
+}
+
+enum StatusLeitoHospitalar {
+  DISPONIVEL
+  OCUPADO
+  INTERDITADO
+}
+
+/// Cadastro de leitos (para internação)
+/// Clínica/especialidade de internação (ex.: Clínica Médica, Obstétrica, Pediátrica)
+model Clinica {
+  id          String   @id @default(uuid())
+  nome        String   @unique
+  descricao   String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  leitos      Leito[]
+
+  @@index([ativo])
+  @@map("clinicas")
+}
+
+model Leito {
+  id          String              @id @default(uuid())
+  /// Clínica onde o paciente será internado (texto legado — migrado para clinicaId)
+  clinica     String?
+  clinicaId   String?
+  ala         String
+  quarto      String?
+  codigo      String
+  tipo        TipoLeitoHospitalar @default(ENFERMARIA)
+  status      StatusLeitoHospitalar @default(DISPONIVEL)
+  ativo       Boolean             @default(true)
+  observacoes String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  clinicaRef   Clinica?     @relation(fields: [clinicaId], references: [id])
+  atendimentos Atendimento[]
+
+  @@index([ala])
+  @@index([tipo])
+  @@index([status])
+  @@index([ativo])
+  @@index([clinicaId])
+  @@unique([ala, codigo])
+  @@map("leitos")
+}
+
+/// Modelo de prescrição médica padrão (cadastro institucional — layout duas colunas)
+model PrescricaoMedicaPadrao {
+  id                String                       @id @default(uuid())
+  nome              String
+  descricao         String?
+  observacoesPadrao String?
+  /// Título personalizável da coluna esquerda (ex.: Prescrição médica)
+  nomeColunaEsquerda String                      @default("Prescrição médica")
+  /// Título personalizável da coluna direita (ex.: Prescrição de medicamentos / enfermagem)
+  nomeColunaDireita  String                      @default("Prescrição de medicamentos / enfermagem")
+  ativo             Boolean                      @default(true)
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+  itens             ItemPrescricaoMedicaPadrao[]
+
+  @@index([ativo])
+  @@index([nome])
+  @@map("prescricoes_medicas_padrao")
+}
+
+/// Item de um modelo de prescrição médica padrão
+model ItemPrescricaoMedicaPadrao {
+  id                       String                 @id @default(uuid())
+  prescricaoMedicaPadraoId String
+  ordem                    Int                    @default(0)
+  /// MEDICAMENTO | TEXTO_LIVRE | LINHA_DUPLA (texto esquerda + preenchimento direita)
+  tipoItem                 String                 @default("LINHA_DUPLA")
+  /// Coluna esquerda (rótulo/texto fixo do cadastro) ou nome do medicamento
+  nomeMedicamento          String
+  principioAtivo           String?
+  dose                     String
+  unidadeMedida            String?
+  via                      String
+  frequencia               String
+  quantidadeSolicitada     Int                    @default(1)
+  duracaoDias              Int?
+  /// Coluna direita (placeholder no cadastro; preenchido pelo médico na prescrição)
+  observacoes              String?
+  prescricaoMedicaPadrao   PrescricaoMedicaPadrao @relation(fields: [prescricaoMedicaPadraoId], references: [id], onDelete: Cascade)
+
+  @@index([prescricaoMedicaPadraoId])
+  @@map("itens_prescricao_medica_padrao")
 }
 
 /// Triagem pelo Protocolo de Manchester
@@ -308,6 +435,10 @@ model ProntuarioMedico {
   atendimentoId   String            @unique
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+  /// Data/hora de encerramento do prontuário (definida quando o atendimento é finalizado)
+  encerradoEm     DateTime?
+  /// Usuário que encerrou o prontuário
+  encerradoPorId  String?
   anamnese        Anamnese?
   diagnosticos    Diagnostico[]
   encaminhamentos Encaminhamento[]
@@ -315,8 +446,10 @@ model ProntuarioMedico {
   prescricoes     Prescricao[]
   atendimento     Atendimento       @relation(fields: [atendimentoId], references: [id])
   requisicoes     RequisicaoExame[]
+  encerradoPor    Usuario?          @relation(fields: [encerradoPorId], references: [id], name: "ProntuarioEncerradoPor")
 
   @@index([atendimentoId])
+  @@index([encerradoEm])
   @@map("prontuarios_medicos")
 }
 
@@ -369,10 +502,18 @@ model Diagnostico {
   @@map("diagnosticos")
 }
 
+/// Tipo de prescrição — PS (enfermagem) vs receita de alta (ambulatorial)
+enum TipoPrescricao {
+  PS
+  RECEITA_ALTA
+}
+
 /// Prescrição médica (cabeçalho)
 model Prescricao {
   id               String           @id @default(uuid())
   prontuarioId     String
+  /// PS = aplicação na unidade; RECEITA_ALTA = medicamentos para uso em casa
+  tipo             TipoPrescricao   @default(PS)
   /// Número sequencial da prescrição no atendimento
   numeroPrescricao Int              @default(1)
   /// Data de emissão
@@ -388,6 +529,7 @@ model Prescricao {
   prontuario       ProntuarioMedico @relation(fields: [prontuarioId], references: [id], onDelete: Cascade)
 
   @@index([prontuarioId])
+  @@index([prontuarioId, tipo])
   @@map("prescricoes")
 }
 
@@ -397,8 +539,10 @@ model ItemPrescricao {
   prescricaoId    String
   /// Nome do medicamento (comercial ou princípio ativo)
   nomeMedicamento String
-  /// Ex: "500mg", "10ml"
+  /// Ex: "500", "1", "10"
   dose            String
+  /// Unidade de medida: mg, mL, cp, UI, etc.
+  unidadeMedida   String?
   via             ViaAdministracao
   /// Frequência: "1x ao dia", "a cada 8h", "08h - 14h - 20h"
   frequencia      String
@@ -498,6 +642,308 @@ model EvolucaoMedica {
   @@map("evolucoes_medicas")
 }
 
+/// Laudo SUS para solicitação de autorização de internação hospitalar (AIH)
+model LaudoInternacao {
+  id                            String                  @id @default(uuid())
+  atendimentoId                 String                  @unique
+  status                        StatusLaudoInternacao   @default(RASCUNHO)
+  /// Estabelecimento solicitante / executante
+  nomeEstabelecimentoSolicitante String?
+  cnesSolicitante               String?
+  nomeEstabelecimentoExecutante  String?
+  cnesExecutante                String?
+  /// Identificação do paciente (snapshot no momento do cadastro)
+  nomePaciente                  String?
+  numeroProntuario              String?
+  cns                           String?
+  dataNascimento                DateTime?
+  sexoCodigo                    String?
+  nomeMae                       String?
+  telefoneDdd                   String?
+  telefoneNumero                String?
+  enderecoCompleto              String?
+  municipioResidencia           String?
+  codigoIbgeMunicipio           String?
+  uf                            String?                 @db.Char(2)
+  cep                           String?
+  /// Justificativa da internação
+  sinaisSintomas                String?
+  condicoesJustificativa        String?
+  resultadosDiagnosticos        String?
+  diagnosticoInicial            String?
+  cidPrincipal                  String?
+  cidSecundario                 String?
+  cidAssociadas                 String?
+  /// Procedimento solicitado
+  descricaoProcedimento         String?
+  codigoProcedimento            String?
+  clinica                       String?
+  caraterInternacao             String?
+  documentoProfissionalTipo     String?
+  documentoProfissionalNumero   String?
+  nomeProfissionalSolicitante   String?
+  dataSolicitacao               DateTime?
+  registroConselho              String?
+  /// Causas externas e autorização (campos opcionais do formulário SUS)
+  causasExternas                Json?
+  autorizacao                   Json?
+  preenchidoPorId               String?
+  createdAt                     DateTime                @default(now())
+  updatedAt                     DateTime                @updatedAt
+  atendimento                   Atendimento             @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("laudos_internacao")
+}
+
+/// Folha de Internação e Alta Hospitalar (ficha municipal)
+model FichaInternacaoAlta {
+  id                String                    @id @default(uuid())
+  atendimentoId     String                    @unique
+  status            StatusFichaInternacaoAlta @default(RASCUNHO)
+  nomePaciente      String?
+  numeroProntuario  String?
+  dadosFormulario   Json?
+  preenchidoPorId   String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  atendimento       Atendimento               @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("fichas_internacao_alta")
+}
+
+/// Ficha de notificação à CCIH — infecção relacionada à assistência à saúde (IRAS)
+model FichaCcih {
+  id                           String            @id @default(uuid())
+  atendimentoId                String            @unique
+  status                       StatusFichaCcih   @default(RASCUNHO)
+  nomePaciente                 String?
+  numeroProntuario             String?
+  dataNascimento               DateTime?
+  sexo                         String?
+  setorUnidade                 String?
+  leitoDescricao               String?
+  dataInternacao               DateTime?
+  diagnosticoPrincipal         String?
+  cidPrincipal                 String?
+  procedimentoRelacionado      String?
+  tipoInfeccao                 TipoInfeccaoCcih?
+  tipoInfeccaoOutro            String?
+  topografia                   String?
+  dataInicioSinais             DateTime?
+  sinaisSintomas               String?
+  resultadosLaboratorio        String?
+  microorganismoIdentificado   String?
+  sensibilidadeAntimicrobianos String?
+  fatoresRisco                 Json?
+  dispositivos                 Json?
+  antibioticoterapiaEmUso      String?
+  antibioticoterapiaPrevio     String?
+  dataNotificacao              DateTime?
+  nomeProfissionalNotificador  String?
+  conselhoProfissional         String?
+  funcaoProfissional           String?
+  observacoesEquipe            String?
+  parecerCcih                  String?
+  dadosFormulario              Json?
+  preenchidoPorId              String?
+  createdAt                    DateTime          @default(now())
+  updatedAt                    DateTime          @updatedAt
+  atendimento                  Atendimento       @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("fichas_ccih")
+}
+
+/// Ficha de avaliação multidisciplinar durante a internação
+model FichaMultidisciplinar {
+  id                    String                      @id @default(uuid())
+  atendimentoId         String                      @unique
+  status                StatusFichaMultidisciplinar @default(RASCUNHO)
+  nomePaciente          String?
+  numeroProntuario      String?
+  dataNascimento        DateTime?
+  sexo                  String?
+  setorUnidade          String?
+  leitoDescricao        String?
+  dataInternacao        DateTime?
+  diagnosticoPrincipal  String?
+  cidPrincipal          String?
+  medico                Json?
+  enfermagem            Json?
+  nutricao              Json?
+  fisioterapia          Json?
+  psicologia            Json?
+  farmacia              Json?
+  planoConjunto         Json?
+  preenchidoPorId       String?
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  atendimento           Atendimento                 @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("fichas_multidisciplinares")
+}
+
+/// Ficha de evolução por turno (diurna / noturna) na internação
+model FichaEvolucaoTurno {
+  id                         String                   @id @default(uuid())
+  atendimentoId              String
+  turno                      TurnoEvolucaoInternacao
+  dataReferencia             DateTime
+  status                     StatusFichaEvolucaoTurno @default(RASCUNHO)
+  nomePaciente               String?
+  numeroProntuario           String?
+  setorUnidade               String?
+  leitoDescricao             String?
+  estadoGeral                String?
+  evolucaoClinica            String?
+  exameFisico                String?
+  sinaisVitais               Json?
+  avaliacaoSistemas          Json?
+  dietaEliminacoes           String?
+  medicamentosProcedimentos  String?
+  intercorrencias            String?
+  condutaProximoTurno        String?
+  nomeProfissional           String?
+  conselhoProfissional       String?
+  funcaoProfissional         String?
+  preenchidoPorId            String?
+  registradoEm               DateTime?
+  createdAt                  DateTime                 @default(now())
+  updatedAt                  DateTime                 @updatedAt
+  atendimento                Atendimento              @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@unique([atendimentoId, dataReferencia, turno])
+  @@index([atendimentoId])
+  @@index([turno])
+  @@index([dataReferencia])
+  @@map("fichas_evolucao_turno")
+}
+
+/// Ficha de sinais vitais (controle horário 24h + balanço hídrico) — uma por dia
+model FichaSinaisVitais {
+  id               String    @id @default(uuid())
+  atendimentoId    String
+  dataReferencia   DateTime
+  nomePaciente     String?
+  numeroProntuario String?
+  leitoDescricao   String?
+  /// Grid horário: { "PRESSAO_ARTERIAL": { "7": "120/80", ... }, "PULSO": {...}, ... }
+  controleHorario  Json?
+  /// Balanço hídrico ganhos/perdas: { "ganhos": { "S_FISIOLOGICO": {...} }, "perdas": {...} }
+  balancoHidrico   Json?
+  preenchidoPorId  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  atendimento      Atendimento @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@unique([atendimentoId, dataReferencia])
+  @@index([atendimentoId])
+  @@index([dataReferencia])
+  @@map("fichas_sinais_vitais")
+}
+
+/// Ficha SAE — Sistematização da Assistência de Enfermagem — uma por dia
+model FichaSae {
+  id               String    @id @default(uuid())
+  atendimentoId    String
+  dataReferencia   DateTime
+  nomePaciente     String?
+  numeroProntuario String?
+  leitoDescricao   String?
+  /// Seleções de checkbox/radio agrupadas por chave: { "estadoGeral": ["REGULAR"], "pupilas": [...], ... }
+  selecoes         Json?
+  /// Campos de texto inline e complementos: { "febrilTemp": "38", "feridaLocal": "...", ... }
+  textos           Json?
+  /// Diagnósticos de enfermagem selecionados (lista de chaves)
+  diagnosticos     Json?
+  /// Prescrições de enfermagem selecionadas (lista de chaves) + valores inline
+  prescricoes      Json?
+  registroDiurno   String?
+  registroNoturno  String?
+  preenchidoPorId  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  atendimento      Atendimento @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@unique([atendimentoId, dataReferencia])
+  @@index([atendimentoId])
+  @@index([dataReferencia])
+  @@map("fichas_sae")
+}
+
+/// Ficha de evolução multiprofissional — log cronológico (append-only) por atendimento
+model EvolucaoMultiprofissional {
+  id               String    @id @default(uuid())
+  atendimentoId    String
+  /// Data/hora do registro da evolução
+  dataHora         DateTime
+  evolucao         String
+  /// Categoria profissional: MEDICO, ENFERMEIRO, NUTRICAO, FISIOTERAPIA, PSICOLOGIA, FARMACIA, OUTRO
+  categoria        String?
+  nomeProfissional String?
+  conselho         String?
+  registradoPorId  String?
+  createdAt        DateTime  @default(now())
+  atendimento      Atendimento @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@index([atendimentoId])
+  @@index([dataHora])
+  @@map("evolucoes_multiprofissional")
+}
+
+/// Folha de internação e alta hospitalar em obstetrícia — uma por atendimento
+model FichaInternacaoObstetrica {
+  id               String    @id @default(uuid())
+  atendimentoId    String    @unique
+  nomePaciente     String?
+  numeroProntuario String?
+  leitoDescricao   String?
+  /// Campos de texto da folha: identificação, responsável, atenção médica, exame físico, etc.
+  campos           Json?
+  /// Evolução do trabalho de parto (lista de linhas)
+  trabalhoParto    Json?
+  /// Evolução do puerpério (lista de linhas)
+  puerperio        Json?
+  /// Recém-nascido (campos)
+  recemNascido     Json?
+  /// Condições de alta (campos + checkboxes)
+  condicoesAlta    Json?
+  preenchidoPorId  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  atendimento      Atendimento @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@index([atendimentoId])
+  @@map("fichas_internacao_obstetrica")
+}
+
+/// Ficha médica de berçário (recém-nascido) — uma por atendimento
+model FichaBercario {
+  id               String    @id @default(uuid())
+  atendimentoId    String    @unique
+  nomePaciente     String?
+  numeroProntuario String?
+  leitoDescricao   String?
+  /// Identificação do RN, filiação, antecedentes pré-natais, exame clínico
+  campos           Json?
+  /// Evolução / prescrição / enfermagem (log cronológico)
+  evolucao         Json?
+  preenchidoPorId  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  atendimento      Atendimento @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@index([atendimentoId])
+  @@map("fichas_bercario")
+}
+
 /// Encaminhamento interno, externo ou solicitação de internação
 model Encaminhamento {
   id              String             @id @default(uuid())
@@ -513,9 +959,7 @@ model Encaminhamento {
   resumoClinco    String?
   /// Justificativa (obrigatória para externos)
   justificativa   String?
-  /// Para internação: tipo de leito (UTI, Enfermaria, Isolamento)
-  tipoLeito       String?
-  setor           String?
+  /// Para internação: CID informado pelo médico (leito/apartamento é definido pela enfermagem em Admissões)
   cidInternacao   String?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -555,31 +999,43 @@ model LogAuditoria {
 
 /// Configurações gerais da instituição / Município
 model Instituicao {
-  id              String   @id @default(uuid())
-  nomeMunicipio   String
-  nomeInstituicao String
-  endereco        String?
-  bairro          String?
-  cidade          String?
-  estado          String?  @db.Char(2)
-  cep             String?
-  logomarcaUrl    String?
-  updatedAt       DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  nomeMunicipio       String
+  nomeInstituicao     String
+  /// Cadastro Nacional de Estabelecimentos de Saúde (7 dígitos)
+  cnes                String?
+  /// Código IBGE do município gestor (7 dígitos)
+  codigoIbgeMunicipio String?
+  endereco            String?
+  bairro              String?
+  cidade              String?
+  estado              String?  @db.Char(2)
+  cep                 String?
+  logomarcaUrl        String?
+  updatedAt           DateTime @updatedAt
 
   @@map("instituicoes")
 }
 
 /// Configurações do Painel de Chamadas
 model ConfigPainel {
-  id              String   @id @default(uuid())
-  vozAtiva         Boolean  @default(true)
-  tipoVoz         String   @default("feminina") // "masculina" | "feminina"
-  corPrimaria     String   @default("#2563eb")
-  corSecundaria   String   @default("#f8fafc")
-  corTexto        String   @default("#1e293b")
-  mensagemPadrao  String   @default("Comparecer ao consultório")
-  velocidadeVoz   Float    @default(1.0)
-  updatedAt       DateTime @updatedAt
+  id                      String   @id @default(uuid())
+  vozAtiva                Boolean  @default(true)
+  tipoVoz                 String   @default("feminina") // "masculina" | "feminina"
+  corPrimaria             String   @default("#2563eb")
+  corSecundaria           String   @default("#f8fafc")
+  corTexto                String   @default("#1e293b")
+  mensagemPadrao          String   @default("Comparecer ao consultório")
+  velocidadeVoz           Float    @default(1.0)
+  /// Tela dividida: mídia rotativa + chamadas
+  layoutDividido          Boolean  @default(false)
+  /// Intervalo entre imagens (segundos)
+  intervaloRotacaoSegundos Int     @default(8)
+  /// "esquerda" | "direita" — posição da área de mídia
+  posicaoMidia            String   @default("esquerda")
+  /// [{ id, url, titulo?, legenda?, ordem? }]
+  imagensRotativas        Json     @default("[]")
+  updatedAt               DateTime @updatedAt
 
   @@map("config_painel")
 }
@@ -622,6 +1078,338 @@ enum Role {
   TECNICO_ENFERMAGEM
   RECEPCIONISTA
   DIRETOR_CLINICO
+  FARMACEUTICO
+}
+
+// =============================================================================
+// FARMÁCIA HOSPITALAR (tabelas tb_* — especificação conceitual)
+// =============================================================================
+
+/// Catálogo de medicamentos e controle de saldo (estoque local)
+model TbMedicamento {
+  id            String   @id @default(uuid())
+  nome          String
+  /// Princípio ativo (normalizado) — base para matriz de interação
+  principioAtivo String
+  forma         String?
+  concentracao  String?
+  unidade       String?
+  /// Saldos: manter >= 0 (validação também no app; constraints via SQL)
+  saldoAtual    Int      @default(0)
+  saldoReservado Int     @default(0)
+  /// Alerta quando saldoAtual <= estoqueMinimo
+  estoqueMinimo Int      @default(0)
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  itens         TbPrescricaoItem[]
+  sinonimos     TbMedicamentoSinonimo[]
+  lotes         TbMedicamentoLote[]
+  movimentacoes TbFarmaciaMovimentacao[]
+  entradasNfItens TbFarmaciaEntradaNfItem[]
+  saidasItens     TbFarmaciaSaidaItem[]
+
+  @@index([principioAtivo])
+  @@index([nome])
+  @@map("tb_medicamento")
+}
+
+/// Lote de medicamento — controle por validade (FEFO)
+model TbMedicamentoLote {
+  id            String    @id @default(uuid())
+  medicamentoId String
+  lote          String
+  validade      DateTime?
+  quantidade    Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  medicamento   TbMedicamento             @relation(fields: [medicamentoId], references: [id], onDelete: Cascade)
+  entradasItens TbFarmaciaEntradaNfItem[]
+  saidasItens   TbFarmaciaSaidaItem[]
+  movimentacoes TbFarmaciaMovimentacao[]
+
+  @@unique([medicamentoId, lote])
+  @@index([medicamentoId])
+  @@index([validade])
+  @@map("tb_medicamento_lote")
+}
+
+enum TipoMovimentacaoFarmacia {
+  ENTRADA_NF
+  ENTRADA_MANUAL
+  SAIDA_DISPENSACAO
+  SAIDA_MANUAL
+  AJUSTE
+}
+
+/// Livro-razão de movimentações de estoque
+model TbFarmaciaMovimentacao {
+  id             String                   @id @default(uuid())
+  medicamentoId  String
+  loteId         String?
+  tipo           TipoMovimentacaoFarmacia
+  /// Positivo = entrada, negativo = saída
+  quantidade     Int
+  saldoAnterior  Int
+  saldoPosterior Int
+  referenciaTipo String?
+  referenciaId   String?
+  usuarioId      String?
+  observacoes    String?
+  createdAt      DateTime                 @default(now())
+
+  medicamento    TbMedicamento     @relation(fields: [medicamentoId], references: [id])
+  lote           TbMedicamentoLote? @relation(fields: [loteId], references: [id])
+
+  @@index([medicamentoId])
+  @@index([loteId])
+  @@index([tipo])
+  @@index([createdAt])
+  @@map("tb_farmacia_movimentacao")
+}
+
+/// Sinônimos/abreviações para matching (ex.: "AAS" -> "ácido acetilsalicílico")
+model TbMedicamentoSinonimo {
+  id            String   @id @default(uuid())
+  medicamentoId String
+  /// Texto do sinônimo (qualquer forma digitada pelo usuário, ex.: "AAS")
+  sinonimo      String
+  /// Texto normalizado para busca (sem acentos, lowercase, espaços colapsados)
+  sinonimoNorm  String
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  medicamento   TbMedicamento @relation(fields: [medicamentoId], references: [id], onDelete: Cascade)
+
+  @@index([sinonimoNorm])
+  @@index([medicamentoId])
+  @@unique([medicamentoId, sinonimoNorm])
+  @@map("tb_medicamento_sinonimo")
+}
+
+/// Matriz de risco de interação entre princípios ativos (pares normalizados)
+model TbInteracaoMatriz {
+  id               String         @id @default(uuid())
+  principioAtivoA  String
+  principioAtivoB  String
+  risco            RiscoInteracao
+  efeitoClinico    String
+  sugestaoSistema  String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([principioAtivoA, principioAtivoB])
+  @@index([risco])
+  @@map("tb_interacao_matriz")
+}
+
+/// Prescrição hospitalar (cabeçalho) integrada à farmácia
+model TbPrescricaoCabecalho {
+  id                String                 @id @default(uuid())
+  atendimentoId     String
+  criadoPorId       String
+  statusValidacao   StatusValidacaoFarmacia @default(AGUARDANDO_TRIAGEM)
+  observacoes       String?
+  ativa             Boolean                @default(true)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  atendimento       Atendimento            @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+  criadoPor         Usuario                @relation(fields: [criadoPorId], references: [id])
+  itens             TbPrescricaoItem[]
+
+  @@index([atendimentoId])
+  @@index([statusValidacao])
+  @@map("tb_prescricao_cabecalho")
+}
+
+/// Item da prescrição hospitalar (medicamento) — sujeito à triagem da farmácia
+model TbPrescricaoItem {
+  id                   String                 @id @default(uuid())
+  prescricaoId         String
+  medicamentoId        String?
+  /// Snapshot: permite prescrever mesmo sem cadastro no catálogo
+  medicamentoNome      String
+  principioAtivo       String
+  /// Quantidade solicitada (unidade do catálogo). Para estoque simplificado.
+  quantidadeSolicitada Int                    @default(1)
+  dose                 String
+  via                  ViaAdministracao
+  frequencia           String
+  duracaoDias          Int?
+  observacoes          String?
+  /// Justificativa médica obrigatória quando há interação CRÍTICA e o médico decide prosseguir
+  justificativaMedica  String?
+  /// Snapshot dos alertas de interação (para triagem farmacêutica e auditoria clínica)
+  alertasInteracao     Json?
+  statusValidacao      StatusValidacaoFarmacia @default(AGUARDANDO_TRIAGEM)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  prescricao           TbPrescricaoCabecalho  @relation(fields: [prescricaoId], references: [id], onDelete: Cascade)
+  medicamento          TbMedicamento?         @relation(fields: [medicamentoId], references: [id])
+  dispensacao          TbFarmaciaDispensacao?
+  saidas               TbFarmaciaSaidaItem[]
+
+  @@index([prescricaoId])
+  @@index([principioAtivo])
+  @@index([statusValidacao])
+  @@map("tb_prescricao_item")
+}
+
+/// Triagem/dispensação na farmácia (por item)
+model TbFarmaciaDispensacao {
+  id              String                  @id @default(uuid())
+  itemId          String                  @unique
+  validadoPorId   String?
+  status          StatusValidacaoFarmacia @default(AGUARDANDO_TRIAGEM)
+  motivoRejeicao  String?
+  validadoEm      DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  item            TbPrescricaoItem        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  validadoPor     Usuario?                @relation(fields: [validadoPorId], references: [id])
+  saidas          TbFarmaciaSaidaItem[]
+
+  @@index([status])
+  @@index([validadoEm])
+  @@map("tb_farmacia_dispensacao")
+}
+
+/// Entrada de estoque via Nota Fiscal (NF-e / DANFE)
+model TbFarmaciaEntradaNf {
+  id             String   @id @default(uuid())
+  numeroNota     String
+  serie          String?
+  fornecedorNome String?
+  fornecedorCnpj String?
+  emitidaEm      DateTime?
+  recebidaEm     DateTime @default(now())
+  /// Indica se a entrada foi importada de XML NF-e
+  importadaXml   Boolean  @default(false)
+  chaveNfe       String?
+  observacoes    String?
+  criadoPorId    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  criadoPor      Usuario?                  @relation(fields: [criadoPorId], references: [id])
+  itens          TbFarmaciaEntradaNfItem[]
+
+  @@index([numeroNota])
+  @@index([recebidaEm])
+  @@map("tb_farmacia_entrada_nf")
+}
+
+model TbFarmaciaEntradaNfItem {
+  id            String   @id @default(uuid())
+  entradaId     String
+  medicamentoId String
+  loteId        String?
+  quantidade    Int
+  custoUnitario Decimal? @db.Decimal(12, 2)
+  lote          String?
+  validade      DateTime?
+  createdAt     DateTime @default(now())
+
+  entrada       TbFarmaciaEntradaNf @relation(fields: [entradaId], references: [id], onDelete: Cascade)
+  medicamento   TbMedicamento       @relation(fields: [medicamentoId], references: [id])
+  loteRef       TbMedicamentoLote?  @relation(fields: [loteId], references: [id])
+
+  @@index([entradaId])
+  @@index([medicamentoId])
+  @@index([loteId])
+  @@map("tb_farmacia_entrada_nf_item")
+}
+
+enum TipoSaidaFarmacia {
+  DISPENSACAO_PRESCRICAO
+  BAIXA_MANUAL
+}
+
+/// Saída de estoque (dispensação ou baixa manual)
+model TbFarmaciaSaida {
+  id             String           @id @default(uuid())
+  tipo           TipoSaidaFarmacia
+  atendimentoId  String?
+  observacoes    String?
+  criadoPorId    String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  criadoPor      Usuario?               @relation(fields: [criadoPorId], references: [id])
+  atendimento    Atendimento?           @relation(fields: [atendimentoId], references: [id])
+  itens          TbFarmaciaSaidaItem[]
+
+  @@index([tipo])
+  @@index([createdAt])
+  @@index([atendimentoId])
+  @@map("tb_farmacia_saida")
+}
+
+model TbFarmaciaSaidaItem {
+  id               String   @id @default(uuid())
+  saidaId          String
+  medicamentoId    String
+  loteId           String?
+  quantidade       Int
+  motivo           String?
+  dispensacaoId    String?
+  prescricaoItemId String?
+  createdAt        DateTime @default(now())
+
+  saida            TbFarmaciaSaida        @relation(fields: [saidaId], references: [id], onDelete: Cascade)
+  medicamento      TbMedicamento          @relation(fields: [medicamentoId], references: [id])
+  loteRef          TbMedicamentoLote?     @relation(fields: [loteId], references: [id])
+  dispensacao      TbFarmaciaDispensacao? @relation(fields: [dispensacaoId], references: [id])
+  prescricaoItem   TbPrescricaoItem?      @relation(fields: [prescricaoItemId], references: [id])
+
+  @@index([saidaId])
+  @@index([medicamentoId])
+  @@index([loteId])
+  @@index([dispensacaoId])
+  @@index([prescricaoItemId])
+  @@map("tb_farmacia_saida_item")
+}
+
+/// Auditoria LGPD (imutável) — registrar leituras e mudanças de status na farmácia
+model TbAuditoriaLog {
+  id            String    @id @default(uuid())
+  usuarioId     String?
+  role          Role?
+  atendimentoId String?
+  acao          String
+  entidade      String
+  entidadeId    String?
+  ipOrigem      String?
+  userAgent     String?
+  detalhes      Json?
+  registradoEm  DateTime  @default(now())
+
+  usuario       Usuario?  @relation(fields: [usuarioId], references: [id])
+  atendimento   Atendimento? @relation(fields: [atendimentoId], references: [id])
+
+  @@index([usuarioId])
+  @@index([atendimentoId])
+  @@index([entidade, entidadeId])
+  @@index([registradoEm])
+  @@map("tb_auditoria_log")
+}
+
+enum RiscoInteracao {
+  LEVE
+  MODERADO
+  CRITICO
+}
+
+enum StatusValidacaoFarmacia {
+  AGUARDANDO_TRIAGEM
+  APROVADO
+  REJEITADO
 }
 
 /// Classificação do Protocolo de Manchester
@@ -647,6 +1435,8 @@ enum StatusAtendimento {
   AGUARDANDO_ATENDIMENTO
   EM_ATENDIMENTO
   CONCLUIDO
+  /// Solicitação médica de internação aguardando recepção pela enfermagem
+  AGUARDANDO_INTERNACAO
   INTERNADO
   TRANSFERIDO
   ALTA
@@ -718,9 +1508,55 @@ enum CategoriaExame {
 
 /// Tipo de encaminhamento
 enum TipoEncaminhamento {
-  INTERNO
   EXTERNO
   INTERNACAO
+}
+
+/// Status do laudo de internação hospitalar
+enum StatusLaudoInternacao {
+  RASCUNHO
+  SOLICITADO
+  AUTORIZADO
+}
+
+enum StatusFichaInternacaoAlta {
+  RASCUNHO
+  EM_ANDAMENTO
+  CONCLUIDA
+}
+
+enum StatusFichaCcih {
+  RASCUNHO
+  NOTIFICADO
+  EM_ANALISE
+  CONCLUIDO
+}
+
+enum TipoInfeccaoCcih {
+  ITU
+  PNEUMONIA_VENTILACAO
+  ISC
+  ICS
+  BACTERIEMIA_PRIMARIA
+  MENINGITE
+  INFECCAO_CATETER
+  OUTRA
+}
+
+enum StatusFichaMultidisciplinar {
+  RASCUNHO
+  EM_ANDAMENTO
+  CONCLUIDA
+}
+
+enum TurnoEvolucaoInternacao {
+  DIURNA
+  NOTURNA
+}
+
+enum StatusFichaEvolucaoTurno {
+  RASCUNHO
+  REGISTRADA
 }
 
 /// Tipo de conteúdo de auditoria

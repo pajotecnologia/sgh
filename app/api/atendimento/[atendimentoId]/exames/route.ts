@@ -6,7 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { schemaCriarRequisicaoExame } from '@/lib/validations/atendimento';
-import { prontuarioPertenceAoAtendimento } from '@/lib/atendimento-prontuario';
+import { prontuarioPertenceAoAtendimento, prontuarioEstaEncerrado } from '@/lib/atendimento-prontuario';
 
 const ROLES_MEDICO = ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'] as const;
 const ROLES_LEITURA = [...ROLES_MEDICO, 'ENFERMEIRO', 'TECNICO_ENFERMAGEM'] as const;
@@ -57,6 +57,10 @@ export async function POST(
   }
 
   try {
+    if (await prontuarioEstaEncerrado(atendimentoId)) {
+      return NextResponse.json({ sucesso: false, erro: 'Prontuário encerrado. Edição não permitida.' }, { status: 409 })
+    }
+
     const body = await req.json();
     const validacao = schemaCriarRequisicaoExame.safeParse(body);
     if (!validacao.success) {

@@ -25,7 +25,7 @@ export default async function PaginaAuditoria() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+        <h1 className="page-title flex items-center gap-2">
           <Shield className="h-7 w-7 text-primary" />
           Auditoria
         </h1>

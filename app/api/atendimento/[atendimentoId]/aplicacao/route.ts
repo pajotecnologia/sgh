@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { schemaAplicacaoMedicamento } from '@/lib/validations/atendimento';
+import { STATUS_MEDICACAO_ATIVOS } from '@/lib/fila-medicacao';
 
 const ROLES_APLICAR = ['ADMIN', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM'] as const;
 
@@ -30,21 +31,30 @@ export async function POST(
       );
     }
 
-    const { itemPrescricaoId, doseAplicada, via, checklistConfirmado, observacoes } = validacao.data;
+    const { itemPrescricaoId, doseAplicada, via, checklistConfirmado, observacoes, contexto } =
+      validacao.data;
 
     const item = await prisma.itemPrescricao.findFirst({
       where: { id: itemPrescricaoId },
       include: {
         prescricao: {
-          include: {
-            prontuario: { select: { atendimentoId: true } },
-          },
+          select: { tipo: true, prontuario: { select: { atendimentoId: true } } },
         },
       },
     });
 
     if (!item || item.prescricao.prontuario.atendimentoId !== atendimentoId) {
       return NextResponse.json({ sucesso: false, erro: 'Item de prescrição não pertence a este atendimento.' }, { status: 404 });
+    }
+
+    if (item.prescricao.tipo === 'RECEITA_ALTA') {
+      return NextResponse.json(
+        {
+          sucesso: false,
+          erro: 'Este item pertence à receita de alta (uso em casa), não à aplicação pela enfermagem.',
+        },
+        { status: 409 }
+      );
     }
 
     const atendimento = await prisma.atendimento.findFirst({
@@ -54,15 +64,35 @@ export async function POST(
     if (!atendimento) {
       return NextResponse.json({ sucesso: false, erro: 'Atendimento não encontrado.' }, { status: 404 });
     }
-    const papelEnfermagem = ['ENFERMEIRO', 'TECNICO_ENFERMAGEM'].includes(sessao.usuario.role);
-    if (papelEnfermagem && atendimento.status !== 'INTERNADO') {
-      return NextResponse.json(
-        {
-          sucesso: false,
-          erro: 'Aplicação de medicamento permitida somente para atendimentos com status Internado.',
-        },
-        { status: 403 }
-      );
+    if (contexto === 'medicacao') {
+      if (atendimento.status === 'INTERNADO') {
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro: 'Paciente internado: aplique a medicação no prontuário em Internação (aba Instruções / Enfermagem).',
+          },
+          { status: 403 }
+        );
+      }
+      if (!STATUS_MEDICACAO_ATIVOS.includes(atendimento.status)) {
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro: 'Este atendimento não está elegível para aplicação no módulo Medicação.',
+          },
+          { status: 403 }
+        );
+      }
+    } else {
+      if (atendimento.status !== 'INTERNADO') {
+        return NextResponse.json(
+          {
+            sucesso: false,
+            erro: 'Aplicação no prontuário da internação permitida somente para pacientes internados.',
+          },
+          { status: 403 }
+        );
+      }
     }
 
     if (item.status === 'RECUSADO' || item.status === 'SUSPENSO') {

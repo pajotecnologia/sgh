@@ -2,6 +2,7 @@
 import { prisma } from '@/lib/prisma';
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao';
 import { PainelChamada } from '@/components/painel/PainelChamada';
+import { configPainelFromDb, CONFIG_PAINEL_PADRAO } from '@/lib/painel-config';
 
 // Revalidar a cada 30s (SSR + ISR como fallback se Pusher não conectar)
 export const revalidate = 30;
@@ -42,6 +43,17 @@ export default async function PaginaPainel({
     setorPainel: c.setorPainel,
   }));
   const instituicao = await prisma.instituicao.findFirst();
+  const configRow = await prisma.configPainel.findFirst();
+  const configPainel = configRow
+    ? configPainelFromDb(configRow as unknown as Record<string, unknown>)
+    : CONFIG_PAINEL_PADRAO;
 
-  return <PainelChamada historicoInicial={historicoInicial} setor={setor} instituicao={instituicao} />;
+  return (
+    <PainelChamada
+      historicoInicial={historicoInicial}
+      setor={setor}
+      instituicao={instituicao}
+      configInicial={configPainel}
+    />
+  );
 }

@@ -9,8 +9,8 @@
    ============================================================================= */
 @layer base {
   :root {
-    /* Cores base — tema claro */
-    --background: 210 20% 98%;
+    /* Tema claro — azul hospitalar */
+    --background: 210 40% 98%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -19,62 +19,112 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Azul primário hospitalar */
-    --primary: 213 94% 44%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 217 91% 53%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
+    --secondary: 214 32% 94%;
     --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 96%;
+    --muted: 214 32% 94%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 210 40% 94%;
+    --accent: 214 32% 94%;
     --accent-foreground: 222 47% 11%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 213 94% 44%;
+    --border: 214 32% 88%;
+    --input: 214 32% 88%;
+    --ring: 217 91% 53%;
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
 
-    /* Sidebar */
     --sidebar-width: 260px;
     --sidebar-bg: 222 47% 11%;
     --sidebar-fg: 210 40% 96%;
+
+    --scrollbar-size: 13px;
+    --scrollbar-thumb: 215 16% 47%;
+    --scrollbar-thumb-hover: 217 91% 40%;
+    --scrollbar-track: 210 40% 94%;
+
+    --chart-1: 217 91% 53%;
+    --chart-2: 213 94% 44%;
+    --chart-3: 199 89% 48%;
+    --chart-4: 142 71% 45%;
+    --chart-5: 38 92% 50%;
+
+    --sidebar: 222 47% 11%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 18%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 217 33% 18%;
+    --sidebar-ring: 217 91% 53%;
   }
 
   .dark {
-    --background: 222 47% 8%;
-    --foreground: 210 40% 98%;
+    --background: 222 47% 7%;
+    --foreground: 210 40% 96%;
 
     --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
+    --card-foreground: 210 40% 96%;
 
     --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover-foreground: 210 40% 96%;
 
-    --primary: 213 94% 55%;
-    --primary-foreground: 222 47% 8%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 217 33% 18%;
+    --secondary-foreground: 210 40% 96%;
 
-    --muted: 217 33% 17%;
+    --muted: 217 33% 18%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 217 33% 18%;
+    --accent-foreground: 210 40% 96%;
 
-    --destructive: 0 63% 40%;
+    --destructive: 0 63% 45%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 213 94% 55%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 217 91% 60%;
+
+    --scrollbar-thumb: 215 20% 65%;
+    --scrollbar-thumb-hover: 217 91% 60%;
+    --scrollbar-track: 222 47% 11%;
+
+    --chart-1: 217 91% 60%;
+    --chart-2: 213 94% 50%;
+    --chart-3: 199 89% 55%;
+    --chart-4: 142 71% 50%;
+    --chart-5: 38 92% 55%;
+
+    --sidebar: 222 47% 11%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 18%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 217 33% 18%;
+    --sidebar-ring: 217 91% 60%;
+  }
+  .theme {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
   }
 }
 
@@ -84,26 +134,63 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground text-sm;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-feature-settings: 'cv11', 'ss01';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Scrollbar customizada */
+  /* Tipografia compacta — alinhada à tela de atendimento/pendências */
+  .dashboard-layout {
+    @apply text-xs;
+  }
+
+  .dashboard-content {
+    @apply text-xs;
+  }
+
+  .page-title {
+    @apply text-base font-bold text-foreground;
+  }
+
+  .page-subtitle {
+    @apply text-xs text-muted-foreground mt-0.5;
+  }
+
+  .section-label {
+    @apply text-[10px] font-semibold text-muted-foreground uppercase tracking-wider;
+  }
+
+  /* Scrollbar — padrão global (Chrome, Edge, Safari) */
+  * {
+    scrollbar-width: auto;
+    scrollbar-color: hsl(var(--scrollbar-thumb) / 0.75) hsl(var(--scrollbar-track));
+  }
+
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
   }
+
   ::-webkit-scrollbar-track {
-    @apply bg-muted;
+    background: hsl(var(--scrollbar-track));
+    border-radius: 9999px;
   }
+
   ::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-full;
+    background: hsl(var(--scrollbar-thumb) / 0.7);
+    border-radius: 9999px;
+    border: 3px solid hsl(var(--scrollbar-track));
+    min-height: 48px;
   }
+
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground;
+    background: hsl(var(--scrollbar-thumb-hover) / 0.9);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: hsl(var(--scrollbar-track));
   }
 
   /* Tipografia de código (números de atendimento, CIDs) */
@@ -127,12 +214,36 @@
   }
 
   .dashboard-content {
-    @apply flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6;
+    @apply flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-5 text-xs;
+    scrollbar-gutter: stable;
+  }
+
+  /* Alias — mesma barra global, com gutter estável em painéis longos */
+  .scrollbar-visible {
+    scrollbar-gutter: stable;
+  }
+
+  /* Menu lateral escuro — trilho e polegar legíveis no slate-900 */
+  aside[aria-label='Navegação principal'] nav {
+    scrollbar-color: hsl(215 20% 55% / 0.85) hsl(222 47% 14%);
+  }
+
+  aside[aria-label='Navegação principal'] nav::-webkit-scrollbar-track {
+    background: hsl(222 47% 14%);
+  }
+
+  aside[aria-label='Navegação principal'] nav::-webkit-scrollbar-thumb {
+    background: hsl(215 20% 55% / 0.75);
+    border-color: hsl(222 47% 14%);
+  }
+
+  aside[aria-label='Navegação principal'] nav::-webkit-scrollbar-thumb:hover {
+    background: hsl(210 40% 78% / 0.9);
   }
 
   /* Cards de estatísticas */
   .stat-card {
-    @apply bg-card rounded-xl border border-border p-5 shadow-sm
+    @apply bg-card rounded-lg border border-border p-3 shadow-sm
            hover:shadow-md transition-shadow duration-200;
   }
 
@@ -160,7 +271,11 @@
 
   /* Inputs do formulário — estilo uniforme */
   .form-field {
-    @apply flex flex-col gap-1.5;
+    @apply flex flex-col gap-1;
+  }
+
+  .form-field label {
+    @apply text-xs font-medium;
   }
 
   /* Alert de tempo de triagem excedido */
@@ -258,6 +373,19 @@
   .ficha-print-page-1 {
     page-break-after: always !important;
     break-after: page !important;
+  }
+
+  /* Laudo SUS de internação — impressão */
+  .laudo-internacao-print {
+    display: block !important;
+    overflow: visible !important;
+    max-width: none !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+  .laudo-internacao-print article {
+    box-shadow: none !important;
+    border-color: black !important;
   }
 
   /* Reset de cores para impressão */

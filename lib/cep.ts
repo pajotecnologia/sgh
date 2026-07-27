@@ -5,21 +5,21 @@ import type { RespostaViaCEP, DadosEndereco } from '@/types';
 
 /**
  * Busca endereço pelo CEP usando a API pública ViaCEP.
- * Retorna os dados formatados para o formulário de cadastro.
- * @throws Error se o CEP não for encontrado ou for inválido
+ * Funciona no browser (formulário) e no servidor.
  */
 export async function buscarCep(cep: string): Promise<DadosEndereco> {
-  // Remover formatação: 01310-100 → 01310100
   const cepLimpo = cep.replace(/\D/g, '');
 
   if (cepLimpo.length !== 8) {
     throw new Error('CEP deve ter 8 dígitos.');
   }
 
-  const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`, {
-    // Cache de 24h para reduzir chamadas à API
-    next: { revalidate: 86400 },
-  });
+  const init: RequestInit =
+    typeof window === 'undefined'
+      ? { next: { revalidate: 86400 } }
+      : { cache: 'no-store' };
+
+  const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`, init);
 
   if (!response.ok) {
     throw new Error('Falha ao consultar o serviço de CEP. Tente novamente.');
@@ -38,13 +38,10 @@ export async function buscarCep(cep: string): Promise<DadosEndereco> {
     bairro: dados.bairro,
     cidade: dados.localidade,
     estado: dados.uf,
-    numero: '', // O número não vem do ViaCEP — deve ser preenchido pelo usuário
+    numero: '',
   };
 }
 
-/**
- * Formata um CEP para exibição: 01310100 → 01310-100
- */
 export function formatarCep(cep: string): string {
   const limpo = cep.replace(/\D/g, '');
   if (limpo.length !== 8) return cep;

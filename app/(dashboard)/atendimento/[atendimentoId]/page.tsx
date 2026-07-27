@@ -3,7 +3,7 @@
 // Workspace do médico (Prontuário, Anamnese, Diagnóstico, Prescrição)
 
 import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   FileText,
@@ -17,7 +17,12 @@ import {
   NotebookPen,
   FlaskConical,
   Share2,
+  FileSignature,
 } from 'lucide-react';
+import { FormularioReceitaAlta } from '@/components/atendimento/FormularioReceitaAlta';
+import { ModalFinalizarAtendimento } from '@/components/atendimento/ModalFinalizarAtendimento';
+import { filtrarPrescricoesPs, filtrarPrescricoesReceitaAlta } from '@/lib/prescricao-tipo';
+import { analisarFluxoMedicacaoAtendimento } from '@/lib/atendimento-medicacao-fluxo';
 import { BadgeManchester } from '@/components/triagem/BadgeManchester';
 import { BotaoChamarPainel } from '@/components/atendimento/BotaoChamarPainel';
 import { FormularioAnamnese } from '@/components/atendimento/FormularioAnamnese';
@@ -26,10 +31,30 @@ import { FormularioPrescricao } from '@/components/atendimento/FormularioPrescri
 import { FormularioEvolucao } from '@/components/atendimento/FormularioEvolucao';
 import { FormularioExames } from '@/components/atendimento/FormularioExames';
 import { FormularioEncaminhamento } from '@/components/atendimento/FormularioEncaminhamento';
+import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao';
+import { descricaoLeitoInternacao } from '@/lib/prefill-internamento';
+import { ToggleObstetrico } from '@/components/atendimento/ToggleObstetrico';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-type Aba = 'ANAMNESE' | 'DIAGNOSTICO' | 'PRESCRICAO' | 'EVOLUCAO' | 'EXAMES' | 'ENCAMINHAMENTO';
+type Aba =
+  | 'ANAMNESE'
+  | 'DIAGNOSTICO'
+  | 'PRESCRICAO'
+  | 'EXAMES'
+  | 'EVOLUCAO'
+  | 'RECEITA_ALTA'
+  | 'ENCAMINHAMENTO';
+
+const ABAS_VALIDAS = new Set<string>([
+  'ANAMNESE',
+  'DIAGNOSTICO',
+  'PRESCRICAO',
+  'EXAMES',
+  'EVOLUCAO',
+  'RECEITA_ALTA',
+  'ENCAMINHAMENTO',
+]);
 
 export default function WorkspaceAtendimento({
   params,
@@ -37,10 +62,12 @@ export default function WorkspaceAtendimento({
   params: Promise<{ atendimentoId: string }>;
 }) {
   const { atendimentoId } = use(params);
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [abaAtual, setAbaAtual] = useState<Aba>('ANAMNESE');
   const [dados, setDados] = useState<any>(null);
   const [carregando, setCarregando] = useState(true);
+  const [modalFinalizarAberto, setModalFinalizarAberto] = useState(false);
 
   async function carregarDados() {
     try {
@@ -62,6 +89,32 @@ export default function WorkspaceAtendimento({
     carregarDados();
   }, [atendimentoId]);
 
+  useEffect(() => {
+    if (!dados || atendimentoEncerradoFrom(dados)) return
+    const fluxo = analisarFluxoMedicacaoAtendimento(
+      dados.prontuario.prescricoes ?? [],
+      dados.prontuario.evolucoes ?? []
+    )
+    if (!fluxo.aguardandoRetornoMedicacao) return
+    const intervalo = setInterval(() => {
+      carregarDados()
+    }, 5000)
+    return () => clearInterval(intervalo)
+  }, [dados, atendimentoId])
+
+  function atendimentoEncerradoFrom(payload: { atendimento: { status: string }; prontuario: { encerradoEm?: string | null } }) {
+    return (
+      payload.atendimento.status === 'CONCLUIDO' ||
+      payload.atendimento.status === 'AGUARDANDO_INTERNACAO' ||
+      Boolean(payload.prontuario.encerradoEm)
+    )
+  }
+
+  useEffect(() => {
+    const aba = searchParams.get('aba')?.toUpperCase() ?? '';
+    if (ABAS_VALIDAS.has(aba)) setAbaAtual(aba as Aba);
+  }, [searchParams]);
+
   if (carregando) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-muted-foreground space-y-4">
@@ -75,15 +128,54 @@ export default function WorkspaceAtendimento({
 
   const { atendimento, prontuario } = dados;
   const paciente = atendimento.paciente;
+  const nomePacienteCompleto =
+    paciente.nomeCompleto ??
+    nomeCompletoParaExibicao(
+      paciente.nomeExibicao,
+      paciente.nomeCriptografado,
+      paciente.nomeCompleto
+    );
   const procedenciaExibicao =
     (atendimento.origem as { descricao?: string } | null)?.descricao?.trim() || null;
+
+  const atendimentoEncerrado =
+    atendimento.status === 'CONCLUIDO' ||
+    atendimento.status === 'AGUARDANDO_INTERNACAO' ||
+    Boolean(prontuario.encerradoEm);
+  const encaminhamentoInternacao = (prontuario.encaminhamentos ?? []).find(
+    (e: { tipo: string }) => e.tipo === 'INTERNACAO'
+  );
+  const modoInternacao =
+    atendimento.status === 'AGUARDANDO_INTERNACAO' || Boolean(encaminhamentoInternacao);
+  const prescricoesPs = filtrarPrescricoesPs(prontuario.prescricoes ?? []);
+  const prescricoesReceita = filtrarPrescricoesReceitaAlta(prontuario.prescricoes ?? []);
+  const fluxoMedicacao = analisarFluxoMedicacaoAtendimento(
+    prontuario.prescricoes ?? [],
+    prontuario.evolucoes ?? []
+  );
+  const podeFinalizarAlta = fluxoMedicacao.podeFinalizarAtendimento;
 
   const abas: { id: Aba; label: string; icon: typeof FileText; completado: boolean }[] = [
     { id: 'ANAMNESE', label: 'Anamnese', icon: FileText, completado: !!prontuario.anamnese },
     { id: 'DIAGNOSTICO', label: 'Diagnósticos', icon: Stethoscope, completado: prontuario.diagnosticos?.length > 0 },
-    { id: 'PRESCRICAO', label: 'Prescrição', icon: Pill, completado: prontuario.prescricoes?.length > 0 },
-    { id: 'EVOLUCAO', label: 'Evolução', icon: NotebookPen, completado: (prontuario.evolucoes?.length ?? 0) > 0 },
+    {
+      id: 'PRESCRICAO',
+      label: 'Prescrição PS',
+      icon: Pill,
+      completado: prescricoesPs.length > 0,
+    },
     { id: 'EXAMES', label: 'Exames', icon: FlaskConical, completado: (prontuario.requisicoes?.length ?? 0) > 0 },
+    { id: 'EVOLUCAO', label: 'Evolução', icon: NotebookPen, completado: (prontuario.evolucoes?.length ?? 0) > 0 },
+    ...(!modoInternacao
+      ? [
+          {
+            id: 'RECEITA_ALTA' as Aba,
+            label: 'Receita de alta',
+            icon: FileSignature,
+            completado: prescricoesReceita.length > 0,
+          },
+        ]
+      : []),
     {
       id: 'ENCAMINHAMENTO',
       label: 'Encaminhamentos',
@@ -110,71 +202,68 @@ export default function WorkspaceAtendimento({
             <Printer className="h-4 w-4 shrink-0" />
             Imprimir ficha
           </Link>
-          <button
-            className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
-            onClick={async () => {
-              if (!confirm('Deseja realmente solicitar o internamento deste paciente?')) return;
-              try {
-                const res = await fetch(`/api/atendimento/${atendimentoId}/status`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ status: 'INTERNADO' })
-                });
-                const json = await res.json();
-                if (json.sucesso) {
-                  toast.success('Solicitação de internamento registrada!');
-                  router.push('/atendimento');
-                  router.refresh();
-                } else {
-                  toast.error(json.erro ?? 'Erro ao solicitar internamento.');
-                }
-              } catch {
-                toast.error('Erro de conexão ao solicitar internamento.');
-              }
-            }}
-          >
-            <Activity className="h-4 w-4" /> Solicitar Internamento
-          </button>
-          <button
-            className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-            onClick={async () => {
-              try {
-                const res = await fetch(`/api/atendimento/${atendimentoId}/status`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ status: 'CONCLUIDO' })
-                });
-                const json = await res.json();
-                if (json.sucesso) {
-                  toast.success('Atendimento finalizado com sucesso!');
-                  router.push('/atendimento');
-                  router.refresh();
-                } else {
-                  toast.error(json.erro ?? 'Erro ao finalizar atendimento.');
-                }
-              } catch {
-                toast.error('Erro de conexão ao finalizar atendimento.');
-              }
-            }}
-          >
-            <CheckCircle2 className="h-4 w-4" /> Finalizar Atendimento
-          </button>
+          {!atendimentoEncerrado ? (
+            modoInternacao ? (
+              <button
+                type="button"
+                className="px-4 py-2 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
+                onClick={() => setModalFinalizarAberto(true)}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Encaminhar para internação
+              </button>
+            ) : fluxoMedicacao.aguardandoRetornoMedicacao ? (
+              <button
+                type="button"
+                disabled
+                className="px-4 py-2 text-sm font-semibold rounded-lg flex items-center gap-2 bg-amber-500/90 text-white cursor-not-allowed opacity-95"
+                aria-label="Aguardando retorno da medicação aplicada pela enfermagem"
+              >
+                <Pill className="h-4 w-4" />
+                Aguardando retorno (medicação)
+              </button>
+            ) : fluxoMedicacao.precisaEvolucaoPosMedicacao ? (
+              <button
+                type="button"
+                className="px-4 py-2 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2 bg-primary hover:bg-primary/90"
+                onClick={() => setAbaAtual('EVOLUCAO')}
+              >
+                <NotebookPen className="h-4 w-4" />
+                Preencher evolução pós-medicação
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2"
+                onClick={() => setModalFinalizarAberto(true)}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Finalizar Atendimento
+              </button>
+            )
+          ) : null}
         </div>
       </div>
 
       {/* Header do Paciente */}
-      <div className="bg-card border border-border rounded-xl p-5 flex flex-wrap gap-6 items-start shadow-sm">
+      <div className="bg-card border border-border rounded-xl p-5 flex flex-wrap gap-6 items-start">
         <div className="flex items-center gap-4 flex-1 min-w-[300px]">
           <div className="h-14 w-14 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xl font-bold shrink-0">
-            {paciente.nomeExibicao.charAt(0)}
+            {nomePacienteCompleto.charAt(0)}
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-foreground">{paciente.nomeExibicao}</h2>
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold text-foreground break-words">{nomePacienteCompleto}</h2>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
               <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-foreground">
                 {atendimento.numeroAtendimento}
               </span>
               <span>Tipo Sanguíneo: <b>{paciente.tipoSanguineo.replace('_', ' ')}</b></span>
+              {atendimento.setor ? (
+                <span>Setor: <b className="text-foreground">{atendimento.setor}</b></span>
+              ) : null}
+              {descricaoLeitoInternacao(atendimento.leito) ? (
+                <span>Leito: <b className="text-foreground">{descricaoLeitoInternacao(atendimento.leito)}</b></span>
+              ) : null}
               {procedenciaExibicao ? (
                 <span>
                   Procedência: <b className="text-foreground">{procedenciaExibicao}</b>
@@ -196,7 +285,62 @@ export default function WorkspaceAtendimento({
             </div>
           </div>
         )}
+
+        <div className="shrink-0">
+          <ToggleObstetrico atendimentoId={atendimento.id} inicial={atendimento.obstetrico} />
+        </div>
       </div>
+
+      {atendimento.status === 'AGUARDANDO_INTERNACAO' ? (
+        <div className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/80 dark:bg-indigo-950/30 px-4 py-3 text-sm text-indigo-900 dark:text-indigo-100">
+          Paciente <strong>encaminhado para internação</strong>. Aguardando recepção em Admissões.
+          {encaminhamentoInternacao ? (
+            <>
+              {' '}
+              <Link
+                href={`/atendimento/encaminhamento/imprimir/${encaminhamentoInternacao.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-700 dark:text-indigo-300 font-semibold hover:underline inline-flex items-center gap-1"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                Imprimir solicitação de internação
+              </Link>
+            </>
+          ) : null}
+        </div>
+      ) : !modoInternacao && fluxoMedicacao.aguardandoRetornoMedicacao ? (
+        <div className="rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50/90 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-950 dark:text-amber-100">
+          <strong>Medicação prescrita para uso no PS.</strong> Paciente aguardando aplicação pela enfermagem (
+          {fluxoMedicacao.qtdPendentes}{' '}
+          {fluxoMedicacao.qtdPendentes === 1 ? 'dose pendente' : 'doses pendentes'}). O atendimento só poderá ser finalizado após o retorno
+          e registro da <strong>evolução pós-medicação</strong>.
+        </div>
+      ) : !modoInternacao && fluxoMedicacao.precisaEvolucaoPosMedicacao ? (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground">
+          Medicação já aplicada. Registre a{' '}
+          <button
+            type="button"
+            className="text-primary font-semibold hover:underline"
+            onClick={() => setAbaAtual('EVOLUCAO')}
+          >
+            evolução pós-medicação
+          </button>{' '}
+          para liberar a finalização do atendimento.
+        </div>
+      ) : atendimentoEncerrado ? (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+          Atendimento <strong>finalizado</strong>. Você pode emitir ou imprimir{' '}
+          <button
+            type="button"
+            className="text-primary font-semibold hover:underline"
+            onClick={() => setAbaAtual('RECEITA_ALTA')}
+          >
+            receita de alta
+          </button>
+          ; demais abas estão somente leitura.
+        </div>
+      ) : null}
 
       {/* Alertas Críticos (Alergias / Doenças) */}
       {paciente.alergias?.length > 0 && (
@@ -218,10 +362,17 @@ export default function WorkspaceAtendimento({
       {/* Navegação por Abas */}
       <div className="border-b border-border mt-6">
         <div className="flex gap-6 overflow-x-auto pb-[1px]">
-          {abas.map((aba) => (
+          {abas.map((aba) => {
+            const tabHabilitada =
+              !atendimentoEncerrado ||
+              (modoInternacao && aba.id === 'ENCAMINHAMENTO') ||
+              (!modoInternacao && aba.id === 'RECEITA_ALTA')
+            return (
             <button
               key={aba.id}
+              type="button"
               onClick={() => setAbaAtual(aba.id)}
+              disabled={!tabHabilitada}
               className={cn(
                 'flex items-center gap-2 pb-3 px-1 border-b-2 text-sm font-medium transition-all whitespace-nowrap',
                 abaAtual === aba.id
@@ -233,13 +384,14 @@ export default function WorkspaceAtendimento({
               {aba.label}
               {aba.completado && <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />}
             </button>
-          ))}
+            )
+          })}
         </div>
       </div>
 
       {/* Conteúdo da Aba */}
       <div className="pt-2">
-        {abaAtual === 'ANAMNESE' && (
+        {abaAtual === 'ANAMNESE' && !atendimentoEncerrado && (
           <FormularioAnamnese
             atendimentoId={atendimento.id}
             queixaTriagem={atendimento.triagem?.queixaPrincipal}
@@ -248,7 +400,7 @@ export default function WorkspaceAtendimento({
           />
         )}
 
-        {abaAtual === 'DIAGNOSTICO' && (
+        {abaAtual === 'DIAGNOSTICO' && !atendimentoEncerrado && (
           <FormularioDiagnostico
             atendimentoId={atendimento.id}
             prontuarioId={prontuario.id}
@@ -256,18 +408,19 @@ export default function WorkspaceAtendimento({
           />
         )}
 
-        {abaAtual === 'PRESCRICAO' && (
+        {abaAtual === 'PRESCRICAO' && !atendimentoEncerrado && (
           <div className="space-y-6">
             <FormularioPrescricao
               atendimentoId={atendimento.id}
               prontuarioId={prontuario.id}
+              tipoPrescricao="PS"
               onPrescricaoCriada={carregarDados}
             />
 
-            {prontuario.prescricoes?.length > 0 && (
+            {prescricoesPs.length > 0 && (
               <div className="mt-8 space-y-4">
-                <h3 className="text-lg font-bold">Prescrições Realizadas</h3>
-                {prontuario.prescricoes.map((p: any) => (
+                <h3 className="text-lg font-bold">Prescrições PS realizadas</h3>
+                {prescricoesPs.map((p: any) => (
                   <div key={p.id} className="bg-card border border-border rounded-xl overflow-hidden">
                     <div className="bg-muted/40 px-4 py-2 border-b border-border flex justify-between items-center text-sm">
                       <span className="font-semibold text-foreground">Receita #{p.numeroPrescricao}</span>
@@ -320,7 +473,16 @@ export default function WorkspaceAtendimento({
           </div>
         )}
 
-        {abaAtual === 'EVOLUCAO' && (
+        {abaAtual === 'EXAMES' && !atendimentoEncerrado && (
+          <FormularioExames
+            atendimentoId={atendimento.id}
+            prontuarioId={prontuario.id}
+            requisicoesIniciais={prontuario.requisicoes ?? []}
+            onSalvo={carregarDados}
+          />
+        )}
+
+        {abaAtual === 'EVOLUCAO' && !atendimentoEncerrado && (
           <FormularioEvolucao
             atendimentoId={atendimento.id}
             prontuarioId={prontuario.id}
@@ -329,12 +491,13 @@ export default function WorkspaceAtendimento({
           />
         )}
 
-        {abaAtual === 'EXAMES' && (
-          <FormularioExames
+        {abaAtual === 'RECEITA_ALTA' && (
+          <FormularioReceitaAlta
             atendimentoId={atendimento.id}
             prontuarioId={prontuario.id}
-            requisicoesIniciais={prontuario.requisicoes ?? []}
+            prescricoes={prescricoesReceita as never[]}
             onSalvo={carregarDados}
+            somenteLeitura={false}
           />
         )}
 
@@ -344,9 +507,32 @@ export default function WorkspaceAtendimento({
             prontuarioId={prontuario.id}
             encaminhamentosIniciais={prontuario.encaminhamentos ?? []}
             onSalvo={carregarDados}
+            onFinalizar={() => {
+              if (!podeFinalizarAlta) {
+                toast.error('Aguarde a medicação e registre a evolução pós-uso antes de finalizar.')
+                return
+              }
+              setModalFinalizarAberto(true)
+            }}
+            onInternacaoSolicitada={() => {
+              router.push('/atendimento')
+              router.refresh()
+            }}
+            somenteLeitura={atendimentoEncerrado && modoInternacao}
+            bloquearFinalizar={!modoInternacao && !podeFinalizarAlta}
           />
         )}
       </div>
+
+      <ModalFinalizarAtendimento
+        aberto={modalFinalizarAberto}
+        onFechar={() => setModalFinalizarAberto(false)}
+        atendimentoId={atendimentoId}
+        nomePaciente={nomePacienteCompleto}
+        prescricoes={prontuario.prescricoes ?? []}
+        modoInternacao={modoInternacao}
+        encaminhamentoInternacaoId={encaminhamentoInternacao?.id ?? null}
+      />
     </div>
   );
 }

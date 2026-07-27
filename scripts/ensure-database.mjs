@@ -6,7 +6,7 @@
  *
  * Para pular (CI sem banco ou só frontend): SKIP_DATABASE_ENSURE=1
  */
-import 'dotenv/config';
+import './load-env.mjs';
 import { spawnSync } from 'node:child_process';
 import pg from 'pg';
 
@@ -60,7 +60,28 @@ function composeUp() {
   return r.status === 0;
 }
 
+function envObrigatorioOk() {
+  const secret = process.env.NEXTAUTH_SECRET?.trim() ?? '';
+  const key = process.env.ENCRYPTION_KEY?.trim() ?? '';
+  const secretOk =
+    secret.length >= 16 && !secret.includes('sua-chave-secreta');
+  const keyOk = /^[0-9a-fA-F]{64}$/.test(key);
+  return { secretOk, keyOk };
+}
+
 async function main() {
+  const { secretOk, keyOk } = envObrigatorioOk();
+  if (!secretOk || !keyOk) {
+    console.warn(`
+[env] Variáveis obrigatórias ausentes ou inválidas no .env:
+  NEXTAUTH_SECRET ${secretOk ? 'OK' : 'FALTANDO (login falha com error=Configuration)'}
+  ENCRYPTION_KEY  ${keyOk ? 'OK' : 'FALTANDO (64 caracteres hex)'}
+
+Copie de .env.example ou gere:
+  openssl rand -base64 32   → NEXTAUTH_SECRET
+  openssl rand -hex 32      → ENCRYPTION_KEY
+`);
+  }
   if (SKIP) {
     console.log('[db] SKIP_DATABASE_ENSURE=1 — verificação ignorada.');
     process.exit(0);
@@ -89,7 +110,20 @@ async function main() {
   console.error(`
 [db] Falha permanente ao conectar.
 
-Verifique DATABASE_URL no .env. Padrão com Docker Compose (este repositório):
+Host atual: ${(() => {
+  try {
+    const u = new URL(process.env.DATABASE_URL || '')
+    return u.hostname + ':' + u.port + u.pathname
+  } catch {
+    return '(DATABASE_URL inválida)'
+  }
+})()}
+
+Se o host for IP da VPS (ex.: 172.18.x.x), crie .env.local para desenvolvimento:
+  DATABASE_URL="postgresql://postgres:senha@127.0.0.1:5432/sgh_db"
+  NEXTAUTH_URL="http://localhost:3000"
+
+Verifique DATABASE_URL. Padrão com Docker Compose (este repositório):
   postgresql://postgres:senha@127.0.0.1:5432/sgh_db
 
 Passos típicos:

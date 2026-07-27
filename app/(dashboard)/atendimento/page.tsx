@@ -1,35 +1,49 @@
-// app/(dashboard)/atendimento/page.tsx
-// Lista de pacientes para atendimento médico (Fila do Consultório)
+// app/(dashboard)/atendimento/page.tsx — Fila do consultório + fila de espera (triagem)
 
-import type { Metadata } from 'next';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao';
-import Link from 'next/link';
-import { Stethoscope, Clock, Users, ClipboardCheck } from 'lucide-react';
-import { BadgeManchester } from '@/components/triagem/BadgeManchester';
-import { BotaoChamarPainel } from '@/components/atendimento/BotaoChamarPainel';
+import type { Metadata } from 'next'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao'
+import Link from 'next/link'
+import { Stethoscope, Clock, Users, ClipboardCheck, BedDouble } from 'lucide-react'
+import { BadgeManchester } from '@/components/triagem/BadgeManchester'
+import { BotaoChamarPainel } from '@/components/atendimento/BotaoChamarPainel'
+import { FilaTriagem } from '@/components/triagem/FilaTriagem'
+import { ListaEmAtendimentoPaginada } from '@/components/atendimento/ListaEmAtendimentoPaginada'
+import { PaginacaoLista } from '@/components/shared/PaginacaoLista'
+import { parsePaginacao } from '@/lib/paginacao'
 
-export const metadata: Metadata = { title: 'Fila de Atendimento' };
+export const metadata: Metadata = { title: 'Fila de Atendimento' }
 
-export default async function PaginaAtendimentoMedico() {
-  const sessao = await getServerSession(authOptions);
+export default async function PaginaAtendimentoMedico({
+  searchParams,
+}: {
+  searchParams: Promise<{ atendidosPagina?: string; atendidosPorPagina?: string }>
+}) {
+  const paramsPag = await searchParams
+  const pagAtendidos = parsePaginacao(
+    {
+      pagina: paramsPag.atendidosPagina,
+      porPagina: paramsPag.atendidosPorPagina,
+    },
+    'atendidos'
+  )
+  const sessao = await getServerSession(authOptions)
 
   if (!['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'].includes(sessao?.usuario.role ?? '')) {
     return (
-      <div className="p-6 text-center text-muted-foreground">
+      <div className="p-6 text-center text-muted-foreground text-sm">
         Acesso restrito ao corpo clínico.
       </div>
-    );
+    )
   }
 
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const amanha = new Date(hoje);
-  amanha.setDate(amanha.getDate() + 1);
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  const amanha = new Date(hoje)
+  amanha.setDate(amanha.getDate() + 1)
 
-  // Buscar pacientes na fila (status: AGUARDANDO_ATENDIMENTO ou EM_ATENDIMENTO)
   const fila = await prisma.atendimento.findMany({
     where: {
       deletedAt: null,
@@ -40,26 +54,30 @@ export default async function PaginaAtendimentoMedico() {
       triagem: { select: { corClassificacao: true, classificadoEm: true } },
     },
     orderBy: [
-      { status: 'asc' }, // EM_ATENDIMENTO primeiro
-      { triagem: { classificadoEm: 'asc' } }, // Depois por ordem de classificação
+      { status: 'asc' },
+      { triagem: { classificadoEm: 'asc' } },
     ],
-  });
+  })
 
   const emAtendimento = fila.filter((a) => {
-    if (a.status !== 'EM_ATENDIMENTO') return false;
-    if (sessao?.usuario.role === 'MEDICO') return a.medicoId === sessao.usuario.id;
-    return true;
-  });
-  const aguardando = fila.filter(a => a.status === 'AGUARDANDO_ATENDIMENTO');
+    if (a.status !== 'EM_ATENDIMENTO') return false
+    if (sessao?.usuario.role === 'MEDICO') return a.medicoId === sessao.usuario.id
+    return true
+  })
 
-  const atendidosHoje = await prisma.prontuarioMedico.findMany({
-    where: {
-      createdAt: { gte: hoje, lt: amanha },
-      atendimento: {
-        deletedAt: null,
-        medicoId: sessao?.usuario.role === 'MEDICO' ? sessao.usuario.id : { not: null },
-      },
+  const aguardandoCount = fila.filter((a) => a.status === 'AGUARDANDO_ATENDIMENTO').length
+
+  const whereAtendidosHoje = {
+    encerradoEm: { gte: hoje, lt: amanha },
+    atendimento: {
+      deletedAt: null,
+      medicoId: sessao?.usuario.role === 'MEDICO' ? sessao.usuario.id : { not: null },
     },
+  } as const
+
+  const [finalizadosHoje, totalAtendidosHoje] = await Promise.all([
+    prisma.prontuarioMedico.findMany({
+    where: whereAtendidosHoje,
     include: {
       atendimento: {
         include: {
@@ -67,224 +85,215 @@ export default async function PaginaAtendimentoMedico() {
           medico: { select: { id: true, nome: true } },
         },
       },
+      encaminhamentos: {
+        where: { tipo: 'INTERNACAO' },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { id: true, especialidade: true },
+      },
+      prescricoes: {
+        where: { tipo: 'RECEITA_ALTA' },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { id: true, numeroPrescricao: true },
+      },
     },
-    orderBy: { createdAt: 'desc' },
-    take: 200,
-  });
+    orderBy: { encerradoEm: 'desc' },
+    skip: pagAtendidos.skip,
+    take: pagAtendidos.take,
+  }),
+    prisma.prontuarioMedico.count({ where: whereAtendidosHoje }),
+  ])
 
-  // Ordenar aguardando por prioridade Manchester
-  const ORDEM_COR: Record<string, number> = {
-    VERMELHO: 0, LARANJA: 1, AMARELO: 2, VERDE: 3, AZUL: 4, CINZA: 5,
-  };
+  const itensEmAtendimento = emAtendimento.map((a) => ({
+    id: a.id,
+    numeroAtendimento: a.numeroAtendimento,
+    nomeLista: obterNomeCompletoPaciente(a.paciente.nomeExibicao, a.paciente.nomeCriptografado),
+    corTriagem: a.triagem?.corClassificacao,
+  }))
 
-  aguardando.sort((a, b) => {
-    const ordemA = a.triagem?.corClassificacao ? (ORDEM_COR[a.triagem.corClassificacao] ?? 9) : 10;
-    const ordemB = b.triagem?.corClassificacao ? (ORDEM_COR[b.triagem.corClassificacao] ?? 9) : 10;
-    if (ordemA !== ordemB) return ordemA - ordemB;
-    // Critério de desempate: tempo de espera
-    return (a.triagem?.classificadoEm?.getTime() ?? 0) - (b.triagem?.classificadoEm?.getTime() ?? 0);
-  });
+  const podeChamar = ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'].includes(sessao?.usuario.role ?? '')
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="max-w-7xl mx-auto space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Stethoscope className="h-6 w-6 text-primary" />
-            Fila do Consultório
+          <h2 className="page-title flex items-center gap-2">
+            <Stethoscope className="h-5 w-5 text-primary" />
+            Atendimento Médico
           </h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Pacientes aguardando avaliação médica ou em atendimento.
+          <p className="page-subtitle">
+            Fila de espera pós-triagem e consultório.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-4 text-sm font-medium">
-          <div className="flex items-center gap-1.5 text-emerald-600">
-            <ClipboardCheck className="h-4 w-4 shrink-0" />
-            {atendidosHoje.length} atendida{atendidosHoje.length === 1 ? '' : 's'} hoje
+        <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium">
+          <div className="flex items-center gap-1 text-emerald-600">
+            <ClipboardCheck className="h-3.5 w-3.5 shrink-0" />
+            {totalAtendidosHoje} atendidos hoje
           </div>
-          <div className="flex items-center gap-1.5 text-blue-600">
-            <Users className="h-4 w-4" />
-            {emAtendimento.length} em atendimento
+          <div className="flex items-center gap-1 text-blue-600">
+            <Users className="h-3.5 w-3.5" />
+            {emAtendimento.length} em atend.
           </div>
-          <div className="flex items-center gap-1.5 text-orange-600">
-            <Clock className="h-4 w-4" />
-            {aguardando.length} a atender
+          <div className="flex items-center gap-1 text-orange-600">
+            <Clock className="h-3.5 w-3.5" />
+            {aguardandoCount} aguardando
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6">
-        {/* Em Atendimento */}
-        {emAtendimento.length > 0 && (
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        {/* Fila de espera (mesma da triagem — Manchester + tempo real) */}
+        <section className="xl:col-span-1 bg-card border border-border rounded-lg p-3">
+          <FilaTriagem
+            podeCharmar={podeChamar}
+            compacto
+            mostrarLinkAtendimento
+            titulo="Fila de Espera"
+          />
+        </section>
+
+        <div className="xl:col-span-2 space-y-4">
+          <ListaEmAtendimentoPaginada
+            itens={itensEmAtendimento}
+            titulo={
+              sessao?.usuario.role === 'MEDICO'
+                ? 'Meus pacientes em atendimento'
+                : 'Em atendimento'
+            }
+          />
+
           <section>
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              {sessao?.usuario.role === 'MEDICO' ? 'Meus Pacientes em Atendimento' : 'Pacientes em Atendimento'}
+            <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              Atendidos hoje
             </h3>
-            <div className="grid gap-3">
-              {emAtendimento.map((a) => {
-                const nomeLista = nomeCompletoParaExibicao(
-                  a.paciente.nomeExibicao,
-                  a.paciente.nomeCriptografado
-                );
-                return (
-                <div
-                  key={a.id}
-                  className="flex flex-wrap items-center justify-between gap-3 p-4 bg-blue-50 border border-blue-200 hover:border-blue-300 dark:bg-blue-950/20 dark:border-blue-900 rounded-xl transition-all"
-                >
-                  <Link
-                    href={`/atendimento/${a.id}`}
-                    className="flex items-center gap-4 min-w-0 flex-1 group"
-                  >
-                    <div className="h-10 w-10 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 rounded-full flex items-center justify-center font-bold shrink-0">
-                      {(nomeLista.trim().charAt(0) || '?').toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-foreground group-hover:text-blue-600 transition-colors truncate">
-                        {nomeLista}
-                      </p>
-                      <p className="text-xs font-mono text-muted-foreground">{a.numeroAtendimento}</p>
-                    </div>
-                  </Link>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {a.triagem?.corClassificacao && (
-                      <BadgeManchester cor={a.triagem.corClassificacao} size="sm" />
-                    )}
-                    <BotaoChamarPainel atendimentoId={a.id} label="Chamar paciente" className="text-xs whitespace-nowrap" />
-                    <Link
-                      href={`/atendimento/${a.id}`}
-                      className="px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg shadow-sm hover:bg-blue-700 transition-colors whitespace-nowrap"
-                    >
-                      Continuar
-                    </Link>
-                  </div>
-                </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* Atendidos Hoje */}
-        <section>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            Atendidos Hoje
-          </h3>
-          {atendidosHoje.length === 0 ? (
-            <div className="bg-card border border-border rounded-xl p-8 text-center text-muted-foreground">
-              Nenhum atendimento médico registrado hoje.
-            </div>
-          ) : (
-            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left px-5 py-3 font-semibold text-muted-foreground">Paciente</th>
-                    <th className="text-left px-5 py-3 font-semibold text-muted-foreground">Atendimento</th>
-                    {sessao?.usuario.role !== 'MEDICO' && (
-                      <th className="text-left px-5 py-3 font-semibold text-muted-foreground">Médico</th>
-                    )}
-                    <th className="text-right px-5 py-3 font-semibold text-muted-foreground">Horário</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {atendidosHoje.map((p) => {
-                    const a = p.atendimento;
-                    const nomeLista = nomeCompletoParaExibicao(
-                      a.paciente.nomeExibicao,
-                      a.paciente.nomeCriptografado
-                    );
-                    const horario = new Intl.DateTimeFormat('pt-BR', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    }).format(p.createdAt);
-
-                    return (
-                      <tr key={p.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-5 py-3.5">
-                          <div className="font-medium text-foreground">{nomeLista}</div>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <div className="text-xs font-mono text-muted-foreground">{a.numeroAtendimento}</div>
-                          <div className="text-[11px] text-muted-foreground mt-0.5">
-                            <Link className="hover:underline" href={`/atendimento/${a.id}`}>
-                              Abrir prontuário
-                            </Link>
-                          </div>
-                        </td>
-                        {sessao?.usuario.role !== 'MEDICO' && (
-                          <td className="px-5 py-3.5">
-                            <div className="text-muted-foreground">{a.medico?.nome ?? '—'}</div>
-                          </td>
-                        )}
-                        <td className="px-5 py-3.5 text-right">
-                          <span className="text-muted-foreground">{horario}</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        {/* Aguardando Atendimento */}
-        <section>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            Aguardando Atendimento
-          </h3>
-          {aguardando.length === 0 ? (
-            <div className="bg-card border border-border rounded-xl p-8 text-center text-muted-foreground">
-              Nenhum paciente aguardando atendimento.
-            </div>
-          ) : (
-            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left px-5 py-3 font-semibold text-muted-foreground">Paciente</th>
-                    <th className="text-left px-5 py-3 font-semibold text-muted-foreground">Triagem</th>
-                    <th className="text-right px-5 py-3 font-semibold text-muted-foreground">Ação</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {aguardando.map((a) => (
-                    <tr key={a.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-5 py-3.5">
-                        <div className="font-medium text-foreground">
-                          {nomeCompletoParaExibicao(
-                            a.paciente.nomeExibicao,
-                            a.paciente.nomeCriptografado
-                          )}
-                        </div>
-                        <div className="text-xs font-mono text-muted-foreground mt-0.5">{a.numeroAtendimento}</div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        {a.triagem?.corClassificacao ? (
-                          <BadgeManchester cor={a.triagem.corClassificacao} size="md" />
-                        ) : (
-                          <span className="text-muted-foreground text-xs">Sem triagem</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="inline-flex flex-wrap items-center justify-end gap-2">
-                          <BotaoChamarPainel atendimentoId={a.id} />
-                          <Link
-                            href={`/atendimento/${a.id}`}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors whitespace-nowrap"
-                          >
-                            Iniciar Atendimento
-                          </Link>
-                        </div>
-                      </td>
+            {totalAtendidosHoje === 0 ? (
+              <div className="bg-card border border-border rounded-lg p-6 text-center text-xs text-muted-foreground">
+                Nenhum atendimento registrado hoje.
+              </div>
+            ) : (
+              <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <table className="w-full text-[11px]">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/20">
+                      <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Paciente</th>
+                      <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Desfecho</th>
+                      <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Atend.</th>
+                      {sessao?.usuario.role !== 'MEDICO' && (
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Médico</th>
+                      )}
+                      <th className="text-right px-3 py-2 font-semibold text-muted-foreground">Documentos</th>
+                      <th className="text-right px-3 py-2 font-semibold text-muted-foreground">Hora</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {finalizadosHoje.map((p) => {
+                      const a = p.atendimento
+                      const nomeLista = obterNomeCompletoPaciente(
+                        a.paciente.nomeExibicao,
+                        a.paciente.nomeCriptografado
+                      )
+                      const horario = new Intl.DateTimeFormat('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      }).format(p.encerradoEm ?? p.updatedAt)
+                      const ultimaReceita = p.prescricoes?.[0] ?? null
+                      const encInternacao = p.encaminhamentos?.[0] ?? null
+                      const ehInternacao =
+                        a.status === 'AGUARDANDO_INTERNACAO' ||
+                        a.status === 'INTERNADO' ||
+                        Boolean(encInternacao)
+
+                      return (
+                        <tr key={p.id} className="hover:bg-muted/20 transition-colors">
+                          <td className="px-3 py-2 font-medium">{nomeLista}</td>
+                          <td className="px-3 py-2">
+                            {ehInternacao ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-200">
+                                <BedDouble className="h-3 w-3" />
+                                Internação
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
+                                Alta PS
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="font-mono text-[10px] text-muted-foreground">{a.numeroAtendimento}</div>
+                            <Link className="text-[10px] text-primary hover:underline" href={`/atendimento/${a.id}`}>
+                              Abrir
+                            </Link>
+                          </td>
+                          {sessao?.usuario.role !== 'MEDICO' && (
+                            <td className="px-3 py-2 text-muted-foreground">{a.medico?.nome ?? '—'}</td>
+                          )}
+                          <td className="px-3 py-2 text-right">
+                            <div className="inline-flex flex-wrap justify-end gap-2">
+                              {ehInternacao && encInternacao ? (
+                                <Link
+                                  href={`/atendimento/encaminhamento/imprimir/${encInternacao.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 hover:underline"
+                                >
+                                  Solic. internação
+                                </Link>
+                              ) : null}
+                              <Link
+                                href={`/atendimento/atestados/medico/${a.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-semibold text-primary hover:underline"
+                              >
+                                Atest. médico
+                              </Link>
+                              <Link
+                                href={`/atendimento/atestados/acompanhante/${a.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-semibold text-primary hover:underline"
+                              >
+                                Atest. acomp.
+                              </Link>
+                              {!ehInternacao && ultimaReceita ? (
+                                <Link
+                                  href={`/atendimento/receita/imprimir/${ultimaReceita.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[10px] font-semibold text-primary hover:underline"
+                                >
+                                  Receita
+                                </Link>
+                              ) : null}
+                              {!ehInternacao ? (
+                                <Link
+                                  href={`/atendimento/receita-alta/${a.id}`}
+                                  className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline"
+                                >
+                                  {ultimaReceita ? 'Nova receita' : 'Receita de alta'}
+                                </Link>
+                              ) : null}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-right text-muted-foreground">{horario}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+                <PaginacaoLista
+                  total={totalAtendidosHoje}
+                  pagina={pagAtendidos.pagina}
+                  porPagina={pagAtendidos.porPagina}
+                  basePath="/atendimento"
+                  prefixo="atendidos"
+                />
+              </div>
+            )}
+          </section>
+        </div>
       </div>
     </div>
-  );
+  )
 }

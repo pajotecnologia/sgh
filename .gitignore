@@ -11,10 +11,15 @@ build/
 release/**
 !release/.gitkeep
 
+# Pacote instalador para VPS (npm run build:instalador)
+instalador/**
+!instalador/.gitkeep
+
 # Ambiente (NUNCA commitar .env com segredos!)
 .env
 .env.local
 .env.production
+.env_online
 
 # Uploads de pacientes (dados sensíveis)
 uploads/
@@ -29,6 +34,10 @@ logs/
 .vscode/
 .idea/
 *.swp
+
+# Claude Code / assistentes
+.claude/
+.cursor/
 
 # TypeScript
 *.tsbuildinfo

@@ -25,8 +25,10 @@ export function FormularioAplicacaoMedicamento({
   atendimentoId,
   item,
   onAplicado,
+  contexto = 'enfermagem',
 }: {
   atendimentoId: string;
+  contexto?: 'medicacao' | 'enfermagem' | 'internacao';
   item: {
     id: string;
     nomeMedicamento: string;
@@ -82,6 +84,7 @@ export function FormularioAplicacaoMedicamento({
             horarioCerto: true,
           },
           observacoes: observacoes.trim() || undefined,
+          contexto,
         }),
       });
       const json = await res.json();
@@ -188,10 +191,15 @@ export function FormularioAplicacaoMedicamento({
       <button
         type="submit"
         disabled={enviando || !todosMarcados}
-        className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold text-sm disabled:opacity-50"
+        className={cn(
+          'w-full sm:w-auto inline-flex justify-center items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm disabled:opacity-50 transition-colors',
+          todosMarcados
+            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+            : 'bg-muted text-muted-foreground cursor-not-allowed'
+        )}
       >
         {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        Registrar aplicação
+        {contexto === 'internacao' ? 'Confirmar aplicação' : 'Registrar aplicação'}
       </button>
     </form>
   );

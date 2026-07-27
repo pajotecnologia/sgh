@@ -33,6 +33,8 @@ export async function PUT(req: Request) {
         data: {
           nomeMunicipio: dados.nomeMunicipio,
           nomeInstituicao: dados.nomeInstituicao,
+          cnes: dados.cnes?.replace(/\D/g, '').slice(0, 7) || null,
+          codigoIbgeMunicipio: dados.codigoIbgeMunicipio?.replace(/\D/g, '').slice(0, 7) || null,
           endereco: dados.endereco,
           bairro: dados.bairro,
           cidade: dados.cidade,
@@ -46,6 +48,8 @@ export async function PUT(req: Request) {
         data: {
           nomeMunicipio: dados.nomeMunicipio,
           nomeInstituicao: dados.nomeInstituicao,
+          cnes: dados.cnes?.replace(/\D/g, '').slice(0, 7) || null,
+          codigoIbgeMunicipio: dados.codigoIbgeMunicipio?.replace(/\D/g, '').slice(0, 7) || null,
           endereco: dados.endereco,
           bairro: dados.bairro,
           cidade: dados.cidade,

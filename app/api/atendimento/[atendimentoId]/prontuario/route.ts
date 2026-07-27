@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { enriquecerPacienteComNomeCompleto } from '@/lib/nome-paciente-exibicao';
 
 export async function GET(
   req: NextRequest,
@@ -25,10 +26,15 @@ export async function GET(
       where: { id: atendimentoId, deletedAt: null },
       include: {
         origem: { select: { id: true, descricao: true, procedenciaFicha: true } },
+        medico: { select: { nome: true, crm: true } },
+        leito: { select: { ala: true, quarto: true, codigo: true, tipo: true } },
         paciente: {
           select: {
             id: true,
             nomeExibicao: true,
+            nomeCriptografado: true,
+            dataNascimento: true,
+            sexoBiologico: true,
             tipoSanguineo: true,
             alergias: { select: { descricao: true, gravidade: true } },
             medicamentosCont: { select: { nome: true, dose: true, frequencia: true } },
@@ -130,7 +136,12 @@ export async function GET(
       });
     }
 
-    return NextResponse.json({ sucesso: true, dados: { atendimento, prontuario } });
+    const atendimentoResposta = {
+      ...atendimento,
+      paciente: enriquecerPacienteComNomeCompleto(atendimento.paciente),
+    };
+
+    return NextResponse.json({ sucesso: true, dados: { atendimento: atendimentoResposta, prontuario } });
   } catch (erro) {
     console.error('[GET /api/atendimento/prontuario]', erro);
     return NextResponse.json({ sucesso: false, erro: 'Erro interno.' }, { status: 500 });

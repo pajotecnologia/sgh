@@ -7,10 +7,11 @@ import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2, Check, ChevronRight, ChevronLeft, Plus, X, Search } from 'lucide-react';
+import { Loader2, Check, ChevronRight, ChevronLeft, Plus, X, Search, Tag } from 'lucide-react';
 import { schemaCriarPaciente, type CriarPacienteForm } from '@/lib/validations/paciente';
 import { buscarCep } from '@/lib/cep';
 import { cn } from '@/lib/utils';
+import { notificarFilaAtualizada } from '@/lib/fila-triagem-sync';
 
 const ETAPAS = [
   { id: 1, label: 'Dados Pessoais' },
@@ -51,7 +52,7 @@ const Campo = ({ id, label, obrigatorio, erro, children }: {
   id: string; label: string; obrigatorio?: boolean; erro?: string; children: React.ReactNode;
 }) => (
   <div className="form-field">
-    <label htmlFor={id} className="text-sm font-medium">
+    <label htmlFor={id} className="text-xs font-medium">
       {label}{obrigatorio && <span className="text-destructive ml-0.5">*</span>}
     </label>
     {children}
@@ -64,72 +65,111 @@ export function FormularioCadastroPaciente({ pacienteId }: { pacienteId?: string
   const [etapaAtual, setEtapaAtual] = useState(1);
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [novaAlergia, setNovaAlergia] = useState('');
+  const [carregandoEdicao, setCarregandoEdicao] = useState(!!pacienteId);
+  const [erroCarregamento, setErroCarregamento] = useState<string | null>(null);
+  const [origens, setOrigens] = useState<{ id: string; descricao: string }[]>([]);
+  const [origemId, setOrigemId] = useState('');
+  const [encaminharTriagem, setEncaminharTriagem] = useState(true);
+  const [obstetrico, setObstetrico] = useState(false);
+  const [vaiInternar, setVaiInternar] = useState(false);
+  const [carregandoOrigens, setCarregandoOrigens] = useState(false);
 
   const form = useForm<CriarPacienteForm>({
     resolver: zodResolver(schemaCriarPaciente),
     defaultValues: {
       dadosPessoais: { nome: '', cpf: '', dataNascimento: '', sexoBiologico: 'MASCULINO' },
       endereco: { cep: '', logradouro: '', numero: '', bairro: '', cidade: '', estado: '' },
-      dadosSaude: { tipoSanguineo: 'DESCONHECIDO', medicamentosContinuos: [] },
+      dadosSaude: { tipoSanguineo: 'DESCONHECIDO', alergias: [], medicamentosContinuos: [] },
       observacoesIniciais: '',
     },
   });
 
   const cpfValue = form.watch('dadosPessoais.cpf');
 
+  useEffect(() => {
+    if (pacienteId) return;
+
+    async function carregarOrigens() {
+      setCarregandoOrigens(true);
+      try {
+        const res = await fetch('/api/configuracoes/origens');
+        const json = await res.json();
+        if (json.sucesso && json.dados?.length) {
+          setOrigens(json.dados);
+          setOrigemId(json.dados[0].id);
+        }
+      } catch {
+        /* ignora — usuário pode abrir atendimento depois na recepção */
+      } finally {
+        setCarregandoOrigens(false);
+      }
+    }
+
+    carregarOrigens();
+  }, [pacienteId]);
+
   // Carregar dados se for edição
   useEffect(() => {
-    if (pacienteId) {
-      async function carregar() {
-        try {
-          const res = await fetch(`/api/pacientes/${pacienteId}`);
-          const json = await res.json();
-          if (json.sucesso && json.dados) {
-            const p = json.dados;
-            // Preencher o form com os dados formatados
-            form.reset({
-              dadosPessoais: {
-                nome: p.nomeExibicao, // O nome criptografado de verdade precisa ser enviado caso seja alterado, mas por simplicidade vamos manter como exibicao para edicao provisória
-                cpf: p.cpfCriptografado || '', // O ideal aqui seria descriptografar no backend e enviar limpo
-                dataNascimento: new Date(p.dataNascimento).toISOString().split('T')[0],
-                sexoBiologico: p.sexoBiologico,
-                rg: '', // RG e telefone precisariam de descriptografia
-                telefone: '',
-                genero: p.genero || '',
-                naturalidade: p.naturalidade || '',
-                nomeMae: p.nomeMae || '',
-                escolaridade: p.escolaridade || '',
-                racaCor: p.racaCor || '',
-                cns: p.cns || '',
-                profissao: p.profissao || '',
-                acompanhanteNome: p.acompanhanteNome || '',
-                acompanhanteTelefone: p.acompanhanteTelefone || '',
-              },
-              endereco: {
-                cep: p.endereco?.cep || '',
-                logradouro: p.endereco?.logradouro || '',
-                numero: p.endereco?.numero || '',
-                bairro: p.endereco?.bairro || '',
-                cidade: p.endereco?.cidade || '',
-                estado: p.endereco?.estado || '',
-                complemento: p.endereco?.complemento || '',
-              },
-              dadosSaude: {
-                tipoSanguineo: p.tipoSanguineo || 'DESCONHECIDO',
-                convenio: p.convenio || '',
-                numeroCarteirinha: p.numeroCarteirinha || '',
-                medicamentosContinuos: p.medicamentosCont?.map((m: any) => ({
-                  nome: m.nome, dose: m.dose, frequencia: m.frequencia, observacoes: m.observacoes || ''
-                })) || [],
-              },
-              observacoesIniciais: p.observacoesIniciais || '',
-            });
-          }
-        } catch {}
+    if (!pacienteId) return
+
+    async function carregar() {
+      setCarregandoEdicao(true)
+      setErroCarregamento(null)
+      try {
+        const res = await fetch(`/api/pacientes/${pacienteId}`)
+        const json = await res.json()
+        if (!json.sucesso || !json.dados) {
+          setErroCarregamento(json.erro ?? 'Não foi possível carregar os dados do paciente.')
+          return
+        }
+        const p = json.dados
+        form.reset({
+          dadosPessoais: {
+            nome: p.nomeExibicao ?? '',
+            cpf: p.cpfCriptografado ? mascaraCpf(p.cpfCriptografado) : '',
+            dataNascimento: new Date(p.dataNascimento).toISOString().split('T')[0],
+            sexoBiologico: p.sexoBiologico,
+            rg: p.rgCriptografado ?? '',
+            telefone: p.telefoneCriptografado ? mascaraTelefone(String(p.telefoneCriptografado)) : '',
+            genero: p.genero || '',
+            naturalidade: p.naturalidade || '',
+            nomeMae: p.nomeMae || '',
+            escolaridade: p.escolaridade || '',
+            racaCor: p.racaCor || '',
+            cns: p.cns || '',
+            profissao: p.profissao || '',
+            acompanhanteNome: p.acompanhanteNome || '',
+            acompanhanteTelefone: p.acompanhanteTelefone || '',
+          },
+          endereco: {
+            cep: p.endereco?.cep ? mascaraCep(p.endereco.cep) : '',
+            logradouro: p.endereco?.logradouro || '',
+            numero: p.endereco?.numero || '',
+            bairro: p.endereco?.bairro || '',
+            cidade: p.endereco?.cidade || '',
+            estado: p.endereco?.estado || '',
+            complemento: p.endereco?.complemento || '',
+          },
+          dadosSaude: {
+            tipoSanguineo: p.tipoSanguineo || 'DESCONHECIDO',
+            convenio: p.convenio || '',
+            numeroCarteirinha: p.numeroCarteirinha || '',
+            alergias: [],
+            medicamentosContinuos: p.medicamentosCont?.map((m: { nome: string; dose: string; frequencia: string; observacoes?: string }) => ({
+              nome: m.nome, dose: m.dose, frequencia: m.frequencia, observacoes: m.observacoes || ''
+            })) || [],
+          },
+          observacoesIniciais: p.observacoesIniciais || '',
+        })
+      } catch {
+        setErroCarregamento('Erro de conexão ao carregar o paciente.')
+      } finally {
+        setCarregandoEdicao(false)
       }
-      carregar();
     }
-  }, [pacienteId, form]);
+
+    carregar()
+  }, [pacienteId, form])
 
   // Validação de CPF em tempo real (duplicidade)
   useEffect(() => {
@@ -179,6 +219,12 @@ export function FormularioCadastroPaciente({ pacienteId }: { pacienteId?: string
   }, [form]);
 
   async function onSubmit(dados: CriarPacienteForm) {
+    if (!pacienteId && encaminharTriagem && !origemId) {
+      toast.error('Selecione a origem do paciente para encaminhar à triagem.');
+      setEtapaAtual(4);
+      return;
+    }
+
     try {
       const url = pacienteId ? `/api/pacientes/${pacienteId}` : '/api/pacientes';
       const method = pacienteId ? 'PUT' : 'POST';
@@ -193,8 +239,35 @@ export function FormularioCadastroPaciente({ pacienteId }: { pacienteId?: string
         toast.error(json.erro ?? `Erro ao ${pacienteId ? 'atualizar' : 'cadastrar'} paciente.`);
         return;
       }
+
+      const idPaciente = pacienteId ?? json.dados?.id;
+      let encaminhado = false;
+
+      if (!pacienteId && encaminharTriagem && idPaciente && origemId) {
+        const resAt = await fetch('/api/atendimentos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pacienteId: idPaciente, origemId, obstetrico, vaiInternar }),
+        });
+        const jsonAt = await resAt.json();
+        if (!jsonAt.sucesso) {
+          toast.warning('Paciente cadastrado, mas não foi possível abrir atendimento.', {
+            description: jsonAt.erro ?? 'Use + Atendimento na recepção.',
+          });
+          router.push('/recepcao?cadastrado=1');
+          router.refresh();
+          return;
+        }
+        encaminhado = true;
+        notificarFilaAtualizada('NOVO_ATENDIMENTO');
+      }
+
       toast.success(`Paciente ${pacienteId ? 'atualizado' : 'cadastrado'} com sucesso!`);
-      router.push(pacienteId ? '/recepcao' : '/recepcao?cadastrado=1');
+      if (encaminhado) {
+        router.push('/recepcao?cadastrado=triagem');
+      } else {
+        router.push(pacienteId ? '/recepcao' : '/recepcao?cadastrado=1');
+      }
       router.refresh();
     } catch {
       toast.error('Erro de conexão. Tente novamente.');
@@ -204,13 +277,27 @@ export function FormularioCadastroPaciente({ pacienteId }: { pacienteId?: string
   const { isSubmitting, errors } = form.formState;
 
   const inputClass = (erro?: string) => cn(
-    'w-full px-3.5 py-2.5 rounded-lg border bg-background text-sm outline-none transition-all',
+    'w-full px-3 py-2 rounded-lg border bg-background text-xs outline-none transition-all',
     'focus:ring-2 focus:ring-primary/30 focus:border-primary',
     erro ? 'border-destructive' : 'border-input'
   );
 
   return (
     <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+      {carregandoEdicao ? (
+        <div className="flex items-center justify-center gap-2 py-24 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+          Carregando dados do paciente…
+        </div>
+      ) : erroCarregamento ? (
+        <div className="p-8 text-center space-y-3">
+          <p className="text-sm text-destructive font-medium">{erroCarregamento}</p>
+          <p className="text-xs text-muted-foreground">
+            Se o erro mencionar ENCRYPTION_KEY, configure-a no .env da VPS e reinicie o PM2.
+          </p>
+        </div>
+      ) : (
+        <>
       {/* Stepper */}
       <div className="flex border-b border-border bg-muted/30">
         {ETAPAS.map((etapa, idx) => (
@@ -409,9 +496,9 @@ export function FormularioCadastroPaciente({ pacienteId }: { pacienteId?: string
 
         {/* ===================== ETAPA 4: REVISÃO ===================== */}
         {etapaAtual === 4 && (
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold">Revisão dos dados</h3>
-            <div className="grid gap-4">
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold">Revisão dos dados</h3>
+            <div className="grid gap-3">
               {[
                 { titulo: 'Dados Pessoais', itens: [
                   ['Nome', form.getValues('dadosPessoais.nome')],
@@ -426,18 +513,87 @@ export function FormularioCadastroPaciente({ pacienteId }: { pacienteId?: string
                   ['CEP', form.getValues('endereco.cep')],
                 ]},
               ].map(secao => (
-                <div key={secao.titulo} className="bg-muted/30 rounded-xl border border-border p-5">
-                  <h4 className="font-semibold mb-3 text-sm text-muted-foreground uppercase tracking-wide">{secao.titulo}</h4>
-                  <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <div key={secao.titulo} className="bg-muted/30 rounded-lg border border-border p-3">
+                  <h4 className="font-semibold mb-2 text-[10px] text-muted-foreground uppercase tracking-wide">{secao.titulo}</h4>
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                     {secao.itens.map(([k, v]) => (
                       <div key={k}>
-                        <dt className="text-xs text-muted-foreground">{k}</dt>
-                        <dd className="text-sm font-medium text-foreground">{v || '—'}</dd>
+                        <dt className="text-[10px] text-muted-foreground">{k}</dt>
+                        <dd className="text-xs font-medium text-foreground">{v || '—'}</dd>
                       </div>
                     ))}
                   </dl>
                 </div>
               ))}
+
+              {!pacienteId && (
+                <div className="bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-800 p-3 space-y-3">
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={encaminharTriagem}
+                      onChange={(e) => setEncaminharTriagem(e.target.checked)}
+                      className="mt-0.5 rounded border-input"
+                    />
+                    <span className="text-xs font-medium text-emerald-950 dark:text-emerald-50">
+                      Encaminhar para triagem após cadastro
+                    </span>
+                  </label>
+
+                  {encaminharTriagem && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium flex items-center gap-1.5">
+                        <Tag className="h-3.5 w-3.5" /> Origem do paciente *
+                      </label>
+                      {carregandoOrigens ? (
+                        <div className="p-2 text-xs text-muted-foreground bg-muted/30 rounded-lg flex items-center gap-2">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando origens...
+                        </div>
+                      ) : origens.length === 0 ? (
+                        <p className="text-[10px] text-amber-700 dark:text-amber-400">
+                          Nenhuma origem cadastrada. Configure em Configurações ou use + Atendimento depois.
+                        </p>
+                      ) : (
+                        <select
+                          value={origemId}
+                          onChange={(e) => setOrigemId(e.target.value)}
+                          className="w-full px-2.5 py-2 rounded-lg border border-input bg-background text-xs focus:ring-2 focus:ring-primary/30"
+                        >
+                          <option value="">Selecione a origem...</option>
+                          {origens.map((o) => (
+                            <option key={o.id} value={o.id}>{o.descricao}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="space-y-2 pt-1 border-t border-emerald-200/60 dark:border-emerald-800/60">
+                    <label className="flex items-center gap-2 text-xs cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={obstetrico}
+                        onChange={(e) => setObstetrico(e.target.checked)}
+                        className="rounded border-input"
+                      />
+                      <span className="font-medium text-emerald-950 dark:text-emerald-50">
+                        Atendimento obstétrico (gestante/puérpera)
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-2 text-xs cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={vaiInternar}
+                        onChange={(e) => setVaiInternar(e.target.checked)}
+                        className="rounded border-input"
+                      />
+                      <span className="font-medium text-emerald-950 dark:text-emerald-50">
+                        Indicação de internação
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
 
             </div>
           </div>
@@ -463,6 +619,8 @@ export function FormularioCadastroPaciente({ pacienteId }: { pacienteId?: string
           )}
         </div>
       </form>
+        </>
+      )}
     </div>
   );
 }

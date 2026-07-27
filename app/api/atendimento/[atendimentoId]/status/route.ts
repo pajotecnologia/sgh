@@ -27,7 +27,7 @@ export async function POST(
 
     const atendimento = await prisma.atendimento.findUnique({
       where: { id: atendimentoId },
-      select: { status: true }
+      select: { status: true, leitoId: true }
     });
 
     if (!atendimento) {
@@ -36,12 +36,31 @@ export async function POST(
 
     // Atualizar status e registrar log
     const atualizado = await prisma.$transaction(async (tx) => {
+      // Se for alta/transferência/óbito, liberar leito (se houver)
+      const finalizaInternacao = ['ALTA', 'TRANSFERIDO', 'OBITO'].includes(String(status));
+      if (finalizaInternacao && atendimento.leitoId) {
+        await tx.leito.updateMany({
+          where: { id: atendimento.leitoId, status: 'OCUPADO' },
+          data: { status: 'DISPONIVEL' },
+        });
+      }
+
+      // Encerra o prontuário médico do PS (alta ou encaminhamento para internação).
+      if (String(status) === 'CONCLUIDO' || String(status) === 'AGUARDANDO_INTERNACAO') {
+        await tx.prontuarioMedico.upsert({
+          where: { atendimentoId },
+          create: { atendimentoId, encerradoEm: new Date(), encerradoPorId: sessao.usuario.id },
+          update: { encerradoEm: new Date(), encerradoPorId: sessao.usuario.id },
+        })
+      }
+
       const a = await tx.atendimento.update({
         where: { id: atendimentoId },
         data: { 
           status: status as StatusAtendimento,
           // Se for finalização, podemos registrar quem finalizou
-          ...(status === 'EM_ATENDIMENTO' ? { medicoId: sessao.usuario.id } : {})
+          ...(status === 'EM_ATENDIMENTO' ? { medicoId: sessao.usuario.id } : {}),
+          ...(finalizaInternacao ? { leitoId: null } : {}),
         }
       });
 

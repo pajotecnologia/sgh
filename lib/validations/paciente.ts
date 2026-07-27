@@ -2,41 +2,7 @@
 // Schemas Zod para validação do Módulo 1 — Recepção / Ficha do Paciente
 
 import { z } from 'zod';
-
-// =============================================================================
-// UTILITÁRIOS DE VALIDAÇÃO
-// =============================================================================
-
-/**
- * Valida CPF usando o algoritmo de dígitos verificadores.
- * Rejeita CPFs com todos os dígitos iguais (ex: 111.111.111-11).
- */
-function validarCPF(cpf: string): boolean {
-  const limpo = cpf.replace(/\D/g, '');
-  if (limpo.length !== 11) return false;
-  // Rejeitar sequências inválidas (todos os dígitos iguais)
-  if (/^(\d)\1+$/.test(limpo)) return false;
-
-  // Calcular primeiro dígito verificador
-  let soma = 0;
-  for (let i = 0; i < 9; i++) {
-    soma += parseInt(limpo[i]) * (10 - i);
-  }
-  let digito1 = 11 - (soma % 11);
-  if (digito1 >= 10) digito1 = 0;
-
-  // Calcular segundo dígito verificador
-  soma = 0;
-  for (let i = 0; i < 10; i++) {
-    soma += parseInt(limpo[i]) * (11 - i);
-  }
-  let digito2 = 11 - (soma % 11);
-  if (digito2 >= 10) digito2 = 0;
-
-  return (
-    parseInt(limpo[9]) === digito1 && parseInt(limpo[10]) === digito2
-  );
-}
+import { validarCPF } from '@/lib/validar-cpf';
 
 // =============================================================================
 // SCHEMAS INDIVIDUAIS

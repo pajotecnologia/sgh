@@ -153,6 +153,8 @@ type InstituicaoFicha = {
   cidade?: string | null;
   estado?: string | null;
   cep?: string | null;
+  cnes?: string | null;
+  codigoIbgeMunicipio?: string | null;
 } | null;
 
 function fmtNum(v: unknown): string {
@@ -206,6 +208,8 @@ export function FichaUrgenciaDocumento({
   const p = paciente;
   const unidadeResumo =
     [instituicao?.nomeInstituicao, instituicao?.nomeMunicipio].filter(Boolean).join(' — ') || '';
+  const cnes = instituicao?.cnes?.replace(/\D/g, '').slice(0, 7) || '';
+  const ibge = instituicao?.codigoIbgeMunicipio?.replace(/\D/g, '').slice(0, 7) || '';
 
   const sv = triagem?.sinaisVitais;
   const pa =
@@ -282,6 +286,21 @@ export function FichaUrgenciaDocumento({
                 .filter(Boolean)
                 .join(' — ') || 'Endereço da unidade não cadastrado em Configurações.'}
             </p>
+            {cnes || ibge ? (
+              <p className="text-[8px] mt-1 text-black">
+                {cnes ? (
+                  <span>
+                    <span className="font-semibold">CNES:</span> <span className="font-mono">{cnes}</span>
+                  </span>
+                ) : null}
+                {cnes && ibge ? <span className="mx-2">•</span> : null}
+                {ibge ? (
+                  <span>
+                    <span className="font-semibold">IBGE:</span> <span className="font-mono">{ibge}</span>
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
           </div>
           <div className="w-[6.5rem] shrink-0 text-right">
             <div className="border-2 border-black p-1.5 text-center bg-gray-100">

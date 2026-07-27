@@ -9,6 +9,9 @@ import { Activity, Volume2, VolumeX, Wifi, WifiOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { CorTriagem } from '@/types';
+import type { ConfigPainelExibicao } from '@/lib/painel-config';
+import { CONFIG_PAINEL_PADRAO, deveExibirMidiaRotativa } from '@/lib/painel-config';
+import { PainelMidiaRotativa } from '@/components/painel/PainelMidiaRotativa';
 
 interface ChamadaItem {
   id: string;
@@ -24,6 +27,7 @@ interface PainelChamadaProps {
   historicoInicial: ChamadaItem[];
   setor: string;
   instituicao?: any;
+  configInicial?: ConfigPainelExibicao;
 }
 
 const COR_CONFIG: Record<string, { borda: string; bg: string; texto: string; label: string }> = {
@@ -49,7 +53,8 @@ function tocarBeepNotificacao(ctx: AudioContext) {
   osc.stop(ctx.currentTime + 0.4);
 }
 
-export function PainelChamada({ historicoInicial, setor, instituicao }: PainelChamadaProps) {
+export function PainelChamada({ historicoInicial, setor, instituicao, configInicial }: PainelChamadaProps) {
+  const [configPainel, setConfigPainel] = useState<ConfigPainelExibicao>(configInicial ?? CONFIG_PAINEL_PADRAO);
   const [chamadaAtual, setChamadaAtual] = useState<ChamadaItem | null>(
     historicoInicial[0] ?? null
   );
@@ -82,6 +87,22 @@ export function PainelChamada({ historicoInicial, setor, instituicao }: PainelCh
     setMontado(true);
     setAgora(new Date());
     const timer = setInterval(() => setAgora(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Atualizar config do painel (layout dividido / imagens) periodicamente
+  useEffect(() => {
+    const carregarConfig = async () => {
+      try {
+        const res = await fetch('/api/painel/config');
+        const json = await res.json();
+        if (json.sucesso && json.dados) setConfigPainel(json.dados);
+      } catch {
+        /* rede indisponível */
+      }
+    };
+    void carregarConfig();
+    const timer = setInterval(carregarConfig, 60_000);
     return () => clearInterval(timer);
   }, []);
 
@@ -261,6 +282,100 @@ export function PainelChamada({ historicoInicial, setor, instituicao }: PainelCh
   }, [setor, exibirChamada]);
 
   const corCfg = chamadaAtual?.corTriagem ? COR_CONFIG[chamadaAtual.corTriagem] : null;
+  const exibirMidia = deveExibirMidiaRotativa(configPainel);
+  const midiaEsquerda = configPainel.posicaoMidia !== 'direita';
+
+  const areaMidia = exibirMidia ? (
+    <PainelMidiaRotativa
+      imagens={configPainel.imagensRotativas}
+      intervaloSegundos={configPainel.intervaloRotacaoSegundos}
+      className="h-full w-full min-h-0"
+    />
+  ) : null;
+
+  const areaChamadas = (
+    <div className="flex flex-col min-h-0 h-full">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 lg:px-10 relative overflow-hidden min-h-0">
+        {corCfg && (
+          <div className={cn('absolute inset-0 transition-all duration-700', corCfg.bg)} />
+        )}
+
+        {chamadaAtual ? (
+          <div
+            className={cn(
+              'relative z-10 text-center w-full max-w-4xl',
+              'border-l-[10px] pl-6 lg:pl-8 py-6',
+              animando ? 'animate-fade-in-up' : 'opacity-0',
+              corCfg?.borda ?? 'border-l-slate-600'
+            )}
+          >
+            {corCfg && (
+              <p className={cn('text-xs lg:text-sm font-bold uppercase tracking-[0.25em] mb-3', corCfg.texto)}>
+                ◉ {corCfg.label}
+              </p>
+            )}
+
+            <h1
+              className="font-extrabold text-white text-balance leading-none mb-4 tracking-tight"
+              style={{ fontSize: exibirMidia ? 'clamp(2rem, 5vw, 4.5rem)' : 'clamp(3.5rem, 9vw, 7.5rem)' }}
+            >
+              {chamadaAtual.nomePaciente}
+            </h1>
+
+            <p
+              className="font-mono text-slate-400 mb-6"
+              style={{ fontSize: exibirMidia ? 'clamp(1rem, 2vw, 1.5rem)' : 'clamp(1.25rem, 2.5vw, 2rem)' }}
+            >
+              Atendimento: {chamadaAtual.numeroAtendimento}
+            </p>
+
+            <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 px-6 py-3 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
+              <span className="text-slate-300 text-xs uppercase tracking-widest">Dirija-se a</span>
+              <span
+                className="font-black text-white"
+                style={{ fontSize: exibirMidia ? 'clamp(1.25rem, 3vw, 2.25rem)' : 'clamp(1.5rem, 4vw, 3rem)' }}
+              >
+                {chamadaAtual.salaDestino}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-slate-500 relative z-10">
+            <Activity className="h-12 w-12 lg:h-16 lg:w-16 mx-auto mb-4 opacity-20" />
+            <p className="text-xl lg:text-2xl font-medium">Aguardando chamadas...</p>
+            <p className="text-sm mt-2 opacity-60">O sistema atualizará automaticamente</p>
+          </div>
+        )}
+      </div>
+
+      {historico.length > 1 && (
+        <div className="shrink-0 border-t border-white/10 bg-slate-900/70 px-6 lg:px-8 py-3">
+          <p className="text-xs text-slate-500 uppercase tracking-widest mb-2">Chamadas anteriores</p>
+          <div className={cn('grid gap-2', exibirMidia ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 md:grid-cols-4')}>
+            {historico.slice(1, 5).map((c, idx) => {
+              const cfg = c.corTriagem ? COR_CONFIG[c.corTriagem] : null;
+              const opacidade = [0.8, 0.6, 0.5, 0.4][idx] ?? 0.35;
+              return (
+                <div
+                  key={c.id}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/60 border border-white/5"
+                  style={{ opacity: opacidade }}
+                >
+                  {cfg && (
+                    <div className={cn('w-1 self-stretch rounded-full shrink-0', cfg.borda.replace('border-l-', 'bg-'))} />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">{c.nomePaciente}</p>
+                    <p className="text-xs text-slate-400 truncate">{c.salaDestino}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="h-screen flex flex-col overflow-hidden relative">
@@ -345,91 +460,18 @@ export function PainelChamada({ historicoInicial, setor, instituicao }: PainelCh
         </div>
       </div>
 
-      {/* Área principal — chamada atual */}
-      <div className="flex-1 flex flex-col items-center justify-center px-12 relative overflow-hidden">
-        {/* Fundo com cor de triagem */}
-        {corCfg && (
-          <div
-            className={cn('absolute inset-0 transition-all duration-700', corCfg.bg)}
-          />
-        )}
-
-        {chamadaAtual ? (
-          <div
-            className={cn(
-              'relative z-10 text-center w-full max-w-5xl',
-              'border-l-[12px] pl-10 py-8',
-              animando ? 'animate-fade-in-up' : 'opacity-0',
-              corCfg?.borda ?? 'border-l-slate-600'
-            )}
-          >
-            {/* Rótulo da cor de triagem */}
-            {corCfg && (
-              <p className={cn('text-sm font-bold uppercase tracking-[0.25em] mb-4', corCfg.texto)}>
-                ◉ {corCfg.label}
-              </p>
-            )}
-
-            {/* Nome do paciente — fonte grande */}
-            <h1
-              className="font-extrabold text-white text-balance leading-none mb-6 tracking-tight"
-              style={{ fontSize: 'clamp(3.5rem, 9vw, 7.5rem)' }}
-            >
-              {chamadaAtual.nomePaciente}
-            </h1>
-
-            {/* Número de atendimento */}
-            <p className="font-mono text-slate-400 mb-8" style={{ fontSize: 'clamp(1.25rem, 2.5vw, 2rem)' }}>
-              Atendimento: {chamadaAtual.numeroAtendimento}
-            </p>
-
-            {/* Sala de destino — destaque */}
-            <div className="inline-flex items-center gap-3 px-8 py-4 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
-              <span className="text-slate-300 text-sm uppercase tracking-widest">Dirija-se a</span>
-              <span
-                className="font-black text-white"
-                style={{ fontSize: 'clamp(1.5rem, 4vw, 3rem)' }}
-              >
-                {chamadaAtual.salaDestino}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center text-slate-500 relative z-10">
-            <Activity className="h-16 w-16 mx-auto mb-4 opacity-20" />
-            <p className="text-2xl font-medium">Aguardando chamadas...</p>
-            <p className="text-sm mt-2 opacity-60">O sistema atualizará automaticamente</p>
-          </div>
-        )}
-      </div>
-
-      {/* Rodapé — histórico das últimas 5 chamadas */}
-      {historico.length > 1 && (
-        <div className="shrink-0 border-t border-white/10 bg-slate-900/70 px-8 py-4">
-          <p className="text-xs text-slate-500 uppercase tracking-widest mb-3">Chamadas anteriores</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {historico.slice(1, 5).map((c, idx) => {
-              const cfg = c.corTriagem ? COR_CONFIG[c.corTriagem] : null;
-              const opacidade = [0.8, 0.6, 0.5, 0.4][idx] ?? 0.35;
-              return (
-                <div
-                  key={c.id}
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-slate-800/60 border border-white/5"
-                  style={{ opacity: opacidade }}
-                >
-                  {cfg && (
-                    <div className={cn('w-1 self-stretch rounded-full shrink-0', cfg.borda.replace('border-l-', 'bg-'))} />
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{c.nomePaciente}</p>
-                    <p className="text-xs text-slate-400 truncate">{c.salaDestino}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      {/* Área principal — layout dividido ou tela cheia */}
+      <div className="flex-1 flex min-h-0 overflow-hidden">
+        {exibirMidia && midiaEsquerda ? (
+          <div className="w-1/2 shrink-0 border-r border-white/10">{areaMidia}</div>
+        ) : null}
+        <div className={cn('min-w-0 flex flex-col', exibirMidia ? 'w-1/2' : 'w-full')}>
+          {areaChamadas}
         </div>
-      )}
+        {exibirMidia && !midiaEsquerda ? (
+          <div className="w-1/2 shrink-0 border-l border-white/10">{areaMidia}</div>
+        ) : null}
+      </div>
 
       {/* Footer Desenvolvedor */}
       <div className="shrink-0 bg-slate-950 py-1 text-center">

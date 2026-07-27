@@ -35,7 +35,7 @@ const USUARIOS = [
     esperadoRole: 'ENFERMEIRO',
     testes: [
       { nome: 'GET /api/triagem/fila', path: '/api/triagem/fila', minStatus: 200, maxStatus: 299 },
-      { nome: 'GET /enfermagem (HTML)', path: '/enfermagem', minStatus: 200, maxStatus: 299 },
+      { nome: 'GET /evolucoes (HTML)', path: '/evolucoes', minStatus: 200, maxStatus: 299 },
       { nome: 'GET /triagem (HTML)', path: '/triagem', minStatus: 200, maxStatus: 299 },
     ],
   },

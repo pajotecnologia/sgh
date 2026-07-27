@@ -40,6 +40,30 @@ declare module 'next-auth/jwt' {
   }
 }
 
+function resolverNextAuthSecret(): string {
+  const bruto = process.env.NEXTAUTH_SECRET?.trim();
+  const placeholder =
+    !bruto ||
+    bruto.includes('sua-chave-secreta') ||
+    bruto.length < 16;
+
+  if (!placeholder) return bruto;
+
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(
+      '[auth] NEXTAUTH_SECRET ausente ou inválido no .env — usando segredo de desenvolvimento. ' +
+        'Copie NEXTAUTH_SECRET de .env.example para o .env e reinicie o servidor.'
+    );
+    return 'dev-sgh-nextauth-secret-min-32-chars!!';
+  }
+
+  throw new Error(
+    'NEXTAUTH_SECRET não configurado. Defina no .env (openssl rand -base64 32) e reinicie.'
+  );
+}
+
+const nextAuthSecret = resolverNextAuthSecret();
+
 export const authOptions: NextAuthOptions = {
   // Usar JWT (stateless) — não requer tabela de sessões no banco
   session: {
@@ -150,7 +174,7 @@ export const authOptions: NextAuthOptions = {
     },
   },
 
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: nextAuthSecret,
 
   // Log de erros de autenticação (sem expor detalhes ao cliente)
   debug: process.env.NODE_ENV === 'development',

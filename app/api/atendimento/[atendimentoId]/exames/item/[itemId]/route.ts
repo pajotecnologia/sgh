@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { schemaAtualizarItemExame } from '@/lib/validations/atendimento';
+import { prontuarioEstaEncerrado } from '@/lib/atendimento-prontuario'
 
 const ROLES = ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM'] as const;
 
@@ -20,6 +21,10 @@ export async function PATCH(
   }
 
   try {
+    if (await prontuarioEstaEncerrado(atendimentoId)) {
+      return NextResponse.json({ sucesso: false, erro: 'Prontuário encerrado. Edição não permitida.' }, { status: 409 })
+    }
+
     const body = await req.json();
     const validacao = schemaAtualizarItemExame.safeParse(body);
     if (!validacao.success) {

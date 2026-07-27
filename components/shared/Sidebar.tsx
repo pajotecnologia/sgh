@@ -13,13 +13,18 @@ import {
   Monitor,
   Stethoscope,
   FileText,
+  ClipboardCheck,
   BarChart3,
   Settings,
   LogOut,
-  Syringe,
+  Pill,
   Shield,
   ChevronsLeft,
   ChevronsRight,
+  LayoutDashboard,
+  NotebookTabs,
+  UserPlus,
+  NotebookPen,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import type { Role, UsuarioSessao } from '@/types';
@@ -34,7 +39,21 @@ interface ItemNav {
   badge?: string;
 }
 
+const ROLES_PRONTUARIO: Role[] = [
+  'ADMIN',
+  'MEDICO',
+  'DIRETOR_CLINICO',
+  'ENFERMEIRO',
+  'TECNICO_ENFERMAGEM',
+  'RECEPCIONISTA',
+];
+
 const ITENS_NAVEGACAO: ItemNav[] = [
+  {
+    label: 'Dashboard',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+  },
   {
     label: 'Recepção',
     href: '/recepcao',
@@ -48,28 +67,40 @@ const ITENS_NAVEGACAO: ItemNav[] = [
     roles: ['ADMIN', 'ENFERMEIRO'],
   },
   {
-    label: 'Painel de Chamada',
-    href: '/painel',
-    icon: Monitor,
-    roles: ['ADMIN', 'ENFERMEIRO', 'MEDICO'],
-  },
-  {
     label: 'Atendimento Médico',
     href: '/atendimento',
     icon: Stethoscope,
     roles: ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'],
   },
   {
-    label: 'Enfermagem',
-    href: '/enfermagem',
-    icon: Syringe,
+    label: 'Medicação (PS)',
+    href: '/medicacao',
+    icon: Pill,
     roles: ['ADMIN', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM'],
   },
   {
-    label: 'Prontuário',
+    label: 'Admissões',
+    href: '/internamento/admissoes',
+    icon: UserPlus,
+    roles: ['ADMIN', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM', 'RECEPCIONISTA'],
+  },
+  {
+    label: 'Prontuário Médico',
     href: '/prontuario',
     icon: FileText,
-    roles: ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM'],
+    roles: ROLES_PRONTUARIO,
+  },
+  {
+    label: 'Prontuário Enfermagem',
+    href: '/evolucoes',
+    icon: NotebookPen,
+    roles: ROLES_PRONTUARIO,
+  },
+  {
+    label: 'Farmácia',
+    href: '/farmacia',
+    icon: ClipboardCheck,
+    roles: ['ADMIN', 'FARMACEUTICO'],
   },
   {
     label: 'Auditoria',
@@ -78,10 +109,22 @@ const ITENS_NAVEGACAO: ItemNav[] = [
     roles: ['ADMIN'],
   },
   {
+    label: 'Painel de Chamada',
+    href: '/painel',
+    icon: Monitor,
+    roles: ['ADMIN', 'ENFERMEIRO', 'MEDICO'],
+  },
+  {
     label: 'Relatórios',
     href: '/relatorios',
     icon: BarChart3,
     roles: ['ADMIN', 'DIRETOR_CLINICO'],
+  },
+  {
+    label: 'Cadastros',
+    href: '/cadastros/leitos',
+    icon: NotebookTabs,
+    roles: ['ADMIN'],
   },
   {
     label: 'Configurações',
@@ -114,6 +157,7 @@ export function Sidebar({ usuario }: SidebarProps) {
     TECNICO_ENFERMAGEM: 'Téc. Enfermagem',
     RECEPCIONISTA: 'Recepcionista',
     DIRETOR_CLINICO: 'Diretor Clínico',
+    FARMACEUTICO: 'Farmacêutico',
   };
 
   const collapsed = desktopCollapsed;
@@ -152,7 +196,7 @@ export function Sidebar({ usuario }: SidebarProps) {
             <p className="text-xs text-slate-400 uppercase tracking-widest leading-none mb-0.5">
               Sistema
             </p>
-            <p className="text-sm font-bold text-white leading-tight truncate">SGH Hospitalar</p>
+            <p className="text-[10px] font-bold text-white leading-tight truncate">SGH Hospitalar</p>
           </div>
           <button
             type="button"
@@ -177,7 +221,7 @@ export function Sidebar({ usuario }: SidebarProps) {
               </span>
             </div>
             <div className={cn('min-w-0 flex-1 md:overflow-hidden', collapsed && 'md:hidden')}>
-              <p className="text-sm font-semibold text-white truncate leading-tight">
+              <p className="text-xs font-semibold text-white truncate leading-tight">
                 {usuario.nome.split(' ')[0]}
               </p>
               <p className="text-xs text-slate-400 truncate">
@@ -198,8 +242,18 @@ export function Sidebar({ usuario }: SidebarProps) {
             Módulos
           </p>
           {itensVisiveis.map((item) => {
-            const ativo = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const Icone = item.icon;
+            const ativoAdmissoes =
+              item.href === '/internamento/admissoes' &&
+              (pathname === '/internamento/admissoes' ||
+                pathname.startsWith('/internamento/admitir'))
+            const ativoCadastros =
+              item.href === '/cadastros/leitos' && pathname.startsWith('/cadastros')
+            const Icone = item.icon
+            const ativo =
+              ativoAdmissoes ||
+              ativoCadastros ||
+              pathname === item.href ||
+              pathname.startsWith(`${item.href}/`)
 
             return (
               <Link
@@ -207,7 +261,7 @@ export function Sidebar({ usuario }: SidebarProps) {
                 href={item.href}
                 title={collapsed ? item.label : undefined}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-150 py-2.5 px-3',
+                  'flex items-center gap-2.5 rounded-lg text-xs font-medium transition-all duration-150 py-2 px-2.5',
                   collapsed && 'md:justify-center md:px-2',
                   ativo
                     ? 'bg-primary text-white shadow-sm'
@@ -228,7 +282,7 @@ export function Sidebar({ usuario }: SidebarProps) {
                   </span>
                 ) : null}
               </Link>
-            );
+            )
           })}
         </nav>
 
@@ -237,7 +291,7 @@ export function Sidebar({ usuario }: SidebarProps) {
             type="button"
             onClick={toggleDesktopCollapsed}
             className={cn(
-              'hidden md:flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors',
+              'hidden md:flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors',
               collapsed && 'justify-center px-0'
             )}
             aria-expanded={!collapsed}
@@ -257,7 +311,7 @@ export function Sidebar({ usuario }: SidebarProps) {
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
             className={cn(
-              'flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors',
+              'flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors',
               collapsed && 'md:justify-center md:px-0'
             )}
             aria-label="Sair do sistema"

@@ -3,19 +3,25 @@
 
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Bell, Menu } from 'lucide-react';
 import type { UsuarioSessao } from '@/types';
 import { useDashboardNav } from '@/components/shared/dashboard-nav-context';
+import { SeletorTema } from '@/components/shared/SeletorTema';
+import { labelAbaInternacao, parseAbaInternacao } from '@/lib/internacao-abas';
 
 const TITULOS_ROTA: Record<string, string> = {
   '/recepcao': 'Recepção',
   '/recepcao/novo': 'Novo Paciente',
   '/triagem': 'Triagem',
-  '/enfermagem': 'Enfermagem',
+  '/medicacao': 'Medicação (PS)',
+  '/internamento/admissoes': 'Admissões — Enfermagem',
+  '/internamento/admitir': 'Receber paciente',
+  '/evolucoes': 'Prontuário Enfermagem',
+  '/prontuario': 'Prontuário Médico',
+  '/farmacia': 'Farmácia',
   '/painel': 'Painel de Chamada',
   '/atendimento': 'Atendimento Médico',
-  '/prontuario': 'Prontuário Eletrônico',
   '/relatorios': 'Relatórios',
   '/configuracoes': 'Configurações',
   '/auditoria': 'Auditoria',
@@ -29,10 +35,17 @@ interface HeaderProps {
 
 export function Header({ usuario }: HeaderProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { mobileOpen, setMobileOpen } = useDashboardNav();
 
+  const abaEvolucoes = pathname.startsWith('/evolucoes')
+    ? labelAbaInternacao(parseAbaInternacao(searchParams.get('aba')))
+    : null;
+
   const titulo =
-    Object.entries(TITULOS_ROTA).find(([rota]) => pathname.startsWith(rota))?.[1] ?? 'Dashboard';
+    abaEvolucoes ??
+    Object.entries(TITULOS_ROTA).find(([rota]) => pathname.startsWith(rota))?.[1] ??
+    'Dashboard';
 
   return (
     <header className="min-h-14 h-14 border-b border-border bg-background/80 backdrop-blur-sm flex items-center gap-2 sm:gap-4 shrink-0 z-10 px-3 sm:px-6 no-print">
@@ -52,6 +65,8 @@ export function Header({ usuario }: HeaderProps) {
 
       {/* Ações do header */}
       <div className="flex items-center gap-2">
+        <SeletorTema compacto />
+
         {/* Botão de notificações */}
         <button
           className="relative p-2 rounded-lg hover:bg-muted transition-colors"

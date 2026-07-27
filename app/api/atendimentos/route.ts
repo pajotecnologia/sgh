@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { pacienteId, origemId } = body;
+    const { pacienteId, origemId, obstetrico, vaiInternar } = body;
 
     if (!pacienteId) {
       return NextResponse.json<ApiResponse<never>>(
@@ -84,6 +84,8 @@ export async function POST(req: NextRequest) {
           origemId: origemId || null,
           numeroAtendimento,
           status: StatusAtendimento.AGUARDANDO_TRIAGEM,
+          obstetrico: Boolean(obstetrico),
+          vaiInternar: Boolean(vaiInternar),
         },
       });
 

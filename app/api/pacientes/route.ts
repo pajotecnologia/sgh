@@ -6,7 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { schemaCriarPaciente, schemaBuscaCpf } from '@/lib/validations/paciente';
-import { criptografar, hashCpf, mascararCpf } from '@/lib/encryption';
+import { criptografar, hashCpf, encryptionKeyConfigurada, mensagemErroEncryptionKey } from '@/lib/encryption';
 import { gerarNumeroAtendimento } from '@/lib/attendance';
 import type { ApiResponse, PaginacaoParams } from '@/types';
 
@@ -144,6 +144,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    if (!encryptionKeyConfigurada()) {
+      return NextResponse.json<ApiResponse<never>>(
+        { sucesso: false, erro: mensagemErroEncryptionKey() },
+        { status: 503 }
+      );
+    }
+
     const body = await req.json();
 
     // Validar payload com Zod
@@ -305,9 +312,12 @@ export async function POST(req: NextRequest) {
     );
   } catch (erro) {
     console.error('[POST /api/pacientes] Erro:', erro);
+    const msg = erro instanceof Error && erro.message.includes('ENCRYPTION_KEY')
+      ? mensagemErroEncryptionKey()
+      : 'Erro interno do servidor.';
     return NextResponse.json<ApiResponse<never>>(
-      { sucesso: false, erro: 'Erro interno do servidor.' },
-      { status: 500 }
+      { sucesso: false, erro: msg },
+      { status: msg.includes('ENCRYPTION_KEY') ? 503 : 500 }
     );
   }
 }

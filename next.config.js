@@ -3,6 +3,9 @@ const nextConfig = {
   // Build otimizado para VPS/Docker: artefatos finais copiados para release/app (npm run build:release)
   output: 'standalone',
 
+  // Next.js 16 — permite acessar o dev server por 127.0.0.1 / IP da rede (evita falha de HMR e auth)
+  allowedDevOrigins: ['127.0.0.1', '10.0.0.81', 'localhost'],
+
   // Configurações de imagem para uploads de documentos
   images: {
     remotePatterns: [

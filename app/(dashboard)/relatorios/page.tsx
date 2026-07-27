@@ -17,7 +17,7 @@ export default async function PaginaRelatorios() {
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+        <h1 className="page-title flex items-center gap-2">
           <BarChart3 className="h-7 w-7 text-primary" />
           Relatórios
         </h1>

@@ -3,7 +3,7 @@
 // Card de paciente na fila de triagem com tempo de espera em tempo real
 
 import { useState, useEffect } from 'react';
-import { Clock, AlertTriangle, Stethoscope, Printer } from 'lucide-react';
+import { Clock, AlertTriangle, Monitor, Printer, Stethoscope } from 'lucide-react';
 import Link from 'next/link';
 import { BadgeManchester } from './BadgeManchester';
 import { alertaTempoManchester } from '@/lib/utils';
@@ -16,11 +16,14 @@ interface CardPacienteEsperaProps {
   nomePaciente: string;
   corTriagem: CorTriagem | null;
   labelCor: string;
-  entradaFila: string; // ISO string
+  entradaFila: string;
   tempoMaximoMinutos: number | null;
   queixaPrincipal: string | null;
   onChamar?: (atendimentoId: string) => void;
   mostrarBotaoChamar?: boolean;
+  /** Link para iniciar atendimento médico (tela do consultório) */
+  mostrarLinkAtendimento?: boolean;
+  compacto?: boolean;
 }
 
 /** Calcula minutos desde uma data */
@@ -46,6 +49,8 @@ export function CardPacienteEspera({
   queixaPrincipal,
   onChamar,
   mostrarBotaoChamar = false,
+  mostrarLinkAtendimento = false,
+  compacto = false,
 }: CardPacienteEsperaProps) {
   // Atualizar tempo de espera a cada 30 segundos
   const [tempoEspera, setTempoEspera] = useState(() => minutosDesde(entradaFila));
@@ -76,15 +81,16 @@ export function CardPacienteEspera({
   return (
     <div
       className={cn(
-        'bg-card border rounded-xl p-4 transition-all duration-200 group',
+        'bg-card border rounded-lg transition-all duration-200 group',
+        compacto ? 'p-2' : 'p-4 rounded-xl',
         alerta
-          ? 'border-red-400 shadow-red-100 shadow-md alert-triagem-urgente'
+          ? 'border-red-400 shadow-red-100 shadow-sm alert-triagem-urgente'
           : 'border-border hover:shadow-sm'
       )}
       role="article"
       aria-label={`Paciente ${nomePaciente}`}
     >
-      <div className="flex items-start gap-3">
+      <div className={cn('flex items-start', compacto ? 'gap-2' : 'gap-3')}>
         {/* Indicador de cor Manchester — barra lateral */}
         {corTriagem && (
           <div
@@ -100,34 +106,34 @@ export function CardPacienteEspera({
 
         <div className="flex-1 min-w-0">
           {/* Cabeçalho do card */}
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-0.5">
+            <div className="flex items-center gap-1.5 min-w-0">
               {alerta && (
-                <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 animate-pulse" aria-label="Tempo excedido!" />
+                <AlertTriangle className={cn('text-red-500 shrink-0 animate-pulse', compacto ? 'h-3 w-3' : 'h-4 w-4')} aria-label="Tempo excedido!" />
               )}
-              <span className="font-semibold text-sm text-foreground truncate">{nomePaciente}</span>
+              <span className={cn('font-semibold text-foreground truncate', compacto ? 'text-xs' : 'text-sm')}>{nomePaciente}</span>
             </div>
             {corTriagem && <BadgeManchester cor={corTriagem} size="sm" />}
           </div>
 
-          {/* Número de atendimento */}
-          <p className="font-mono text-[11px] text-muted-foreground mb-2">{numeroAtendimento}</p>
+          <p className={cn('font-mono text-muted-foreground mb-1', compacto ? 'text-[10px]' : 'text-[11px] mb-2')}>{numeroAtendimento}</p>
 
-          {/* Queixa */}
-          {queixaPrincipal && (
-            <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{queixaPrincipal}</p>
+          {queixaPrincipal && !compacto && (
+            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{queixaPrincipal}</p>
+          )}
+          {queixaPrincipal && compacto && (
+            <p className="text-[10px] text-muted-foreground line-clamp-1 mb-1">{queixaPrincipal}</p>
           )}
 
-          {/* Barra de tempo */}
           {tempoMaximoMinutos !== null && tempoMaximoMinutos > 0 && (
-            <div className="mb-3">
-              <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                <span>Tempo de espera</span>
+            <div className={compacto ? 'mb-1.5' : 'mb-3'}>
+              <div className="flex justify-between text-[10px] text-muted-foreground mb-0.5">
+                <span>Espera</span>
                 <span className={alerta ? 'text-red-500 font-semibold' : ''}>
                   {formatarTempo(tempoEspera)} / {formatarTempo(tempoMaximoMinutos)}
                 </span>
               </div>
-              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className={cn('bg-muted rounded-full overflow-hidden', compacto ? 'h-1' : 'h-1.5')}>
                 <div
                   className={cn('h-full rounded-full transition-all duration-1000', corBarra)}
                   style={{ width: `${percentTempo}%` }}
@@ -138,33 +144,52 @@ export function CardPacienteEspera({
 
           {/* Tempo sem limite (CINZA) */}
           {(tempoMaximoMinutos === null || corTriagem === null) && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
-              <Clock className="h-3.5 w-3.5" />
-              <span>Aguardando há {formatarTempo(tempoEspera)}</span>
+            <div className={cn('flex items-center gap-1 text-muted-foreground', compacto ? 'text-[10px] mb-1' : 'text-xs mb-3')}>
+              <Clock className={compacto ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+              <span>{formatarTempo(tempoEspera)}</span>
             </div>
           )}
 
-          {/* Ações */}
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+          <div className={cn('flex items-center gap-1.5 border-t border-border/50', compacto ? 'mt-1.5 pt-1.5' : 'mt-3 pt-3 gap-2')}>
             <Link
               href={`/recepcao/imprimir/${numeroAtendimento}`}
               target="_blank"
-              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+              className={cn(
+                'flex items-center justify-center gap-1 rounded-md font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors',
+                compacto ? 'flex-1 py-1 text-[10px]' : 'flex-1 py-1.5 text-[11px]'
+              )}
               aria-label={`Imprimir ficha ${nomePaciente}`}
             >
-              <Printer className="h-3.5 w-3.5" />
+              <Printer className={compacto ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
               Imprimir
             </Link>
-            
+
             {mostrarBotaoChamar && onChamar && (
               <button
+                type="button"
                 onClick={() => onChamar(atendimentoId)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-medium bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors"
+                className={cn(
+                  'flex items-center justify-center gap-1 rounded-md font-medium bg-sky-600 text-white hover:bg-sky-700 transition-colors',
+                  compacto ? 'flex-1 py-1 text-[10px]' : 'flex-1 py-1.5 text-[11px]'
+                )}
                 aria-label={`Chamar ${nomePaciente}`}
               >
-                <Stethoscope className="h-3.5 w-3.5" />
+                <Monitor className={compacto ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
                 Chamar
               </button>
+            )}
+
+            {mostrarLinkAtendimento && (
+              <Link
+                href={`/atendimento/${atendimentoId}`}
+                className={cn(
+                  'flex items-center justify-center gap-1 rounded-md font-semibold bg-primary text-white hover:bg-primary/90 transition-colors',
+                  compacto ? 'flex-1 py-1 text-[10px]' : 'flex-1 py-1.5 text-[11px]'
+                )}
+              >
+                <Stethoscope className={compacto ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+                Atender
+              </Link>
             )}
           </div>
         </div>

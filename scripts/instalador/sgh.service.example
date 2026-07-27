@@ -1,0 +1,15 @@
+[Unit]
+Description=SGH — Sistema de Gerenciamento Hospitalar
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/www/wwwroot/sgh.pajotech.com.br
+EnvironmentFile=/www/wwwroot/sgh.pajotech.com.br/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node index.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

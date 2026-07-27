@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Loader2, X, Monitor } from 'lucide-react';
 import { registerTextoCadastro, textoCadastroMaiusculo } from '@/lib/cadastro-maiusculo';
 import { schemaChamarPaciente, type ChamarPacienteForm } from '@/lib/validations/triagem';
+import { mensagemErroValidacaoApi } from '@/lib/validations/id';
 import { cn } from '@/lib/utils';
 
 // Salas pré-configuradas — em produção viriam do banco (tabela configurável pelo admin)
@@ -59,7 +60,8 @@ export function ModalChamarPaciente({ atendimentoId, onClose, onSuccess }: Modal
       });
       const json = await res.json();
       if (!json.sucesso) {
-        toast.error(json.erro ?? 'Erro ao chamar paciente.');
+        const det = mensagemErroValidacaoApi(json.detalhes);
+        toast.error(det ?? json.erro ?? 'Erro ao chamar paciente.');
         return;
       }
       toast.success('Paciente chamado!', {

@@ -9,6 +9,8 @@ import { hashCpf } from '@/lib/encryption';
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao';
 import { BotaoNovoAtendimento } from '@/components/recepcao/BotaoNovoAtendimento';
 import { BannerPosCadastro } from '@/components/recepcao/BannerPosCadastro';
+import { PaginacaoLista } from '@/components/shared/PaginacaoLista';
+import { parsePaginacao } from '@/lib/paginacao';
 
 export const metadata: Metadata = { title: 'Recepção' };
 
@@ -21,9 +23,12 @@ export default async function PaginaRecepcao({
     dataFim?: string;
     ordenNome?: string;
     cadastrado?: string;
+    pagina?: string;
+    porPagina?: string;
   }>;
 }) {
   const params = await searchParams;
+  const { pagina, porPagina, skip, take } = parsePaginacao(params);
   const busca = params.busca ?? '';
   const dataInicioStr = params.dataInicio;
   const dataFimStr = params.dataFim;
@@ -46,7 +51,7 @@ export default async function PaginaRecepcao({
     }
   }
 
-  function montarQuery(mudancas?: Partial<{ ordenNome: 'asc' | 'desc'; busca: string }>) {
+  function montarQuery(mudancas?: Partial<{ ordenNome: 'asc' | 'desc'; busca: string; pagina: number; porPagina: number }>) {
     const o = mudancas?.ordenNome ?? ordenNomeParam;
     const q = new URLSearchParams();
     const b = mudancas?.busca ?? busca;
@@ -54,9 +59,20 @@ export default async function PaginaRecepcao({
     if (dataInicioStr) q.set('dataInicio', dataInicioStr);
     if (dataFimStr) q.set('dataFim', dataFimStr);
     if (o !== 'asc') q.set('ordenNome', o);
+    const p = mudancas?.pagina ?? pagina;
+    const pp = mudancas?.porPagina ?? porPagina;
+    if (p > 1) q.set('pagina', String(p));
+    if (pp !== 10) q.set('porPagina', String(pp));
     const s = q.toString();
     return s ? `?${s}` : '';
   }
+
+  const queryPreservar = {
+    busca: busca || undefined,
+    dataInicio: dataInicioStr,
+    dataFim: dataFimStr,
+    ordenNome: ordenNomeParam !== 'asc' ? ordenNomeParam : undefined,
+  };
 
   const whereBusca: any = {
     deletedAt: null,
@@ -78,6 +94,8 @@ export default async function PaginaRecepcao({
         },
       },
       orderBy: { nomeExibicao: ordenNomeParam },
+      skip,
+      take,
     }),
     prisma.paciente.count({
       where: whereBusca,
@@ -110,7 +128,7 @@ export default async function PaginaRecepcao({
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Recepção</h2>
+          <h2 className="page-title text-foreground">Recepção</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             {total} cadastro{total !== 1 ? 's' : ''} listado{total !== 1 ? 's' : ''}
           </p>
@@ -273,7 +291,7 @@ export default async function PaginaRecepcao({
                         </Link>
                       ) : (
                         <Link
-                          href={`/recepcao/ficha-cadastro/${p.id}`}
+                          href={`/recepcao/${p.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
@@ -289,7 +307,13 @@ export default async function PaginaRecepcao({
             })}
           </tbody>
         </table>
-
+        <PaginacaoLista
+          total={total}
+          pagina={pagina}
+          porPagina={porPagina}
+          basePath="/recepcao"
+          queryPreservar={queryPreservar}
+        />
       </div>
     </div>
   );

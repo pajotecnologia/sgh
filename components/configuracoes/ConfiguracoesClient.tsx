@@ -1,13 +1,18 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Building2, MapPin, Upload, Image as ImageIcon, Loader2, Plus, Trash2, Tag, Volume2, Palette, Settings2, Mail, Pencil } from 'lucide-react';
+import { Building2, MapPin, Upload, Image as ImageIcon, Loader2, Plus, Trash2, Tag, Volume2, Palette, Settings2, Mail, Pencil, LayoutPanelLeft, Video } from 'lucide-react';
 import { textoCadastroMaiusculo } from '@/lib/cadastro-maiusculo';
 import { cn } from '@/lib/utils';
+import type { MidiaPainelRotativa, ConfigPainelExibicao } from '@/lib/painel-config';
+import { CONFIG_PAINEL_PADRAO, inferirTipoMidiaPainel, tipoMidiaDeArquivo, validarUrlMidiaPainel } from '@/lib/painel-config';
+import { prepararPayloadSalvarConfigPainel } from '@/lib/config-painel-persistencia';
 
 interface Instituicao {
   nomeMunicipio: string;
   nomeInstituicao: string;
+  cnes: string;
+  codigoIbgeMunicipio: string;
   endereco: string;
   bairro: string;
   cidade: string;
@@ -37,7 +42,7 @@ export function ConfiguracoesClient() {
   >('INSTITUICAO');
   
   const [instituicao, setInstituicao] = useState<Instituicao>({
-    nomeMunicipio: '', nomeInstituicao: '', endereco: '', bairro: '', cidade: '', estado: '', cep: '', logomarcaUrl: ''
+    nomeMunicipio: '', nomeInstituicao: '', cnes: '', codigoIbgeMunicipio: '', endereco: '', bairro: '', cidade: '', estado: '', cep: '', logomarcaUrl: ''
   });
   const [carregandoInst, setCarregandoInst] = useState(true);
   const [salvandoInst, setSalvandoInst] = useState(false);
@@ -54,11 +59,14 @@ export function ConfiguracoesClient() {
   const [novoUser, setNovoUser] = useState({ nome: '', email: '', senha: '', role: 'RECEPCIONISTA', crm: '', coren: '' });
   const [salvandoUser, setSalvandoUser] = useState(false);
 
-  const [configPainel, setConfigPainel] = useState({
-    vozAtiva: true, tipoVoz: 'feminina', corPrimaria: '#2563eb', corSecundaria: '#f8fafc', corTexto: '#1e293b', mensagemPadrao: 'Comparecer ao consultório', velocidadeVoz: 1.0
+  const [configPainel, setConfigPainel] = useState<ConfigPainelExibicao>({
+    ...CONFIG_PAINEL_PADRAO,
   });
   const [carregandoPainel, setCarregandoPainel] = useState(true);
   const [salvandoPainel, setSalvandoPainel] = useState(false);
+  const [uploadMidiaPainel, setUploadMidiaPainel] = useState(false);
+  const [progressoUploadMidia, setProgressoUploadMidia] = useState<{ atual: number; total: number } | null>(null);
+  const [urlVideoPainel, setUrlVideoPainel] = useState('');
 
   const [smtp, setSmtp] = useState({
     host: '',
@@ -111,10 +119,35 @@ export function ConfiguracoesClient() {
       const jsonPainel = await resPainel.json();
       const jsonSmtp = await resSmtp.json();
       
-      if (jsonInst.sucesso && jsonInst.dados) setInstituicao(jsonInst.dados);
+      if (jsonInst.sucesso && jsonInst.dados) {
+        const d = jsonInst.dados as Instituicao;
+        setInstituicao({
+          nomeMunicipio: d.nomeMunicipio ?? '',
+          nomeInstituicao: d.nomeInstituicao ?? '',
+          cnes: d.cnes ?? '',
+          codigoIbgeMunicipio: d.codigoIbgeMunicipio ?? '',
+          endereco: d.endereco ?? '',
+          bairro: d.bairro ?? '',
+          cidade: d.cidade ?? '',
+          estado: d.estado ?? '',
+          cep: d.cep ?? '',
+          logomarcaUrl: d.logomarcaUrl ?? '',
+        });
+      }
       if (jsonOrigens.sucesso) setOrigens(jsonOrigens.dados);
       if (jsonUsers.sucesso) setUsuarios(jsonUsers.dados);
-      if (jsonPainel.sucesso && jsonPainel.dados) setConfigPainel(jsonPainel.dados);
+      if (jsonPainel.sucesso && jsonPainel.dados) {
+        const d = jsonPainel.dados as ConfigPainelExibicao
+        setConfigPainel({
+          ...CONFIG_PAINEL_PADRAO,
+          ...d,
+          layoutDividido: Boolean(d.layoutDividido),
+          intervaloRotacaoSegundos: Number(d.intervaloRotacaoSegundos) || CONFIG_PAINEL_PADRAO.intervaloRotacaoSegundos,
+          posicaoMidia: d.posicaoMidia === 'direita' ? 'direita' : 'esquerda',
+          velocidadeVoz: Number(d.velocidadeVoz) || CONFIG_PAINEL_PADRAO.velocidadeVoz,
+          imagensRotativas: Array.isArray(d.imagensRotativas) ? d.imagensRotativas : [],
+        })
+      }
       if (jsonSmtp.sucesso && jsonSmtp.dados) {
         const d = jsonSmtp.dados as {
           host?: string;
@@ -291,16 +324,28 @@ export function ConfiguracoesClient() {
     e.preventDefault();
     setSalvandoPainel(true);
     try {
+      const payload = prepararPayloadSalvarConfigPainel(configPainel);
       const res = await fetch('/api/configuracoes/painel', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(configPainel),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
-      if (json.sucesso) {
+      if (json.sucesso && json.dados) {
+        const d = json.dados as ConfigPainelExibicao;
+        setConfigPainel({
+          ...CONFIG_PAINEL_PADRAO,
+          ...d,
+          layoutDividido: Boolean(d.layoutDividido),
+          intervaloRotacaoSegundos: Number(d.intervaloRotacaoSegundos) || CONFIG_PAINEL_PADRAO.intervaloRotacaoSegundos,
+          posicaoMidia: d.posicaoMidia === 'direita' ? 'direita' : 'esquerda',
+          velocidadeVoz: Number(d.velocidadeVoz) || CONFIG_PAINEL_PADRAO.velocidadeVoz,
+          imagensRotativas: Array.isArray(d.imagensRotativas) ? d.imagensRotativas : [],
+        });
         toast.success('Configurações do painel salvas!');
       } else {
-        toast.error(json.erro || 'Erro ao salvar.');
+        const detalhe = typeof json.detalhes === 'string' ? json.detalhes : '';
+        toast.error(detalhe ? `${json.erro || 'Erro ao salvar.'} ${detalhe}` : json.erro || 'Erro ao salvar.');
       }
     } catch {
       toast.error('Erro de conexão.');
@@ -326,6 +371,113 @@ export function ConfiguracoesClient() {
     msg.rate = configPainel.velocidadeVoz;
     window.speechSynthesis.speak(msg);
   }
+
+  async function handleUploadMidiaPainel(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!configPainel.layoutDividido) return
+    const arquivos = Array.from(e.target.files ?? [])
+    if (!arquivos.length) return
+
+    const validos = arquivos.filter((file) => tipoMidiaDeArquivo(file))
+    const invalidos = arquivos.length - validos.length
+
+    if (!validos.length) {
+      toast.error('Envie imagens (JPG, PNG, WebP, GIF) ou vídeos (MP4, WebM, MOV).')
+      e.target.value = ''
+      return
+    }
+
+    setUploadMidiaPainel(true)
+    setProgressoUploadMidia({ atual: 0, total: validos.length })
+
+    let ordemBase = configPainel.imagensRotativas.length
+    const novas: MidiaPainelRotativa[] = []
+    let erros = invalidos
+
+    for (let i = 0; i < validos.length; i++) {
+      const file = validos[i]
+      setProgressoUploadMidia({ atual: i + 1, total: validos.length })
+
+      const formData = new FormData()
+      formData.append('file', file)
+
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData })
+        const json = await res.json()
+        if (json.sucesso && json.url) {
+          novas.push({
+            id: crypto.randomUUID(),
+            url: json.url,
+            tipo: json.tipo ?? inferirTipoMidiaPainel(json.url, tipoMidiaDeArquivo(file)),
+            titulo: '',
+            legenda: '',
+            ordem: ordemBase++,
+          })
+        } else {
+          erros++
+        }
+      } catch {
+        erros++
+      }
+    }
+
+    if (novas.length) {
+      setConfigPainel((prev) => ({
+        ...prev,
+        imagensRotativas: [...prev.imagensRotativas, ...novas],
+      }))
+      toast.success(`${novas.length} mídia(s) adicionada(s) ao painel!`)
+    }
+
+    if (erros > 0) {
+      toast.error(`${erros} arquivo(s) não puderam ser enviados.`)
+    }
+
+    setUploadMidiaPainel(false)
+    setProgressoUploadMidia(null)
+    e.target.value = ''
+  }
+
+  const adicionarVideoPorUrl = () => {
+    if (!configPainel.layoutDividido) return
+
+    const validacao = validarUrlMidiaPainel(urlVideoPainel, 'video')
+    if (!validacao.ok) {
+      toast.error(validacao.erro)
+      return
+    }
+
+    const nova: MidiaPainelRotativa = {
+      id: crypto.randomUUID(),
+      url: validacao.url,
+      tipo: 'video',
+      titulo: '',
+      legenda: '',
+      ordem: configPainel.imagensRotativas.length,
+    }
+
+    setConfigPainel((prev) => ({
+      ...prev,
+      imagensRotativas: [...prev.imagensRotativas, nova],
+    }))
+    setUrlVideoPainel('')
+    toast.success('Vídeo por URL adicionado! Salve para aplicar no painel.')
+  }
+
+  const atualizarImagemPainel = (id: string, patch: Partial<MidiaPainelRotativa>) => {
+    setConfigPainel((prev) => ({
+      ...prev,
+      imagensRotativas: prev.imagensRotativas.map((img) =>
+        img.id === id ? { ...img, ...patch } : img
+      ),
+    }));
+  };
+
+  const removerImagemPainel = (id: string) => {
+    setConfigPainel((prev) => ({
+      ...prev,
+      imagensRotativas: prev.imagensRotativas.filter((img) => img.id !== id),
+    }));
+  };
 
   const ROLES = [
     { value: 'ADMIN', label: 'Administrador' },
@@ -426,10 +578,10 @@ export function ConfiguracoesClient() {
   const inputClass = "w-full px-3.5 py-2.5 rounded-lg border border-input bg-background text-sm outline-none transition-all focus:ring-2 focus:ring-primary/30 focus:border-primary";
 
   return (
-    <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+    <div className="bg-card border border-border rounded-xl shadow-sm flex flex-col lg:flex-row w-full min-h-[min(640px,calc(100vh-10rem))] lg:max-h-[calc(100vh-9rem)]">
       
-      {/* Menu Lateral */}
-      <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-border bg-muted/20 p-4 space-y-2">
+      {/* Menu lateral */}
+      <div className="w-full lg:w-60 xl:w-64 shrink-0 border-b lg:border-b-0 lg:border-r border-border bg-muted/20 p-3 sm:p-4 space-y-1.5 lg:overflow-y-auto lg:max-h-[inherit] scrollbar-visible">
         <button
           onClick={() => setAbaAtiva('INSTITUICAO')}
           className={cn(
@@ -477,8 +629,9 @@ export function ConfiguracoesClient() {
         </button>
       </div>
 
-      {/* Conteúdo */}
-      <div className="flex-1 p-6 md:p-8 overflow-y-auto">
+      {/* Conteúdo — rolagem dedicada com barra visível */}
+      <div className="flex-1 min-h-0 min-w-0 flex flex-col">
+        <div className="flex-1 min-h-[320px] overflow-y-auto overflow-x-hidden p-5 sm:p-6 lg:p-8 scrollbar-visible">
         
         {/* ABA: INSTITUICAO */}
         {abaAtiva === 'INSTITUICAO' && (
@@ -506,6 +659,32 @@ export function ConfiguracoesClient() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-1"><label className="text-sm font-medium">Município (Prefeitura)</label><input value={instituicao.nomeMunicipio} onChange={e => setInstituicao({ ...instituicao, nomeMunicipio: textoCadastroMaiusculo(e.target.value) })} className={inputClass} required /></div>
                   <div className="space-y-1"><label className="text-sm font-medium">Nome da Instituição</label><input value={instituicao.nomeInstituicao} onChange={e => setInstituicao({ ...instituicao, nomeInstituicao: textoCadastroMaiusculo(e.target.value) })} className={inputClass} required /></div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">CNES da unidade</label>
+                    <input
+                      value={instituicao.cnes}
+                      onChange={e => setInstituicao({ ...instituicao, cnes: e.target.value.replace(/\D/g, '').slice(0, 7) })}
+                      className={cn(inputClass, 'font-mono')}
+                      inputMode="numeric"
+                      maxLength={7}
+                      placeholder="0000000"
+                      aria-label="CNES"
+                    />
+                    <p className="text-xs text-muted-foreground">7 dígitos — usado no laudo SUS de internação.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Código IBGE do município</label>
+                    <input
+                      value={instituicao.codigoIbgeMunicipio}
+                      onChange={e => setInstituicao({ ...instituicao, codigoIbgeMunicipio: e.target.value.replace(/\D/g, '').slice(0, 7) })}
+                      className={cn(inputClass, 'font-mono')}
+                      inputMode="numeric"
+                      maxLength={7}
+                      placeholder="0000000"
+                      aria-label="Código IBGE"
+                    />
+                    <p className="text-xs text-muted-foreground">7 dígitos — pré-preenche o laudo de internação.</p>
+                  </div>
                   <div className="md:col-span-2 space-y-1"><label className="text-sm font-medium">Endereço</label><input value={instituicao.endereco} onChange={e => setInstituicao({ ...instituicao, endereco: textoCadastroMaiusculo(e.target.value) })} className={inputClass} /></div>
                   <div className="space-y-1"><label className="text-sm font-medium">Bairro</label><input value={instituicao.bairro} onChange={e => setInstituicao({ ...instituicao, bairro: textoCadastroMaiusculo(e.target.value) })} className={inputClass} /></div>
                   <div className="space-y-1"><label className="text-sm font-medium">Cidade</label><input value={instituicao.cidade} onChange={e => setInstituicao({ ...instituicao, cidade: textoCadastroMaiusculo(e.target.value) })} className={inputClass} /></div>
@@ -632,7 +811,7 @@ export function ConfiguracoesClient() {
             <hr />
 
             {carregandoPainel ? <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div> : (
-              <form onSubmit={salvarPainel} className="space-y-8">
+              <form onSubmit={salvarPainel} noValidate className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Seção de Voz */}
                   <div className="space-y-4 p-5 bg-muted/20 rounded-xl border border-border">
@@ -695,6 +874,257 @@ export function ConfiguracoesClient() {
                   </div>
                 </div>
 
+                {/* Tela dividida + imagens rotativas */}
+                <div className="space-y-4 p-5 bg-muted/20 rounded-xl border border-border">
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <h3 className="font-bold flex items-center gap-2">
+                      <LayoutPanelLeft className="h-4 w-4" /> Tela dividida (TV)
+                    </h3>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={configPainel.layoutDividido}
+                        onChange={(e) => setConfigPainel({ ...configPainel, layoutDividido: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary" />
+                    </label>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {configPainel.layoutDividido
+                      ? 'Com esta opção ativa, o painel divide a tela: imagens e vídeos rotativos de um lado e chamadas do outro. Adicione ao menos uma mídia abaixo.'
+                      : 'Desativado: o painel exibe somente as chamadas em tela cheia, como hoje. Ative para habilitar upload de imagens/vídeos e layout dividido na TV.'}
+                  </p>
+
+                  {configPainel.layoutDividido ? (
+                    <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium block">Posição das imagens</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setConfigPainel({ ...configPainel, posicaoMidia: 'esquerda' })}
+                          className={cn(
+                            'py-2 rounded-lg border text-sm font-medium transition-all',
+                            configPainel.posicaoMidia === 'esquerda'
+                              ? 'bg-primary text-white border-primary'
+                              : 'bg-card hover:bg-muted'
+                          )}
+                        >
+                          Esquerda
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfigPainel({ ...configPainel, posicaoMidia: 'direita' })}
+                          className={cn(
+                            'py-2 rounded-lg border text-sm font-medium transition-all',
+                            configPainel.posicaoMidia === 'direita'
+                              ? 'bg-primary text-white border-primary'
+                              : 'bg-card hover:bg-muted'
+                          )}
+                        >
+                          Direita
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium block">
+                        Intervalo entre imagens ({configPainel.intervaloRotacaoSegundos}s)
+                      </label>
+                      <p className="text-xs text-muted-foreground">
+                        Aplica-se às imagens. Vídeos avançam automaticamente ao terminar a reprodução.
+                      </p>
+                      <input
+                        type="range"
+                        min={3}
+                        max={60}
+                        step={1}
+                        value={configPainel.intervaloRotacaoSegundos}
+                        onChange={(e) =>
+                          setConfigPainel({
+                            ...configPainel,
+                            intervaloRotacaoSegundos: parseInt(e.target.value, 10),
+                          })
+                        }
+                        className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 flex-wrap pt-2 border-t border-border">
+                    <div>
+                      <p className="text-sm font-medium">Mídias rotativas</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Envie imagens ou vídeos pelo botão abaixo. URL é opcional, apenas para vídeo externo.
+                      </p>
+                    </div>
+                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg cursor-pointer hover:bg-primary/90 shrink-0">
+                      {uploadMidiaPainel ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          {progressoUploadMidia
+                            ? `${progressoUploadMidia.atual}/${progressoUploadMidia.total}`
+                            : 'Enviando...'}
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4" />
+                          Adicionar mídias
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+                        multiple
+                        className="sr-only"
+                        onChange={handleUploadMidiaPainel}
+                        disabled={uploadMidiaPainel}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="rounded-lg border border-border bg-muted/10 p-4 space-y-3">
+                    <p className="text-sm font-medium">Ou URL do vídeo</p>
+                    <p className="text-xs text-muted-foreground">
+                      Link direto hospedado (ex.: https://servidor.com/campanha.mp4). YouTube/Vimeo não são suportados — use arquivo MP4/WebM acessível por URL.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        inputMode="url"
+                        autoComplete="off"
+                        value={urlVideoPainel}
+                        onChange={(e) => setUrlVideoPainel(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            adicionarVideoPorUrl()
+                          }
+                        }}
+                        className={inputClass}
+                        placeholder="https://exemplo.com/video.mp4"
+                        aria-label="URL do vídeo"
+                      />
+                      <button
+                        type="button"
+                        onClick={adicionarVideoPorUrl}
+                        disabled={!urlVideoPainel.trim()}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-primary text-primary font-semibold text-sm hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                      >
+                        <Video className="h-4 w-4" />
+                        Adicionar URL
+                      </button>
+                    </div>
+                  </div>
+
+                  {configPainel.imagensRotativas.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">
+                      Nenhuma mídia cadastrada. Enquanto não houver imagens ou vídeos, o painel continuará em tela cheia.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {configPainel.imagensRotativas.map((midia, idx) => {
+                        const tipo = inferirTipoMidiaPainel(midia.url, midia.tipo)
+                        return (
+                        <div
+                          key={midia.id}
+                          className="flex flex-col sm:flex-row gap-4 p-3 border border-border rounded-lg bg-card"
+                        >
+                          <div className="relative w-full sm:w-36 h-24 shrink-0 rounded-lg overflow-hidden bg-muted border border-border">
+                            {tipo === 'video' ? (
+                              <video
+                                src={midia.url}
+                                muted
+                                playsInline
+                                className="w-full h-full object-cover"
+                                aria-label={midia.titulo || `Vídeo ${idx + 1}`}
+                              />
+                            ) : (
+                              <img
+                                src={midia.url}
+                                alt={midia.titulo || `Imagem ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                            <span
+                              className={cn(
+                                'absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase',
+                                tipo === 'video' ? 'bg-violet-600 text-white' : 'bg-sky-600 text-white'
+                              )}
+                            >
+                              {tipo === 'video' ? (
+                                <>
+                                  <Video className="h-3 w-3" />
+                                  Vídeo
+                                </>
+                              ) : (
+                                <>
+                                  <ImageIcon className="h-3 w-3" />
+                                  Imagem
+                                </>
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <input
+                              type="text"
+                              value={midia.titulo ?? ''}
+                              onChange={(e) => atualizarImagemPainel(midia.id, { titulo: e.target.value })}
+                              className={inputClass}
+                              placeholder="Título (opcional)"
+                            />
+                            <input
+                              type="text"
+                              value={midia.legenda ?? ''}
+                              onChange={(e) => atualizarImagemPainel(midia.id, { legenda: e.target.value })}
+                              className={inputClass}
+                              placeholder="Legenda (opcional)"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removerImagemPainel(midia.id)}
+                            className="self-start sm:self-center p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                            aria-label={`Remover mídia ${idx + 1}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )})}
+                    </div>
+                  )}
+
+                  {/* Preview layout dividido */}
+                  <div className="mt-2 rounded-lg border border-border overflow-hidden">
+                    <div className="grid grid-cols-2 h-28 text-[10px]">
+                      {configPainel.posicaoMidia === 'esquerda' ? (
+                        <>
+                          <div className="bg-slate-800 flex items-center justify-center text-slate-300 font-bold">
+                            IMAGENS
+                          </div>
+                          <div className="bg-slate-900 flex flex-col items-center justify-center text-white p-2">
+                            <span className="font-black">PACIENTE</span>
+                            <span className="opacity-60 mt-1">Sala 02</span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="bg-slate-900 flex flex-col items-center justify-center text-white p-2">
+                            <span className="font-black">PACIENTE</span>
+                            <span className="opacity-60 mt-1">Sala 02</span>
+                          </div>
+                          <div className="bg-slate-800 flex items-center justify-center text-slate-300 font-bold">
+                            IMAGENS
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                    </>
+                  ) : null}
+                </div>
+
                 <div className="flex justify-end pt-4 border-t border-border">
                   <button type="submit" disabled={salvandoPainel} className="flex items-center gap-2 px-8 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
                     {salvandoPainel ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar Personalização'}
@@ -721,7 +1151,7 @@ export function ConfiguracoesClient() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <form onSubmit={salvarSmtp} className="space-y-5 max-w-xl">
+              <form onSubmit={salvarSmtp} className="space-y-5 max-w-2xl">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -814,6 +1244,7 @@ export function ConfiguracoesClient() {
           </div>
         )}
 
+        </div>
       </div>
     </div>
   );

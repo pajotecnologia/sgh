@@ -6,6 +6,7 @@ import {
   ESTADO_CONSCIENCIA_SINAIS_KEYS,
   type EstadoConscienciaSinaisKey,
 } from '@/lib/triagem-estado-consciencia-sinais';
+import { schemaIdEntidade } from '@/lib/validations/id';
 
 const schemaEstadoConscienciaSinaisKey = z.enum(
   ESTADO_CONSCIENCIA_SINAIS_KEYS as unknown as [
@@ -75,7 +76,7 @@ export const schemaSinaisVitais = z.object({
 });
 
 export const schemaRegistrarTriagem = z.object({
-  atendimentoId: z.string().uuid('ID de atendimento inválido.'),
+  atendimentoId: schemaIdEntidade,
   corClassificacao: z.enum(
     ['VERMELHO', 'LARANJA', 'AMARELO', 'VERDE', 'AZUL', 'CINZA'],
     { errorMap: () => ({ message: 'Cor de triagem inválida.' }) }
@@ -120,7 +121,7 @@ export const schemaRegistrarTriagem = z.object({
 });
 
 export const schemaChamarPaciente = z.object({
-  atendimentoId: z.string().uuid('ID de atendimento inválido.'),
+  atendimentoId: schemaIdEntidade,
   salaDestino: z.string().min(1, 'Informe a sala de destino.').max(50),
   setorPainel: z.string().min(1).max(50).default('GERAL'),
 });

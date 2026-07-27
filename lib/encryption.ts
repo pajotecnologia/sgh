@@ -88,3 +88,24 @@ export function mascararCpf(cpf: string): string {
   if (limpo.length !== 11) return '***.***.***-**';
   return `***.${limpo.slice(3, 6)}.${limpo.slice(6, 9)}-**`;
 }
+
+export function encryptionKeyConfigurada(): boolean {
+  const keyHex = process.env.ENCRYPTION_KEY;
+  return !!(keyHex && keyHex.length === 64);
+}
+
+export function descriptografarSeguro(valorCriptografado: string | null | undefined): string | null {
+  if (!valorCriptografado) return null;
+  try {
+    return descriptografar(valorCriptografado);
+  } catch {
+    return null;
+  }
+}
+
+export function mensagemErroEncryptionKey(): string {
+  return (
+    'ENCRYPTION_KEY não configurada no servidor. Defina no .env (64 caracteres hex) e reinicie o Node/PM2. ' +
+    'Gere com: openssl rand -hex 32'
+  );
+}
