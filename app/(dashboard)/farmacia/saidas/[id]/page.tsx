@@ -50,34 +50,34 @@ export default async function PaginaSaidaFarmacia({ params }: { params: Promise<
         </div>
         <Link
           href={`/farmacia/saidas/imprimir/${saida.id}`}
-          className="no-print inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold hover:bg-slate-50"
+          className="no-print inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-background text-foreground px-3 py-2 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           Imprimir
         </Link>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2">
-        <p className="text-xs text-slate-700">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-2">
+        <p className="text-xs text-slate-700 dark:text-slate-300">
           Atendimento:{' '}
           {saida.atendimento?.numeroAtendimento
             ? `${saida.atendimento.numeroAtendimento} (${saida.atendimento.setor ?? '—'} / ${saida.atendimento.sala ?? '—'})`
             : '—'}
         </p>
-        <p className="text-xs text-slate-500">Observações: {saida.observacoes ?? '—'}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Observações: {saida.observacoes ?? '—'}</p>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-          <p className="text-sm font-semibold text-slate-900">Itens</p>
-          <p className="text-xs text-slate-500">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Itens</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             {saida.itens.length} itens • Qtde total {saida.itens.reduce((acc, x) => acc + x.quantidade, 0)}
           </p>
         </div>
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
           {saida.itens.map((it) => (
-            <li key={it.id} className="px-4 py-3 flex flex-col md:flex-row md:items-center gap-2">
+            <li key={it.id} className="px-4 py-3 flex flex-col md:flex-row md:items-center gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-900 truncate">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                   {it.medicamento.nome}{' '}
                   <span className="text-xs font-normal text-slate-500">({it.medicamento.principioAtivo})</span>
                 </p>

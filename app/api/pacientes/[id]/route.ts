@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { schemaCriarPaciente } from '@/lib/validations/paciente';
 import { criptografar, descriptografarSeguro, encryptionKeyConfigurada, mensagemErroEncryptionKey } from '@/lib/encryption';
+import { auditarLgpd } from '@/lib/auditoria-lgpd';
 import type { ApiResponse } from '@/types';
 
 export async function GET(
@@ -40,6 +41,17 @@ export async function GET(
       rgCriptografado: descriptografarSeguro(paciente.rgCriptografado) ?? '',
       telefoneCriptografado: descriptografarSeguro(paciente.telefoneCriptografado) ?? '',
     };
+
+    await auditarLgpd({
+      usuarioId: sessao.usuario.id,
+      role: sessao.usuario.role,
+      atendimentoId: null,
+      acao: 'VISUALIZACAO',
+      entidade: 'Paciente',
+      entidadeId: id,
+      ipOrigem: req.headers.get('x-forwarded-for') ?? null,
+      userAgent: req.headers.get('user-agent') ?? null,
+    });
 
     return NextResponse.json({ sucesso: true, dados: pacienteDecrypted });
   } catch (e) {

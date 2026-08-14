@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { enriquecerPacienteComNomeCompleto } from '@/lib/nome-paciente-exibicao';
+import { auditarLgpd } from '@/lib/auditoria-lgpd';
 
 export async function GET(
   req: NextRequest,
@@ -140,6 +141,17 @@ export async function GET(
       ...atendimento,
       paciente: enriquecerPacienteComNomeCompleto(atendimento.paciente),
     };
+
+    await auditarLgpd({
+      usuarioId: sessao.usuario.id,
+      role: sessao.usuario.role,
+      atendimentoId,
+      acao: 'VISUALIZACAO',
+      entidade: 'ProntuarioMedico',
+      entidadeId: prontuario.id,
+      ipOrigem: req.headers.get('x-forwarded-for') ?? null,
+      userAgent: req.headers.get('user-agent') ?? null,
+    });
 
     return NextResponse.json({ sucesso: true, dados: { atendimento: atendimentoResposta, prontuario } });
   } catch (erro) {

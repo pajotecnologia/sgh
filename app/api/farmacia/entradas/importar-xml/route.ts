@@ -27,22 +27,56 @@ const schemaConfirmar = z.object({
   itens: z
     .array(
       z.object({
-        medicamentoId: z.string().uuid(),
+        medicamentoId: z.string().uuid().optional().nullable(),
+        criarNovo: z.boolean().optional().nullable(),
         quantidade: z.number().int().min(1),
         custoUnitario: z.number().min(0).optional().nullable(),
         lote: z.string().max(80).optional().nullable(),
         validade: z.string().optional().nullable(),
-        descricaoXml: z.string().optional(),
+        descricaoXml: z.string().optional().nullable(),
+        codigoEan: z.string().optional().nullable(),
+        codigoAnvisa: z.string().optional().nullable(),
+        unidadeComercial: z.string().optional().nullable(),
       })
     )
     .min(1)
     .max(500),
 })
 
-async function buscarMedicamentoPorDescricao(descricao: string) {
-  const norm = normalizarSinonimoParaBanco(descricao)
-  if (!norm) return null
+async function buscarMedicamentoPorDescricao(
+  descricao: string,
+  codigoEan?: string | null,
+  codigoAnvisa?: string | null
+) {
+  // 1. Busca por código EAN (Código de barras de 13/14 dígitos)
+  if (codigoEan && codigoEan.length >= 8) {
+    const porEan = await prisma.tbMedicamento.findFirst({
+      where: { ativo: true, codigoEan: codigoEan.trim() },
+      select: { id: true, nome: true, principioAtivo: true },
+    })
+    if (porEan) return porEan
+  }
 
+  // 2. Busca por Registro ANVISA (13 dígitos)
+  if (codigoAnvisa && codigoAnvisa.length >= 10) {
+    const porAnvisa = await prisma.tbMedicamento.findFirst({
+      where: { ativo: true, codigoAnvisa: codigoAnvisa.trim() },
+      select: { id: true, nome: true, principioAtivo: true },
+    })
+    if (porAnvisa) return porAnvisa
+  }
+
+  // 3. Busca por Sinônimo e De-Para cadastrado
+  const norm = normalizarSinonimoParaBanco(descricao)
+  if (norm) {
+    const sinonimo = await prisma.tbMedicamentoSinonimo.findFirst({
+      where: { ativo: true, sinonimoNorm: { contains: norm.slice(0, 30) } },
+      include: { medicamento: { select: { id: true, nome: true, principioAtivo: true } } },
+    })
+    if (sinonimo?.medicamento) return sinonimo.medicamento
+  }
+
+  // 4. Busca por Nome ou Princípio Ativo (Contendo na descrição)
   const porNome = await prisma.tbMedicamento.findFirst({
     where: {
       ativo: true,
@@ -53,13 +87,8 @@ async function buscarMedicamentoPorDescricao(descricao: string) {
     },
     select: { id: true, nome: true, principioAtivo: true },
   })
-  if (porNome) return porNome
 
-  const sinonimo = await prisma.tbMedicamentoSinonimo.findFirst({
-    where: { ativo: true, sinonimoNorm: { contains: norm.slice(0, 30) } },
-    include: { medicamento: { select: { id: true, nome: true, principioAtivo: true } } },
-  })
-  return sinonimo?.medicamento ?? null
+  return porNome ?? null
 }
 
 export async function POST(req: NextRequest) {
@@ -83,13 +112,6 @@ export async function POST(req: NextRequest) {
       }
 
       const d = validacao.data
-      const semMedicamento = d.itens.filter((i) => !i.medicamentoId)
-      if (semMedicamento.length > 0) {
-        return NextResponse.json(
-          { sucesso: false, erro: 'Todos os itens devem ter medicamento vinculado antes de confirmar.' },
-          { status: 400 }
-        )
-      }
 
       const duplicada = d.chaveNfe
         ? await prisma.tbFarmaciaEntradaNf.findFirst({ where: { chaveNfe: d.chaveNfe } })
@@ -102,6 +124,69 @@ export async function POST(req: NextRequest) {
       }
 
       const entrada = await prisma.$transaction(async (tx) => {
+        // Auto-cadastrar medicamentos não vinculados
+        const itensProcessados = await Promise.all(
+          d.itens.map(async (i) => {
+            let finalMedId = i.medicamentoId
+
+            if (!finalMedId || i.criarNovo) {
+              const nomeMed = (i.descricaoXml || 'MEDICAMENTO NOVO XML').toUpperCase().trim().slice(0, 150)
+
+              let existente = i.codigoEan
+                ? await tx.tbMedicamento.findFirst({ where: { codigoEan: i.codigoEan.trim() } })
+                : null
+
+              if (!existente && i.codigoAnvisa) {
+                existente = await tx.tbMedicamento.findFirst({ where: { codigoAnvisa: i.codigoAnvisa.trim() } })
+              }
+
+              if (!existente) {
+                existente = await tx.tbMedicamento.findFirst({ where: { nome: nomeMed } })
+              }
+
+              if (existente) {
+                finalMedId = existente.id
+              } else {
+                const novo = await tx.tbMedicamento.create({
+                  data: {
+                    nome: nomeMed,
+                    principioAtivo: (i.descricaoXml || 'Não Informado').trim().slice(0, 100),
+                    codigoEan: i.codigoEan || null,
+                    codigoAnvisa: i.codigoAnvisa || null,
+                    unidade: i.unidadeComercial || 'UN',
+                    saldoAtual: 0,
+                    ativo: true,
+                  },
+                })
+                finalMedId = novo.id
+
+                if (i.descricaoXml) {
+                  const norm = normalizarSinonimoParaBanco(i.descricaoXml)
+                  if (norm) {
+                    await tx.tbMedicamentoSinonimo
+                      .create({
+                        data: {
+                          medicamentoId: novo.id,
+                          sinonimo: i.descricaoXml.slice(0, 120),
+                          sinonimoNorm: norm.slice(0, 120),
+                        },
+                      })
+                      .catch(() => null)
+                  }
+                }
+              }
+            }
+
+            return {
+              medicamentoId: finalMedId!,
+              quantidade: i.quantidade,
+              custoUnitario: i.custoUnitario,
+              lote: i.lote,
+              validade: i.validade,
+            }
+          })
+        )
+
         const created = await registrarEntradaNf(
           tx,
           {
@@ -114,13 +199,7 @@ export async function POST(req: NextRequest) {
             observacoes: d.observacoes,
             importadaXml: true,
             chaveNfe: d.chaveNfe,
-            itens: d.itens.map((i) => ({
-              medicamentoId: i.medicamentoId,
-              quantidade: i.quantidade,
-              custoUnitario: i.custoUnitario,
-              lote: i.lote,
-              validade: i.validade,
-            })),
+            itens: itensProcessados,
           },
           sessao.usuario.id
         )
@@ -164,7 +243,7 @@ export async function POST(req: NextRequest) {
 
     const itensPreview = await Promise.all(
       nfe.itens.map(async (it) => {
-        const sugestao = await buscarMedicamentoPorDescricao(it.descricao)
+        const sugestao = await buscarMedicamentoPorDescricao(it.descricao, it.codigoEan, it.codigoAnvisa)
         return {
           ...it,
           medicamentoSugerido: sugestao,

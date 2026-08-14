@@ -79,6 +79,8 @@ export const CANAIS_PUSHER = {
   painel: (setor: string) => `painel-${setor}`,
   /// Canal da fila de triagem
   filaTriagem: 'fila-triagem',
+  /// Canal da farmácia / triagem de medicamentos
+  farmaciaTriagem: 'farmacia-triagem',
   /// Canal de alertas de emergência
   alertas: 'alertas',
 } as const;
@@ -88,6 +90,8 @@ export const EVENTOS_PUSHER = {
   CHAMADA_PACIENTE: 'chamada-paciente',
   /// Fila de triagem atualizada (novo paciente ou classificação)
   FILA_ATUALIZADA: 'fila-atualizada',
+  /// Nova prescrição emitida pelo médico no PS
+  NOVA_PRESCRICAO: 'nova-prescricao',
   /// Alerta de tempo excedido (vermelho/laranja)
   ALERTA_TEMPO: 'alerta-tempo',
 } as const;

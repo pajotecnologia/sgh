@@ -52,7 +52,6 @@ async function checarBancoComTimeout(ms = 8000): Promise<boolean> {
 function FormularioLoginInner() {
   const searchParams = useSearchParams()
   const emailUrl = searchParams.get('email')?.trim().toLowerCase() ?? ''
-  const senhaUrl = searchParams.get('senha') ?? ''
   const [mostrarSenha, setMostrarSenha] = useState(false)
 
   const {
@@ -71,8 +70,7 @@ function FormularioLoginInner() {
 
   useEffect(() => {
     if (emailUrl) setValue('email', emailUrl, { shouldValidate: true })
-    if (senhaUrl) setValue('senha', senhaUrl, { shouldValidate: true })
-  }, [emailUrl, senhaUrl, setValue])
+  }, [emailUrl, setValue])
 
   const handlePreencherDemo = (email: string) => {
     setValue('email', email, { shouldValidate: true })

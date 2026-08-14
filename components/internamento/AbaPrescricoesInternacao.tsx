@@ -14,6 +14,7 @@ import { SeletorPrescricaoMedicaPadrao } from '@/components/internamento/Seletor
 import {
   classeStatusItemPrescricao,
   formatarDosePrescricao,
+  formatarResumoLinhaPrescricao,
   labelVia,
   LABEL_STATUS_ITEM_PRESCRICAO,
   separarDoseUnidade,
@@ -239,7 +240,7 @@ export function AbaPrescricoesInternacao({
                 <li key={i.id} className="text-sm flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                   <span className="font-medium">{i.nomeMedicamento}</span>
                   <span className="text-muted-foreground text-xs">
-                    {formatarDosePrescricao(i.dose, i.unidadeMedida)} · {labelVia(i.via)} · {i.frequencia}
+                    {formatarResumoLinhaPrescricao(i)}
                     {i.duracaoDias ? ` · ${i.duracaoDias} dia(s)` : ''}
                   </span>
                 </li>
@@ -336,7 +337,7 @@ export function AbaPrescricoesInternacao({
                           <li key={i.id} className="text-sm flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                             <span className="font-medium">{i.nomeMedicamento}</span>
                             <span className="text-muted-foreground text-xs">
-                              {formatarDosePrescricao(i.dose, i.unidadeMedida)} · {labelVia(i.via)} · {i.frequencia}
+                              {formatarResumoLinhaPrescricao(i)}
                               {i.duracaoDias ? ` · ${i.duracaoDias} dia(s)` : ''}
                             </span>
                             <span

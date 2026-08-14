@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BedDouble, Building2, ClipboardList, Users } from 'lucide-react'
+import { BedDouble, Building2, ClipboardList, Users, Package, Truck, Tags } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const SUBMENU = [
@@ -10,6 +10,9 @@ const SUBMENU = [
   { href: '/cadastros/leitos', label: 'Leitos', icon: BedDouble },
   { href: '/cadastros/prescricoes-medicas', label: 'Prescrições Médicas', icon: ClipboardList },
   { href: '/cadastros/profissionais', label: 'Enfer./Técnicos/Médicos', icon: Users },
+  { href: '/cadastros/medicamentos', label: 'Medicamentos', icon: Package },
+  { href: '/cadastros/fornecedores', label: 'Fornecedores', icon: Truck },
+  { href: '/cadastros/sinonimos', label: 'Sinônimos (Farmácia)', icon: Tags },
 ]
 
 export function SubmenuCadastros() {

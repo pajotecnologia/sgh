@@ -14,10 +14,13 @@ CREATE TYPE "TipoPrescricao" AS ENUM ('PS', 'RECEITA_ALTA');
 CREATE TYPE "Role" AS ENUM ('ADMIN', 'MEDICO', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM', 'RECEPCIONISTA', 'DIRETOR_CLINICO', 'FARMACEUTICO');
 
 -- CreateEnum
-CREATE TYPE "TipoMovimentacaoFarmacia" AS ENUM ('ENTRADA_NF', 'ENTRADA_MANUAL', 'SAIDA_DISPENSACAO', 'SAIDA_MANUAL', 'AJUSTE');
+CREATE TYPE "TipoMovimentacaoFarmacia" AS ENUM ('ENTRADA_NF', 'ENTRADA_SEM_NOTA', 'EMPRESTIMO_ENTRADA', 'DEVOLUCAO_PACIENTE', 'OUTRAS_ENTRADAS', 'ENTRADA_MANUAL', 'SAIDA_DISPENSACAO', 'SAIDA_SEM_NOTA', 'EMPRESTIMO_SAIDA', 'PERDA_AVARIA_VALIDADE', 'DEVOLUCAO_FORNECEDOR', 'OUTRAS_SAIDAS', 'SAIDA_MANUAL', 'AJUSTE');
 
 -- CreateEnum
-CREATE TYPE "TipoSaidaFarmacia" AS ENUM ('DISPENSACAO_PRESCRICAO', 'BAIXA_MANUAL');
+CREATE TYPE "TipoEntradaFarmacia" AS ENUM ('ENTRADA_NF', 'ENTRADA_SEM_NOTA', 'EMPRESTIMO_ENTRADA', 'DEVOLUCAO_PACIENTE', 'OUTRAS_ENTRADAS');
+
+-- CreateEnum
+CREATE TYPE "TipoSaidaFarmacia" AS ENUM ('DISPENSACAO_PRESCRICAO', 'SAIDA_SEM_NOTA', 'EMPRESTIMO_SAIDA', 'PERDA_AVARIA_VALIDADE', 'DEVOLUCAO_FORNECEDOR', 'OUTRAS_SAIDAS', 'BAIXA_MANUAL');
 
 -- CreateEnum
 CREATE TYPE "RiscoInteracao" AS ENUM ('LEVE', 'MODERADO', 'CRITICO');
@@ -50,7 +53,7 @@ CREATE TYPE "UrgenciaExame" AS ENUM ('ROTINA', 'URGENTE', 'EMERGENCIAL');
 CREATE TYPE "CategoriaExame" AS ENUM ('LABORATORIO', 'IMAGEM', 'CARDIOLOGIA', 'PROCEDIMENTO', 'OUTRO');
 
 -- CreateEnum
-CREATE TYPE "TipoEncaminhamento" AS ENUM ('EXTERNO', 'INTERNACAO');
+CREATE TYPE "TipoEncaminhamento" AS ENUM ('INTERNO', 'EXTERNO', 'INTERNACAO');
 
 -- CreateEnum
 CREATE TYPE "StatusLaudoInternacao" AS ENUM ('RASCUNHO', 'SOLICITADO', 'AUTORIZADO');
@@ -838,6 +841,16 @@ CREATE TABLE "tb_medicamento" (
     "forma" TEXT,
     "concentracao" TEXT,
     "unidade" TEXT,
+    "codigoEan" TEXT,
+    "codigoAnvisa" TEXT,
+    "classeTerapeutica" TEXT,
+    "viaAdministracao" TEXT,
+    "mav" BOOLEAN NOT NULL DEFAULT false,
+    "duplaChecagem" BOOLEAN NOT NULL DEFAULT false,
+    "tipoControle" TEXT,
+    "alertasAlergia" TEXT,
+    "localizacaoFisica" TEXT,
+    "temperaturaArmazenamento" TEXT,
     "saldoAtual" INTEGER NOT NULL DEFAULT 0,
     "saldoReservado" INTEGER NOT NULL DEFAULT 0,
     "estoqueMinimo" INTEGER NOT NULL DEFAULT 0,
@@ -957,10 +970,31 @@ CREATE TABLE "tb_farmacia_dispensacao" (
 );
 
 -- CreateTable
+CREATE TABLE "tb_fornecedores" (
+    "id" TEXT NOT NULL,
+    "razaoSocial" TEXT NOT NULL,
+    "nomeFantasia" TEXT,
+    "cnpj" TEXT NOT NULL,
+    "inscricaoEstadual" TEXT,
+    "telefone" TEXT,
+    "email" TEXT,
+    "endereco" TEXT,
+    "cidade" TEXT,
+    "uf" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "tb_fornecedores_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "tb_farmacia_entrada_nf" (
     "id" TEXT NOT NULL,
+    "tipo" "TipoEntradaFarmacia" NOT NULL DEFAULT 'ENTRADA_NF',
     "numeroNota" TEXT NOT NULL,
     "serie" TEXT,
+    "fornecedorId" TEXT,
     "fornecedorNome" TEXT,
     "fornecedorCnpj" TEXT,
     "emitidaEm" TIMESTAMP(3),
@@ -1357,6 +1391,18 @@ CREATE INDEX "tb_farmacia_dispensacao_status_idx" ON "tb_farmacia_dispensacao"("
 CREATE INDEX "tb_farmacia_dispensacao_validadoEm_idx" ON "tb_farmacia_dispensacao"("validadoEm");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "tb_fornecedores_cnpj_key" ON "tb_fornecedores"("cnpj");
+
+-- CreateIndex
+CREATE INDEX "tb_fornecedores_razaoSocial_idx" ON "tb_fornecedores"("razaoSocial");
+
+-- CreateIndex
+CREATE INDEX "tb_fornecedores_cnpj_idx" ON "tb_fornecedores"("cnpj");
+
+-- CreateIndex
+CREATE INDEX "tb_farmacia_entrada_nf_tipo_idx" ON "tb_farmacia_entrada_nf"("tipo");
+
+-- CreateIndex
 CREATE INDEX "tb_farmacia_entrada_nf_numeroNota_idx" ON "tb_farmacia_entrada_nf"("numeroNota");
 
 -- CreateIndex
@@ -1556,6 +1602,9 @@ ALTER TABLE "tb_farmacia_dispensacao" ADD CONSTRAINT "tb_farmacia_dispensacao_it
 
 -- AddForeignKey
 ALTER TABLE "tb_farmacia_dispensacao" ADD CONSTRAINT "tb_farmacia_dispensacao_validadoPorId_fkey" FOREIGN KEY ("validadoPorId") REFERENCES "usuarios"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tb_farmacia_entrada_nf" ADD CONSTRAINT "tb_farmacia_entrada_nf_fornecedorId_fkey" FOREIGN KEY ("fornecedorId") REFERENCES "tb_fornecedores"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "tb_farmacia_entrada_nf" ADD CONSTRAINT "tb_farmacia_entrada_nf_criadoPorId_fkey" FOREIGN KEY ("criadoPorId") REFERENCES "usuarios"("id") ON DELETE SET NULL ON UPDATE CASCADE;

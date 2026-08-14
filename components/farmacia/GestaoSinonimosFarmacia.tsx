@@ -198,25 +198,25 @@ export function GestaoSinonimosFarmacia({ medicamentos }: { medicamentos: Medica
         ) : null}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-          <p className="text-sm font-semibold text-slate-900">Sinônimos cadastrados</p>
-          <p className="text-xs text-slate-500">{loading ? 'Carregando…' : `${(itens ?? []).length} itens`}</p>
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Sinônimos cadastrados</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{loading ? 'Carregando…' : `${(itens ?? []).length} itens`}</p>
         </div>
 
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-slate-100 dark:divide-slate-800">
           {(itens ?? []).length === 0 ? (
-            <div className="px-4 py-6 text-sm text-slate-500">Nenhum sinônimo encontrado. Clique em “Buscar”.</div>
+            <div className="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">Nenhum sinônimo encontrado. Clique em “Buscar”.</div>
           ) : null}
 
           {(itens ?? []).map((r) => (
-            <div key={r.id} className="px-4 py-3 flex flex-col md:flex-row md:items-center gap-2">
+            <div key={r.id} className="px-4 py-3 flex flex-col md:flex-row md:items-center gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-900 truncate">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                   {r.sinonimo}{' '}
-                  <span className="text-xs font-normal text-slate-500">({r.sinonimoNorm})</span>
+                  <span className="text-xs font-normal text-slate-500 dark:text-slate-400">({r.sinonimoNorm})</span>
                 </p>
-                <p className="text-xs text-slate-500 truncate">
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                   {r.medicamento?.nome} — {r.medicamento?.principioAtivo}
                 </p>
               </div>
@@ -226,8 +226,8 @@ export function GestaoSinonimosFarmacia({ medicamentos }: { medicamentos: Medica
                 className={cn(
                   'rounded-xl px-3 py-1.5 text-xs font-semibold border',
                   r.ativo
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
-                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                    ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900'
+                    : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                 )}
                 onClick={() => handleAlternarAtivo(r.id, r.ativo)}
                 disabled={loading}

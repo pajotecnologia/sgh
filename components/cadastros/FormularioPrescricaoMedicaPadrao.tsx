@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -9,38 +9,22 @@ import {
   FileText,
   LayoutTemplate,
   Loader2,
-  Pencil,
   Plus,
   Trash2,
+  Sparkles,
+  Baby,
+  Stethoscope,
 } from 'lucide-react'
-import { FormularioDinamico } from '@/components/shared/FormularioDinamico'
-import { TabelaDuasColunasPrescricaoModelo } from '@/components/prescricao/TabelaDuasColunasPrescricaoModelo'
-import { CAMPOS_MODELO_PRESCRICAO_MEDICA } from '@/lib/cadastros/config-formulario-prescricao-medica'
 import {
-  colunasPrescricaoFromModelo,
-  linhasDuasColunasFromItensModelo,
-} from '@/lib/prescricao-modelo-colunas'
-import { ITENS_MODELO_HOSPITALAR_PADRAO } from '@/lib/prescricao-modelo-hospitalar'
+  MODELO_ALA_OBSTETRICA,
+  MODELO_ENFERMARIA_GERAL,
+} from '@/lib/prescricao-modelo-hospitalar'
 import {
   NOME_COLUNA_DIREITA_PADRAO,
   NOME_COLUNA_ESQUERDA_PADRAO,
-  schemaItemPrescricaoMedicaPadraoLinhaDupla,
   type ItemPrescricaoMedicaPadraoForm,
 } from '@/lib/validations/prescricao-medica-padrao'
 import { cn } from '@/lib/utils'
-
-const extrairMensagemErroApi = (json: {
-  erro?: string
-  detalhes?: Record<string, string[] | undefined>
-}) => {
-  if (json.detalhes) {
-    const primeira = Object.values(json.detalhes).flat().find(Boolean)
-    if (primeira) return primeira
-  }
-  return json.erro ?? 'Falha ao salvar prescrição padrão.'
-}
-
-const normalizarItensParaSalvar = (itens: ItemPrescricaoMedicaPadraoForm[]) => itens
 
 type PrescricaoMedicaPadraoInicial = {
   id: string
@@ -53,13 +37,17 @@ type PrescricaoMedicaPadraoInicial = {
   itens: ItemPrescricaoMedicaPadraoForm[]
 }
 
-const valoresModeloIniciais = (p?: PrescricaoMedicaPadraoInicial): Record<string, string> => ({
-  nome: p?.nome ?? '',
-  descricao: p?.descricao ?? '',
-  observacoesPadrao: p?.observacoesPadrao ?? '',
-  nomeColunaEsquerda: p?.nomeColunaEsquerda ?? NOME_COLUNA_ESQUERDA_PADRAO,
-  nomeColunaDireita: p?.nomeColunaDireita ?? NOME_COLUNA_DIREITA_PADRAO,
-})
+const extrairMensagemErroApi = (json: {
+  erro?: string
+  detalhes?: Record<string, string[] | undefined>
+}) => {
+  if (json.detalhes) {
+    const primeira = Object.values(json.detalhes).flat().find((msg) => Boolean(msg) && msg !== 'Invalid input')
+    if (primeira) return primeira
+  }
+  if (json.erro && json.erro !== 'Dados inválidos.') return json.erro
+  return 'Preencha os campos obrigatórios da prescrição (nome do modelo e texto da coluna esquerda em cada linha).'
+}
 
 export function FormularioPrescricaoMedicaPadrao({
   modo,
@@ -69,110 +57,72 @@ export function FormularioPrescricaoMedicaPadrao({
   prescricaoInicial?: PrescricaoMedicaPadraoInicial
 }) {
   const router = useRouter()
-  const [dadosModelo, setDadosModelo] = useState<Record<string, string>>(() =>
-    valoresModeloIniciais(prescricaoInicial)
+
+  // Dados Básicos do Modelo
+  const [nome, setNome] = useState(prescricaoInicial?.nome ?? '')
+  const [descricao, setDescricao] = useState(prescricaoInicial?.descricao ?? '')
+  const [observacoesPadrao, setObservacoesPadrao] = useState(prescricaoInicial?.observacoesPadrao ?? '')
+  const [nomeColunaEsquerda, setNomeColunaEsquerda] = useState(
+    prescricaoInicial?.nomeColunaEsquerda ?? NOME_COLUNA_ESQUERDA_PADRAO
   )
-  const [modeloFormKey, setModeloFormKey] = useState(0)
+  const [nomeColunaDireita, setNomeColunaDireita] = useState(
+    prescricaoInicial?.nomeColunaDireita ?? NOME_COLUNA_DIREITA_PADRAO
+  )
   const [ativo, setAtivo] = useState(prescricaoInicial?.ativo ?? true)
+
+  // Grade Interativa de Linhas (Edição In-line)
   const [itensLista, setItensLista] = useState<ItemPrescricaoMedicaPadraoForm[]>(
-    prescricaoInicial?.itens ?? []
+    prescricaoInicial?.itens?.length
+      ? prescricaoInicial.itens
+      : [...MODELO_ENFERMARIA_GERAL]
   )
-  const [textoEsquerdaDraft, setTextoEsquerdaDraft] = useState('')
-  const [textoDireitaDraft, setTextoDireitaDraft] = useState('')
-  const [editandoIndice, setEditandoIndice] = useState<number | null>(null)
+
   const [salvando, setSalvando] = useState(false)
-
-  const valoresIniciaisModelo = useMemo(
-    () => valoresModeloIniciais(prescricaoInicial),
-    [prescricaoInicial, modeloFormKey]
-  )
-
-  const colunas = useMemo(
-    () =>
-      colunasPrescricaoFromModelo({
-        nomeColunaEsquerda: dadosModelo.nomeColunaEsquerda,
-        nomeColunaDireita: dadosModelo.nomeColunaDireita,
-      }),
-    [dadosModelo.nomeColunaEsquerda, dadosModelo.nomeColunaDireita]
-  )
-
-  const linhasDuasColunas = useMemo(
-    () => linhasDuasColunasFromItensModelo(itensLista),
-    [itensLista]
-  )
 
   useEffect(() => {
     if (!prescricaoInicial) return
-    setDadosModelo(valoresModeloIniciais(prescricaoInicial))
+    setNome(prescricaoInicial.nome)
+    setDescricao(prescricaoInicial.descricao ?? '')
+    setObservacoesPadrao(prescricaoInicial.observacoesPadrao ?? '')
+    setNomeColunaEsquerda(prescricaoInicial.nomeColunaEsquerda ?? NOME_COLUNA_ESQUERDA_PADRAO)
+    setNomeColunaDireita(prescricaoInicial.nomeColunaDireita ?? NOME_COLUNA_DIREITA_PADRAO)
     setAtivo(prescricaoInicial.ativo)
-    setItensLista(prescricaoInicial.itens)
-    setModeloFormKey((k) => k + 1)
+    setItensLista(prescricaoInicial.itens ?? [])
   }, [prescricaoInicial])
 
-  const resetarFormularioLinha = () => {
-    setEditandoIndice(null)
-    setTextoEsquerdaDraft('')
-    setTextoDireitaDraft('')
+  // Manipulação de Linhas na Grade
+  const handleAtualizarItem = (index: number, patch: Partial<ItemPrescricaoMedicaPadraoForm>) => {
+    setItensLista((lista) =>
+      lista.map((it, idx) => {
+        if (idx !== index) return it
+        return {
+          ...it,
+          ...patch,
+        } as ItemPrescricaoMedicaPadraoForm
+      })
+    )
   }
 
-  const handleIncluirLinha = () => {
-    const rascunho: ItemPrescricaoMedicaPadraoForm = {
+  const handleAdicionarLinha = () => {
+    const novaLinha: ItemPrescricaoMedicaPadraoForm = {
       tipoItem: 'LINHA_DUPLA',
-      nomeMedicamento: textoEsquerdaDraft.trim(),
-      observacoes: textoDireitaDraft.trim(),
+      nomeMedicamento: '',
+      observacoes: '',
       principioAtivo: '',
       dose: '',
       unidadeMedida: '',
       via: '',
       frequencia: '',
     }
-    const parsed = schemaItemPrescricaoMedicaPadraoLinhaDupla.safeParse(rascunho)
-
-    if (!parsed.success) {
-      const primeira = parsed.error.issues[0]?.message ?? 'Informe o texto da coluna esquerda.'
-      toast.error(primeira)
-      return
-    }
-
-    const item = parsed.data
-
-    if (editandoIndice !== null) {
-      setItensLista((lista) => lista.map((i, idx) => (idx === editandoIndice ? item : i)))
-      toast.success('Linha atualizada.')
-    } else {
-      setItensLista((lista) => [...lista, item])
-      toast.success('Linha incluída no modelo.')
-    }
-
-    resetarFormularioLinha()
+    setItensLista((lista) => [...lista, novaLinha])
+    toast.info('Nova linha adicionada ao final da lista.')
   }
 
-  const handleEditarItem = (index: number) => {
-    const item = itensLista[index]
-    if (!item || item.tipoItem !== 'LINHA_DUPLA') return
-    setEditandoIndice(index)
-    setTextoEsquerdaDraft(item.nomeMedicamento)
-    setTextoDireitaDraft(item.observacoes ?? '')
-  }
-
-  const handleRemoverItem = (index: number) => {
+  const handleRemoverLinha = (index: number) => {
     setItensLista((lista) => lista.filter((_, i) => i !== index))
-    if (editandoIndice === index) {
-      resetarFormularioLinha()
-    } else if (editandoIndice !== null && index < editandoIndice) {
-      setEditandoIndice((i) => (i !== null ? i - 1 : null))
-    }
   }
 
-  const ajustarIndiceEdicaoAoMover = (de: number, para: number, editando: number | null) => {
-    if (editando === null) return null
-    if (editando === de) return para
-    if (de < para && editando > de && editando <= para) return editando - 1
-    if (de > para && editando >= para && editando < de) return editando + 1
-    return editando
-  }
-
-  const handleMoverItem = (index: number, direcao: 'up' | 'down') => {
+  const handleMoverLinha = (index: number, direcao: 'up' | 'down') => {
     const destino = direcao === 'up' ? index - 1 : index + 1
     if (destino < 0 || destino >= itensLista.length) return
 
@@ -182,47 +132,67 @@ export function FormularioPrescricaoMedicaPadrao({
       proxima.splice(destino, 0, item)
       return proxima
     })
-    setEditandoIndice((atual) => ajustarIndiceEdicaoAoMover(index, destino, atual))
   }
 
-  const handleCarregarModeloHospitalar = () => {
-    if (itensLista.length > 0) {
-      const confirmar = window.confirm(
-        'Isso substituirá todas as linhas atuais pelo modelo hospitalar padrão. Continuar?'
-      )
-      if (!confirmar) return
-    }
-    setItensLista([...ITENS_MODELO_HOSPITALAR_PADRAO])
-    resetarFormularioLinha()
-    toast.success('Modelo hospitalar carregado. Ajuste os textos se necessário.')
+  // Presets Rápidos com 1 Clique
+  const handleCarregarPresetObstetrica = () => {
+    if (itensLista.length > 0 && !window.confirm('Substituir todas as linhas pelo modelo de Ala Obstétrica?')) return
+    setNome((prev) => prev.trim() || 'Prescrição Médica Ala Obstétrica - Enfermaria')
+    setItensLista(JSON.parse(JSON.stringify(MODELO_ALA_OBSTETRICA)))
+    toast.success('Modelo de Ala Obstétrica (Foto 1) carregado com sucesso!')
   }
 
+  const handleCarregarPresetEnfermaria = () => {
+    if (itensLista.length > 0 && !window.confirm('Substituir todas as linhas pelo modelo de Enfermaria Geral?')) return
+    setNome((prev) => prev.trim() || 'Prescrição Médica - Enfermaria Geral')
+    setItensLista(JSON.parse(JSON.stringify(MODELO_ENFERMARIA_GERAL)))
+    toast.success('Modelo de Enfermaria Geral (Foto 2) carregado com sucesso!')
+  }
+
+  const handleLimparTudo = () => {
+    if (!window.confirm('Deseja limpar todas as linhas da lista?')) return
+    setItensLista([])
+  }
+
+  // Envio / Salvamento
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!dadosModelo.nome?.trim()) {
-      toast.error('Informe o nome da prescrição.')
+    if (!nome.trim()) {
+      toast.error('Informe o nome da prescrição (ex.: Prescrição Ala Obstétrica).')
       return
     }
-    if (!dadosModelo.nomeColunaEsquerda?.trim() || !dadosModelo.nomeColunaDireita?.trim()) {
-      toast.error('Informe os nomes das duas colunas.')
+    if (!nomeColunaEsquerda.trim() || !nomeColunaDireita.trim()) {
+      toast.error('Informe os títulos das duas colunas.')
       return
     }
-    if (itensLista.length === 0) {
-      toast.error('Inclua pelo menos uma linha no modelo.')
+
+    const itensFiltrados = itensLista.filter(
+      (it) => it.nomeMedicamento.trim().length > 0 || (it.observacoes ?? '').trim().length > 0
+    )
+
+    if (itensFiltrados.length === 0) {
+      toast.error('Adicione ao menos 1 linha com texto na prescrição.')
+      return
+    }
+
+    const indexSemNome = itensFiltrados.findIndex((it) => !it.nomeMedicamento.trim())
+    if (indexSemNome !== -1) {
+      toast.error(`A linha ${indexSemNome + 1} está com a coluna esquerda em branco. Preencha o texto ou remova a linha.`)
       return
     }
 
     setSalvando(true)
     try {
       const payload = {
-        nome: dadosModelo.nome.trim(),
-        descricao: dadosModelo.descricao?.trim() ?? '',
-        observacoesPadrao: dadosModelo.observacoesPadrao?.trim() ?? '',
-        nomeColunaEsquerda: dadosModelo.nomeColunaEsquerda.trim(),
-        nomeColunaDireita: dadosModelo.nomeColunaDireita.trim(),
+        nome: nome.trim(),
+        descricao: descricao.trim() || null,
+        observacoesPadrao: observacoesPadrao.trim() || null,
+        nomeColunaEsquerda: nomeColunaEsquerda.trim(),
+        nomeColunaDireita: nomeColunaDireita.trim(),
         ativo,
-        itens: normalizarItensParaSalvar(itensLista),
+        itens: itensFiltrados,
       }
+
       const url =
         modo === 'criar'
           ? '/api/cadastros/prescricoes-medicas'
@@ -239,226 +209,250 @@ export function FormularioPrescricaoMedicaPadrao({
         toast.error(extrairMensagemErroApi(json))
         return
       }
-      toast.success('Prescrição padrão salva.')
+      toast.success('Modelo de prescrição padrão salvo com sucesso!')
       router.push('/cadastros/prescricoes-medicas')
       router.refresh()
     } catch {
-      toast.error('Erro de conexão.')
+      toast.error('Erro de conexão com o servidor.')
     } finally {
       setSalvando(false)
     }
   }
 
   return (
-    <form onSubmit={handleSalvar} className="space-y-5">
-      <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" aria-hidden />
-            Dados do modelo
-          </h3>
-          <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+    <form onSubmit={handleSalvar} className="space-y-6 max-w-6xl mx-auto pb-12">
+      {/* 1. Dados Básicos do Modelo */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary shrink-0" aria-hidden />
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+              {modo === 'criar' ? 'Novo Modelo de Prescrição Médica' : `Editar: ${nome}`}
+            </h2>
+          </div>
+          <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-slate-700 dark:text-slate-300">
             <input
               type="checkbox"
               checked={ativo}
               onChange={(e) => setAtivo(e.target.checked)}
-              className="h-4 w-4 rounded border-input accent-primary"
-              aria-label="Prescrição ativa"
+              className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
             />
-            Prescrição ativa
+            Modelo Ativo
           </label>
         </div>
 
-        <FormularioDinamico
-          key={`modelo-${modeloFormKey}`}
-          formKey={modeloFormKey}
-          prefixoId="modelo-prescricao"
-          campos={CAMPOS_MODELO_PRESCRICAO_MEDICA}
-          valoresIniciais={valoresIniciaisModelo}
-          onValoresChange={setDadosModelo}
-          ocultarBotaoEnviar
-          ocultarDicasLayout
-          semWrapperForm
-        />
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="nome-coluna-esquerda" className="block text-sm font-medium text-muted-foreground mb-1.5">
-              Nome da coluna esquerda <span className="text-destructive">*</span>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Nome da Prescrição / Setor *
             </label>
             <input
-              id="nome-coluna-esquerda"
-              value={dadosModelo.nomeColunaEsquerda ?? ''}
-              onChange={(e) => setDadosModelo((d) => ({ ...d, nomeColunaEsquerda: e.target.value }))}
-              placeholder={NOME_COLUNA_ESQUERDA_PADRAO}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-              aria-label="Nome da coluna esquerda"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Ex.: Prescrição Médica Ala Obstétrica - Enfermaria"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-background text-foreground px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 font-medium"
+              required
             />
           </div>
           <div>
-            <label htmlFor="nome-coluna-direita" className="block text-sm font-medium text-muted-foreground mb-1.5">
-              Nome da coluna direita <span className="text-destructive">*</span>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Descrição / Finalidade (Opcional)
             </label>
             <input
-              id="nome-coluna-direita"
-              value={dadosModelo.nomeColunaDireita ?? ''}
-              onChange={(e) => setDadosModelo((d) => ({ ...d, nomeColunaDireita: e.target.value }))}
-              placeholder={NOME_COLUNA_DIREITA_PADRAO}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-              aria-label="Nome da coluna direita"
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              placeholder="Ex.: Modelo padrão com dietas, hidratação e medicações de suporte da enfermaria"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-background text-foreground px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Título da Coluna Esquerda *
+            </label>
+            <input
+              value={nomeColunaEsquerda}
+              onChange={(e) => setNomeColunaEsquerda(e.target.value)}
+              placeholder="MEDICAÇÕES / ORIENTAÇÕES"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-background text-foreground px-3.5 py-2 text-xs font-bold uppercase tracking-wider outline-none focus:ring-2 focus:ring-primary/30"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Título da Coluna Direita *
+            </label>
+            <input
+              value={nomeColunaDireita}
+              onChange={(e) => setNomeColunaDireita(e.target.value)}
+              placeholder="HORÁRIOS / FREQUÊNCIA"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-background text-foreground px-3.5 py-2 text-xs font-bold uppercase tracking-wider outline-none focus:ring-2 focus:ring-primary/30"
+              required
             />
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-primary/25 bg-primary/[0.03] p-4 sm:p-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h4 className="text-sm font-bold text-foreground">
-            {editandoIndice !== null ? `Editar linha #${editandoIndice + 1}` : 'Adicionar linha ao modelo'}
-          </h4>
-          <div className="flex flex-wrap gap-2">
+      {/* 2. Modelos Prontos em 1 Clique */}
+      <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-amber-500" />
+          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+            Modelos Hospitalares Prontos (Preenchimento Rápido com 1 Clique)
+          </h3>
+        </div>
+        <div className="flex flex-wrap gap-2.5">
+          <button
+            type="button"
+            onClick={handleCarregarPresetObstetrica}
+            className="inline-flex items-center gap-2 rounded-xl border border-purple-200 dark:border-purple-900/60 bg-purple-50 dark:bg-purple-950/40 px-3.5 py-2 text-xs font-bold text-purple-900 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition-colors shadow-sm"
+          >
+            <Baby className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            Carregar Prescrição Ala Obstétrica (Foto 1)
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCarregarPresetEnfermaria}
+            className="inline-flex items-center gap-2 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/40 px-3.5 py-2 text-xs font-bold text-blue-900 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors shadow-sm"
+          >
+            <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            Carregar Prescrição Enfermaria Geral (Foto 2)
+          </button>
+
+          {itensLista.length > 0 ? (
             <button
               type="button"
-              onClick={handleCarregarModeloHospitalar}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background text-xs font-semibold hover:bg-muted/50 transition-colors"
+              onClick={handleLimparTudo}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-background px-3 py-2 text-xs font-medium text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors ml-auto"
             >
-              <LayoutTemplate className="h-3.5 w-3.5" aria-hidden />
-              Carregar modelo hospitalar
+              <Trash2 className="h-3.5 w-3.5" />
+              Limpar todas as linhas
             </button>
-            {editandoIndice !== null ? (
-              <button
-                type="button"
-                onClick={resetarFormularioLinha}
-                className="text-xs font-semibold text-muted-foreground hover:text-foreground"
-              >
-                Cancelar edição
-              </button>
-            ) : null}
-          </div>
+          ) : null}
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-          <div className="space-y-2 rounded-lg border border-primary/20 bg-background p-4">
-            <label htmlFor="texto-coluna-esquerda" className="block text-sm font-medium text-primary">
-              {colunas.nomeColunaEsquerda} <span className="text-destructive">*</span>
-            </label>
-            <p className="text-xs text-muted-foreground">
-              Texto fixo cadastrado (ex.: Dieta, Monitorização, Medicação sintomática…).
-            </p>
-            <textarea
-              id="texto-coluna-esquerda"
-              rows={3}
-              value={textoEsquerdaDraft}
-              onChange={(e) => setTextoEsquerdaDraft(e.target.value)}
-              placeholder="Ex.: Dieta, Oxigenoterapia, Medicação intravenosa contínua…"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-y min-h-[5rem]"
-              aria-label="Texto da coluna esquerda"
-            />
-          </div>
-
-          <div className="space-y-2 rounded-lg border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/30 dark:bg-emerald-950/10 p-4">
-            <label htmlFor="texto-coluna-direita" className="block text-sm font-medium text-emerald-700 dark:text-emerald-400">
-              {colunas.nomeColunaDireita} <span className="text-muted-foreground font-normal">(opcional no cadastro)</span>
-            </label>
-            <p className="text-xs text-muted-foreground">
-              Sugestão ou exemplo de preenchimento. Na prescrição, o médico preenche esta coluna.
-            </p>
-            <textarea
-              id="texto-coluna-direita"
-              rows={3}
-              value={textoDireitaDraft}
-              onChange={(e) => setTextoDireitaDraft(e.target.value)}
-              placeholder="Ex.: Dieta zero VO, O₂ 2 L/min cateter nasal… (deixe vazio se preferir)"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 resize-y min-h-[5rem]"
-              aria-label="Texto opcional da coluna direita"
-            />
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleIncluirLinha}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="h-4 w-4" aria-hidden />
-          {editandoIndice !== null ? 'Atualizar linha' : 'Incluir linha'}
-        </button>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h5 className="text-sm font-bold text-foreground">
-            Pré-visualização do formulário
-            <span className="ml-2 text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-              {itensLista.length} {itensLista.length === 1 ? 'linha' : 'linhas'}
-            </span>
-          </h5>
-        </div>
-
-        {itensLista.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center border border-dashed border-border rounded-lg">
-            Nenhuma linha incluída. Adicione manualmente ou use &quot;Carregar modelo hospitalar&quot;.
+      {/* 3. Tabela de Edição Direta em Grade (In-Line Editor) */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm space-y-0">
+        <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <LayoutTemplate className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              Grade da Prescrição ({itensLista.length} linhas)
+            </h3>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Edite o texto diretamente em cada célula da tabela.
           </p>
-        ) : (
-          <TabelaDuasColunasPrescricaoModelo
-            linhas={linhasDuasColunas}
-            colunas={colunas}
-            modo="cadastro"
-            renderAcoes={(index) => (
-              <div className="flex flex-col items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => handleMoverItem(index, 'up')}
-                  disabled={index === 0}
-                  className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded disabled:opacity-25 disabled:pointer-events-none transition-colors"
-                  aria-label={`Mover linha ${index + 1} para cima`}
-                >
-                  <ArrowUp className="h-3.5 w-3.5" aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleMoverItem(index, 'down')}
-                  disabled={index === itensLista.length - 1}
-                  className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded disabled:opacity-25 disabled:pointer-events-none transition-colors"
-                  aria-label={`Mover linha ${index + 1} para baixo`}
-                >
-                  <ArrowDown className="h-3.5 w-3.5" aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleEditarItem(index)}
-                  className={cn(
-                    'p-1.5 rounded-md transition-colors',
-                    editandoIndice === index
-                      ? 'text-primary bg-primary/10'
-                      : 'text-primary hover:bg-primary/10'
-                  )}
-                  aria-label={`Editar linha ${index + 1}`}
-                >
-                  <Pencil className="h-3.5 w-3.5" aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRemoverItem(index)}
-                  className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                  aria-label={`Remover linha ${index + 1}`}
-                >
-                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                </button>
-              </div>
-            )}
-          />
-        )}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr className="bg-slate-100/80 dark:bg-slate-800/80 text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
+                <th scope="col" className="p-3 w-12 text-center">#</th>
+                <th scope="col" className="p-3 w-[62%]">
+                  {nomeColunaEsquerda || 'MEDICAÇÕES / ORIENTAÇÕES (LADO ESQUERDO)'}
+                </th>
+                <th scope="col" className="p-3 w-[28%]">
+                  {nomeColunaDireita || 'HORÁRIOS / FREQUÊNCIA (LADO DIREITO)'}
+                </th>
+                <th scope="col" className="p-3 w-20 text-center">AÇÕES</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+              {itensLista.map((linha, idx) => (
+                <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors align-top">
+                  <td className="p-3 text-center text-xs font-mono font-bold text-slate-400 pt-4">
+                    {idx + 1}
+                  </td>
+                  <td className="p-2">
+                    <textarea
+                      value={linha.nomeMedicamento}
+                      onChange={(e) => handleAtualizarItem(idx, { nomeMedicamento: e.target.value })}
+                      placeholder="Ex.: DIPIRONA 500MG/ML - 02 AMP + AD, EV 6/6H S/N"
+                      rows={Math.max(1, Math.ceil(linha.nomeMedicamento.length / 50))}
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-background text-foreground px-3 py-2 text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/30 resize-y min-h-[2.5rem]"
+                      aria-label={`Linha ${idx + 1} Coluna Esquerda`}
+                    />
+                  </td>
+                  <td className="p-2">
+                    <input
+                      value={linha.observacoes ?? ''}
+                      onChange={(e) => handleAtualizarItem(idx, { observacoes: e.target.value })}
+                      placeholder="Ex.: 6/6H SN, 24/24H"
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-background text-foreground px-3 py-2 text-xs font-mono font-semibold outline-none focus:ring-2 focus:ring-primary/30"
+                      aria-label={`Linha ${idx + 1} Horários`}
+                    />
+                  </td>
+                  <td className="p-2 text-center">
+                    <div className="flex items-center justify-center gap-1 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleMoverLinha(idx, 'up')}
+                        disabled={idx === 0}
+                        className="p-1.5 text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg disabled:opacity-20 transition-colors"
+                        title="Mover para cima"
+                      >
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoverLinha(idx, 'down')}
+                        disabled={idx === itensLista.length - 1}
+                        className="p-1.5 text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg disabled:opacity-20 transition-colors"
+                        title="Mover para baixo"
+                      >
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoverLinha(idx)}
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors"
+                        title="Excluir esta linha"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {itensLista.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                    Nenhuma linha adicionada. Clique nos modelos prontos acima ou no botão abaixo para incluir linhas.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="p-4 bg-slate-50/80 dark:bg-slate-950/60 border-t border-slate-200 dark:border-slate-800 flex justify-start">
+          <button
+            type="button"
+            onClick={handleAdicionarLinha}
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 dark:bg-slate-100 text-slate-100 dark:text-slate-900 px-4 py-2.5 text-xs font-bold hover:brightness-110 transition-colors shadow-sm"
+          >
+            <Plus className="h-4 w-4" />
+            + Adicionar Nova Linha na Prescrição
+          </button>
+        </div>
       </div>
 
-      <div className="flex justify-start">
+      {/* 4. Botão Salvar */}
+      <div className="flex justify-end pt-2">
         <button
           type="submit"
           disabled={salvando}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground px-5 py-2.5 text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-white px-6 py-3 text-sm font-bold shadow-md hover:brightness-95 disabled:opacity-50 transition-all"
         >
           {salvando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-          Salvar prescrição padrão
+          Salvar Modelo de Prescrição Padrão
         </button>
       </div>
     </form>

@@ -9,9 +9,11 @@ export async function POST(req: NextRequest) {
     const token = typeof body.token === 'string' ? body.token.trim() : '';
     const novaSenha = typeof body.novaSenha === 'string' ? body.novaSenha : '';
 
-    if (!token || novaSenha.length < 6) {
+    const validarSenhaForte = (s: string) => s.length >= 8 && /[a-zA-Z]/.test(s) && /[\d\W]/.test(s);
+
+    if (!token || !validarSenhaForte(novaSenha)) {
       return NextResponse.json(
-        { sucesso: false, erro: 'Token ou senha inválidos. A senha deve ter pelo menos 6 caracteres.' },
+        { sucesso: false, erro: 'A senha deve ter pelo menos 8 caracteres, contendo letras e números ou símbolos.' },
         { status: 400 }
       );
     }

@@ -1094,6 +1094,21 @@ model TbMedicamento {
   forma         String?
   concentracao  String?
   unidade       String?
+  /// Código de barras EAN/GTIN
+  codigoEan     String?
+  /// Registro na ANVISA
+  codigoAnvisa  String?
+  classeTerapeutica String?
+  viaAdministracao  String?
+  /// Medicamento de Alta Vigilância (MAV)
+  mav           Boolean  @default(false)
+  /// Exige dupla checagem à beira leito
+  duplaChecagem Boolean  @default(false)
+  /// Tipo de controle/retenção de receita (ex: Portaria 344)
+  tipoControle  String?
+  alertasAlergia String?
+  localizacaoFisica String?
+  temperaturaArmazenamento String?
   /// Saldos: manter >= 0 (validação também no app; constraints via SQL)
   saldoAtual    Int      @default(0)
   saldoReservado Int     @default(0)
@@ -1138,8 +1153,17 @@ model TbMedicamentoLote {
 
 enum TipoMovimentacaoFarmacia {
   ENTRADA_NF
+  ENTRADA_SEM_NOTA
+  EMPRESTIMO_ENTRADA
+  DEVOLUCAO_PACIENTE
+  OUTRAS_ENTRADAS
   ENTRADA_MANUAL
   SAIDA_DISPENSACAO
+  SAIDA_SEM_NOTA
+  EMPRESTIMO_SAIDA
+  PERDA_AVARIA_VALIDADE
+  DEVOLUCAO_FORNECEDOR
+  OUTRAS_SAIDAS
   SAIDA_MANUAL
   AJUSTE
 }
@@ -1280,11 +1304,44 @@ model TbFarmaciaDispensacao {
   @@map("tb_farmacia_dispensacao")
 }
 
-/// Entrada de estoque via Nota Fiscal (NF-e / DANFE)
+enum TipoEntradaFarmacia {
+  ENTRADA_NF
+  ENTRADA_SEM_NOTA
+  EMPRESTIMO_ENTRADA
+  DEVOLUCAO_PACIENTE
+  OUTRAS_ENTRADAS
+}
+
+/// Cadastro de Fornecedores de Medicamentos e Insumos
+model TbFornecedor {
+  id                String   @id @default(uuid())
+  razaoSocial       String
+  nomeFantasia      String?
+  cnpj              String   @unique
+  inscricaoEstadual String?
+  telefone          String?
+  email             String?
+  endereco          String?
+  cidade            String?
+  uf                String?
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  entradasNf        TbFarmaciaEntradaNf[]
+
+  @@index([razaoSocial])
+  @@index([cnpj])
+  @@map("tb_fornecedores")
+}
+
+/// Entrada de estoque (Nota Fiscal, avulsa sem nota, empréstimo, devolução)
 model TbFarmaciaEntradaNf {
-  id             String   @id @default(uuid())
+  id             String              @id @default(uuid())
+  tipo           TipoEntradaFarmacia @default(ENTRADA_NF)
   numeroNota     String
   serie          String?
+  fornecedorId   String?
   fornecedorNome String?
   fornecedorCnpj String?
   emitidaEm      DateTime?
@@ -1297,9 +1354,11 @@ model TbFarmaciaEntradaNf {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  fornecedor     TbFornecedor?             @relation(fields: [fornecedorId], references: [id])
   criadoPor      Usuario?                  @relation(fields: [criadoPorId], references: [id])
   itens          TbFarmaciaEntradaNfItem[]
 
+  @@index([tipo])
   @@index([numeroNota])
   @@index([recebidaEm])
   @@map("tb_farmacia_entrada_nf")
@@ -1328,6 +1387,11 @@ model TbFarmaciaEntradaNfItem {
 
 enum TipoSaidaFarmacia {
   DISPENSACAO_PRESCRICAO
+  SAIDA_SEM_NOTA
+  EMPRESTIMO_SAIDA
+  PERDA_AVARIA_VALIDADE
+  DEVOLUCAO_FORNECEDOR
+  OUTRAS_SAIDAS
   BAIXA_MANUAL
 }
 
@@ -1508,6 +1572,7 @@ enum CategoriaExame {
 
 /// Tipo de encaminhamento
 enum TipoEncaminhamento {
+  INTERNO
   EXTERNO
   INTERNACAO
 }

@@ -1,12 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader2, AlertTriangle, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EnvoltorioListaPaginada } from '@/components/shared/EnvoltorioListaPaginada'
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao'
+import { getPusherCliente, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher'
 import type { InteracaoCritica } from '@/components/farmacia/ModalInteracaoCritica'
 
 type SaldoInfo = {
@@ -68,6 +69,24 @@ export function ListaTriagemFarmacia({
   const [itemModal, setItemModal] = useState<Linha | null>(null)
   const [motivo, setMotivo] = useState('')
   const [salvando, setSalvando] = useState(false)
+  useEffect(() => {
+    const pusher = getPusherCliente()
+    if (!pusher) return
+
+    const channel = pusher.subscribe(CANAIS_PUSHER.farmaciaTriagem)
+    channel.bind(EVENTOS_PUSHER.NOVA_PRESCRICAO, (data: { criadoPor?: string; totalItens?: number }) => {
+      toast.info('Nova prescrição recebida do PS!', {
+        description: `Emitida por ${data.criadoPor ?? 'médico'} (${data.totalItens ?? 1} item(s)). Atualizando fila...`,
+        icon: <Bell className="h-4 w-4 text-blue-600" />,
+      })
+      router.refresh()
+    })
+
+    return () => {
+      channel.unbind_all()
+      pusher.unsubscribe(CANAIS_PUSHER.farmaciaTriagem)
+    }
+  }, [router])
 
   const interacoesCriticas: InteracaoCritica[] = useMemo(() => {
     const raw = (itemModal?.item.alertasInteracao as any)?.criticas
@@ -195,6 +214,51 @@ export function ListaTriagemFarmacia({
               </p>
             </div>
             <div className="p-6 space-y-4">
+              {/* Alerta Crítico de Estoque Insuficiente */}
+              {itemModal.saldoInfo && (!itemModal.saldoInfo.saldoSuficiente || (itemModal.saldoInfo.saldoAtual ?? 0) < itemModal.item.quantidadeSolicitada) ? (
+                <div className="rounded-xl border-2 border-red-500 bg-red-50 dark:bg-red-950/40 p-4 space-y-3 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400 shrink-0 mt-0.5" aria-hidden />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-xs font-bold text-red-800 dark:text-red-200 uppercase tracking-wide">
+                        🚨 ESTOQUE INSUFICIENTE PARA DISPENSAÇÃO
+                      </h4>
+                      <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                        O medicamento <strong>{itemModal.item.medicamentoNome}</strong> não possui saldo disponível suficiente no estoque da farmácia.
+                      </p>
+                      <div className="mt-2.5 grid grid-cols-3 gap-2 text-xs font-mono text-center">
+                        <div className="bg-white/80 dark:bg-slate-900/80 p-2 rounded-lg border border-red-200 dark:border-red-900">
+                          <span className="text-[10px] text-slate-500 block font-sans">SOLICITADO</span>
+                          <strong className="text-sm text-slate-900 dark:text-slate-100">{itemModal.item.quantidadeSolicitada} un.</strong>
+                        </div>
+                        <div className="bg-white/80 dark:bg-slate-900/80 p-2 rounded-lg border border-red-200 dark:border-red-900">
+                          <span className="text-[10px] text-slate-500 block font-sans">EM ESTOQUE</span>
+                          <strong className="text-sm text-red-600 dark:text-red-400">{itemModal.saldoInfo.saldoAtual ?? 0} un.</strong>
+                        </div>
+                        <div className="bg-white/80 dark:bg-slate-900/80 p-2 rounded-lg border border-red-200 dark:border-red-900">
+                          <span className="text-[10px] text-slate-500 block font-sans">FALTANTE</span>
+                          <strong className="text-sm text-red-600 dark:text-red-400">
+                            -{Math.max(0, itemModal.item.quantidadeSolicitada - (itemModal.saldoInfo.saldoAtual ?? 0))} un.
+                          </strong>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const qtdReq = itemModal.item.quantidadeSolicitada
+                          const qtdDisp = itemModal.saldoInfo?.saldoAtual ?? 0
+                          setMotivo(`REJEIÇÃO POR FALTA DE ESTOQUE: Solicitado ${qtdReq} un., saldo disponível em estoque apenas ${qtdDisp} un.`)
+                        }}
+                        className="mt-3 text-xs font-bold text-red-800 dark:text-red-200 bg-red-200/80 dark:bg-red-900/60 hover:bg-red-300 dark:hover:bg-red-800 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+                      >
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Preencher motivo de rejeição por Falta de Estoque
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               {interacoesCriticas.length > 0 ? (
                 <div className="rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50/60 dark:bg-red-950/20 p-4">
                   <p className="text-xs font-bold text-red-700 dark:text-red-200 uppercase tracking-wide">
@@ -230,7 +294,7 @@ export function ListaTriagemFarmacia({
                     Qtde solicitada: {itemModal.item.quantidadeSolicitada}
                   </p>
                   {itemModal.saldoInfo ? (
-                    <p className={`text-[11px] mt-1 font-semibold ${itemModal.saldoInfo.saldoSuficiente ? 'text-green-700' : 'text-red-700'}`}>
+                    <p className={`text-[11px] mt-1 font-semibold ${itemModal.saldoInfo.saldoSuficiente ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                       Saldo: {itemModal.saldoInfo.saldoAtual ?? '—'}
                       {!itemModal.saldoInfo.saldoSuficiente && itemModal.saldoInfo.mensagemSaldo
                         ? ` — ${itemModal.saldoInfo.mensagemSaldo}`
@@ -241,15 +305,22 @@ export function ListaTriagemFarmacia({
               </div>
 
               {itemModal.saldoInfo?.alocacaoFefo && itemModal.saldoInfo.alocacaoFefo.length > 0 ? (
-                <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3">
-                  <p className="text-xs font-bold text-blue-800 uppercase tracking-wide">Alocação FEFO (lote mais próximo do vencimento)</p>
+                <div className="rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/60 dark:bg-blue-950/30 p-3">
+                  <p className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wide">
+                    Alocação Automática FEFO (Lote com vencimento mais próximo)
+                  </p>
                   <ul className="mt-2 space-y-1">
-                    {itemModal.saldoInfo.alocacaoFefo.map((a, idx) => (
-                      <li key={idx} className="text-xs text-blue-900">
-                        Lote {a.lote}: {a.quantidade} un.
-                        {a.validade ? ` (val. ${a.validade.slice(0, 10)})` : ''}
-                      </li>
-                    ))}
+                    {itemModal.saldoInfo.alocacaoFefo.map((a, idx) => {
+                      const dtValidade = a.validade ? new Date(a.validade) : null
+                      const estaVencido = dtValidade ? dtValidade < new Date() : false
+                      return (
+                        <li key={idx} className={`text-xs ${estaVencido ? 'text-red-700 font-bold' : 'text-blue-900 dark:text-blue-200'}`}>
+                          Lote <span className="font-mono">{a.lote}</span>: {a.quantidade} un.
+                          {a.validade ? ` (val. ${a.validade.slice(0, 10)})` : ''}
+                          {estaVencido ? <span className="ml-1 text-red-600 dark:text-red-400 font-bold">⛔ LOTE VENCIDO!</span> : null}
+                        </li>
+                      )
+                    })}
                   </ul>
                 </div>
               ) : null}

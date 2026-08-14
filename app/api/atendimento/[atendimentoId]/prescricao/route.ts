@@ -11,6 +11,7 @@ import { prontuarioPertenceAoAtendimento, prontuarioEstaEncerrado } from '@/lib/
 import { detectarInteracoesPorPrincipioAtivo } from '@/lib/farmacia-interacoes';
 import { auditarLgpd } from '@/lib/auditoria-lgpd';
 import { resolverMedicamentoCatalogo } from '@/lib/medicamento-catalogo-match';
+import { dispararEventoPusher, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher';
 
 function normTexto(s: string): string {
   return s.trim().toLowerCase();
@@ -323,24 +324,32 @@ export async function POST(
     });
 
     if (tipoPrescricao === 'PS') {
-    await auditarLgpd({
-      usuarioId: sessao.usuario.id,
-      role: sessao.usuario.role as never,
-      atendimentoId,
-      acao: 'CRIACAO',
-      entidade: 'PrescricaoIntegradaFarmacia',
-      entidadeId: prescricao.id,
-      ipOrigem: req.headers.get('x-forwarded-for') ?? null,
-      userAgent: req.headers.get('user-agent') ?? null,
-      detalhes: {
-        itens: itens.map((it) => ({
-          medicamentoNome: it.nomeMedicamento,
-          principioAtivo: it.principioAtivo ?? '',
-          quantidadeSolicitada: it.quantidadeSolicitada ?? 1,
-        })),
-        interacoesCriticas: interacoesCriticas.length,
-      },
-    });
+      await auditarLgpd({
+        usuarioId: sessao.usuario.id,
+        role: sessao.usuario.role as never,
+        atendimentoId,
+        acao: 'CRIACAO',
+        entidade: 'PrescricaoIntegradaFarmacia',
+        entidadeId: prescricao.id,
+        ipOrigem: req.headers.get('x-forwarded-for') ?? null,
+        userAgent: req.headers.get('user-agent') ?? null,
+        detalhes: {
+          itens: itens.map((it) => ({
+            medicamentoNome: it.nomeMedicamento,
+            principioAtivo: it.principioAtivo ?? '',
+            quantidadeSolicitada: it.quantidadeSolicitada ?? 1,
+          })),
+          interacoesCriticas: interacoesCriticas.length,
+        },
+      });
+
+      dispararEventoPusher(CANAIS_PUSHER.farmaciaTriagem, EVENTOS_PUSHER.NOVA_PRESCRICAO, {
+        prescricaoId: prescricao.id,
+        atendimentoId,
+        criadoPor: sessao.usuario.nome,
+        totalItens: itens.length,
+        timestamp: new Date().toISOString(),
+      });
     }
 
     return NextResponse.json({

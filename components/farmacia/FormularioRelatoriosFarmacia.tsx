@@ -66,12 +66,12 @@ export function FormularioRelatoriosFarmacia() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-start gap-2">
-          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" aria-hidden />
+          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" aria-hidden />
           <div>
-            <p className="text-sm font-semibold text-slate-900">Relatório de Faltantes</p>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Relatório de Faltantes</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Prescrições aguardando dispensação sem saldo suficiente em estoque.
             </p>
           </div>
@@ -81,7 +81,7 @@ export function FormularioRelatoriosFarmacia() {
             type="button"
             onClick={() => handleVerTela('faltantes')}
             disabled={carregando !== null}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-xl border border-slate-200 dark:border-slate-800 bg-background text-foreground px-3 py-2 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
             aria-label="Ver relatório de faltantes na tela"
           >
             Ver na tela
@@ -99,12 +99,12 @@ export function FormularioRelatoriosFarmacia() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-start gap-2">
-          <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" aria-hidden />
+          <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-500 shrink-0 mt-0.5" aria-hidden />
           <div>
-            <p className="text-sm font-semibold text-slate-900">Relatório de Estoque Mínimo</p>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Relatório de Estoque Mínimo</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Medicamentos com saldo atual igual ou abaixo do estoque mínimo configurado.
             </p>
           </div>
@@ -114,7 +114,7 @@ export function FormularioRelatoriosFarmacia() {
             type="button"
             onClick={() => handleVerTela('estoque-minimo')}
             disabled={carregando !== null}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-xl border border-slate-200 dark:border-slate-800 bg-background text-foreground px-3 py-2 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
             aria-label="Ver relatório de estoque mínimo na tela"
           >
             Ver na tela

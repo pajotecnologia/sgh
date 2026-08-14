@@ -38,7 +38,23 @@ const schemaItem = z.object({
 
 const schemaCriar = z.object({
 
-  tipo: z.enum(['BAIXA_MANUAL', 'DISPENSACAO_PRESCRICAO']),
+  tipo: z.enum([
+
+    'DISPENSACAO_PRESCRICAO',
+
+    'SAIDA_SEM_NOTA',
+
+    'EMPRESTIMO_SAIDA',
+
+    'PERDA_AVARIA_VALIDADE',
+
+    'DEVOLUCAO_FORNECEDOR',
+
+    'OUTRAS_SAIDAS',
+
+    'BAIXA_MANUAL',
+
+  ]),
 
   atendimentoId: z.string().uuid().optional().nullable(),
 
@@ -80,7 +96,7 @@ export async function GET(req: NextRequest) {
 
         AND: [
 
-          tipo === 'BAIXA_MANUAL' || tipo === 'DISPENSACAO_PRESCRICAO' ? { tipo: tipo as any } : {},
+          tipo ? { tipo: tipo as any } : {},
 
           q
 
@@ -204,7 +220,7 @@ export async function POST(req: NextRequest) {
 
     const d = validacao.data
 
-    if (d.tipo !== 'BAIXA_MANUAL') {
+    if (d.tipo === 'DISPENSACAO_PRESCRICAO') {
 
       return NextResponse.json(
 
@@ -212,7 +228,7 @@ export async function POST(req: NextRequest) {
 
           sucesso: false,
 
-          erro: 'Saída por dispensação é gerada pela triagem farmacêutica. Use BAIXA MANUAL para ajustes.',
+          erro: 'Saída por dispensação é gerada pela triagem de prescrição do paciente.',
 
         },
 
@@ -245,38 +261,97 @@ export async function POST(req: NextRequest) {
 
 
     const saida = await prisma.$transaction(async (tx) => {
+
       const header = await tx.tbFarmaciaSaida.create({
+
         data: {
-          tipo: d.tipo as 'BAIXA_MANUAL',
+
+          tipo: d.tipo as any,
+
           atendimentoId: d.atendimentoId ?? null,
+
           observacoes: d.observacoes?.trim() || null,
+
           criadoPorId: sessao.usuario.id,
+
         },
+
       })
 
+
+
       const itensSaida: Array<{
+
         saidaId: string
+
         medicamentoId: string
+
         loteId: string | null
+
         quantidade: number
+
         motivo: string | null
+
       }> = []
 
+
+
+      const tipoMov =
+
+        d.tipo === 'EMPRESTIMO_SAIDA'
+
+          ? 'EMPRESTIMO_SAIDA'
+
+          : d.tipo === 'PERDA_AVARIA_VALIDADE'
+
+          ? 'PERDA_AVARIA_VALIDADE'
+
+          : d.tipo === 'DEVOLUCAO_FORNECEDOR'
+
+          ? 'DEVOLUCAO_FORNECEDOR'
+
+          : d.tipo === 'SAIDA_SEM_NOTA'
+
+          ? 'SAIDA_SEM_NOTA'
+
+          : d.tipo === 'OUTRAS_SAIDAS'
+
+          ? 'OUTRAS_SAIDAS'
+
+          : 'SAIDA_MANUAL'
+
+
+
       for (const it of d.itens) {
+
         const debito = await debitarEstoqueFefo(tx, {
+
           medicamentoId: it.medicamentoId,
+
           quantidade: it.quantidade,
-          tipo: 'SAIDA_MANUAL',
+
+          tipo: tipoMov as any,
+
           referenciaTipo: 'TbFarmaciaSaida',
+
           referenciaId: header.id,
+
           usuarioId: sessao.usuario.id,
+
           observacoes: it.motivo ?? d.observacoes ?? null,
+
         })
 
+
+
         for (const a of debito.alocacoes) {
+
           itensSaida.push({
+
             saidaId: header.id,
+
             medicamentoId: it.medicamentoId,
+
             loteId: a.loteId,
             quantidade: a.quantidade,
             motivo: it.motivo?.trim() || null,

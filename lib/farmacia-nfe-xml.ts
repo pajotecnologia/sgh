@@ -3,12 +3,26 @@
 export type ItemNfeParseado = {
   indice: number
   codigoProduto: string | null
+  codigoEan: string | null
+  codigoAnvisa: string | null
   descricao: string
+  ncm: string | null
+  cfop: string | null
+  unidadeComercial: string | null
+  quantidadeComercial: number
+  valorUnitarioComercial: number | null
+  valorTotalProduto: number | null
+  unidadeTributavel: string | null
+  quantidadeTributavel: number | null
+  valorUnitarioTributavel: number | null
+  vPMC: number | null
+  lote: string | null
+  quantidadeLote: number | null
+  dataFabricacao: string | null
+  validade: string | null
+  // Compatibilidade com campos antigos
   quantidade: number
   valorUnitario: number | null
-  lote: string | null
-  validade: string | null
-  ncm: string | null
 }
 
 export type NfeParseada = {
@@ -104,28 +118,66 @@ export function parsearXmlNfe(xmlRaw: string): NfeParseada {
 
   const itens: ItemNfeParseado[] = detBlocos.map((det, idx) => {
     const prodBloco = extrairBlocos(det, 'prod')[0] ?? det
+    const medBloco = extrairBlocos(det, 'med')[0] ?? extrairBlocos(det, 'prodEspecifico')[0] ?? ''
     const rastroBloco = extrairBlocos(det, 'rastro')[0] ?? ''
 
-    const descricao = extrairTag(prodBloco, 'xProd') ?? `Item ${idx + 1}`
-    const qCom = parseNumero(extrairTag(prodBloco, 'qCom'))
-    const vUnCom = extrairTag(prodBloco, 'vUnCom')
-    const valorUnitario = vUnCom != null ? parseNumero(vUnCom) : null
+    const codigoProduto = extrairTag(prodBloco, 'cProd')
+    const eanRaw = extrairTag(prodBloco, 'cEAN') ?? extrairTag(prodBloco, 'cEANTrib')
+    const codigoEan = eanRaw && eanRaw !== 'SEM GTIN' ? eanRaw : null
 
-    const lote = extrairTag(rastroBloco, 'nLote')
-    const validadeRaw = extrairTag(rastroBloco, 'dVal') ?? extrairTag(rastroBloco, 'dFab')
-    const validade = parseDataNfe(validadeRaw)
+    const codigoAnvisa = extrairTag(medBloco, 'cProdANVISA') ?? extrairTag(det, 'cProdANVISA')
+    const vPMCRaw = extrairTag(medBloco, 'vPMC') ?? extrairTag(det, 'vPMC')
+    const vPMC = vPMCRaw ? parseNumero(vPMCRaw) : null
+
+    const descricao = extrairTag(prodBloco, 'xProd') ?? `Item ${idx + 1}`
+    const ncm = extrairTag(prodBloco, 'NCM')
+    const cfop = extrairTag(prodBloco, 'CFOP')
+
+    const uCom = extrairTag(prodBloco, 'uCom')
+    const qCom = parseNumero(extrairTag(prodBloco, 'qCom'))
+    const vUnComRaw = extrairTag(prodBloco, 'vUnCom')
+    const valorUnitarioComercial = vUnComRaw != null ? parseNumero(vUnComRaw) : null
+    const vProdRaw = extrairTag(prodBloco, 'vProd')
+    const valorTotalProduto = vProdRaw != null ? parseNumero(vProdRaw) : null
+
+    const uTrib = extrairTag(prodBloco, 'uTrib')
+    const qTribRaw = extrairTag(prodBloco, 'qTrib')
+    const quantidadeTributavel = qTribRaw ? parseNumero(qTribRaw) : null
+    const vUnTribRaw = extrairTag(prodBloco, 'vUnTrib')
+    const valorUnitarioTributavel = vUnTribRaw ? parseNumero(vUnTribRaw) : null
+
+    const lote = extrairTag(rastroBloco, 'nLote') ?? extrairTag(det, 'nLote')
+    const qLoteRaw = extrairTag(rastroBloco, 'qLote')
+    const quantidadeLote = qLoteRaw ? parseNumero(qLoteRaw) : null
+
+    const dataFabricacao = parseDataNfe(extrairTag(rastroBloco, 'dFab') ?? extrairTag(det, 'dFab'))
+    const validade = parseDataNfe(extrairTag(rastroBloco, 'dVal') ?? extrairTag(det, 'dVal'))
 
     const quantidade = Math.max(1, Math.round(qCom))
 
     return {
       indice: idx + 1,
-      codigoProduto: extrairTag(prodBloco, 'cProd'),
+      codigoProduto,
+      codigoEan,
+      codigoAnvisa,
       descricao,
-      quantidade,
-      valorUnitario,
+      ncm,
+      cfop,
+      unidadeComercial: uCom,
+      quantidadeComercial: qCom,
+      valorUnitarioComercial,
+      valorTotalProduto,
+      unidadeTributavel: uTrib,
+      quantidadeTributavel,
+      valorUnitarioTributavel,
+      vPMC,
       lote,
+      quantidadeLote,
+      dataFabricacao,
       validade,
-      ncm: extrairTag(prodBloco, 'NCM'),
+      // Compatibilidade retroativa
+      quantidade,
+      valorUnitario: valorUnitarioComercial,
     }
   })
 

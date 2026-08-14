@@ -41,27 +41,17 @@ const schemaItem = z.object({
 
 
 const schemaCriar = z.object({
-
+  tipo: z.enum(['ENTRADA_NF', 'ENTRADA_SEM_NOTA', 'EMPRESTIMO_ENTRADA', 'DEVOLUCAO_PACIENTE', 'OUTRAS_ENTRADAS']).optional(),
   numeroNota: z.string().min(1).max(60),
-
   serie: z.string().max(20).optional().nullable(),
-
   fornecedorNome: z.string().max(180).optional().nullable(),
-
   fornecedorCnpj: z.string().max(20).optional().nullable(),
-
   emitidaEm: z.string().optional().nullable(),
-
   recebidaEm: z.string().optional().nullable(),
-
   observacoes: z.string().max(2000).optional().nullable(),
-
   importadaXml: z.boolean().optional(),
-
   chaveNfe: z.string().max(44).optional().nullable(),
-
   itens: z.array(schemaItem).min(1).max(200),
-
 })
 
 
@@ -207,27 +197,17 @@ export async function POST(req: NextRequest) {
         tx,
 
         {
-
+          tipo: d.tipo,
           numeroNota: d.numeroNota,
-
           serie: d.serie,
-
           fornecedorNome: d.fornecedorNome,
-
           fornecedorCnpj: d.fornecedorCnpj,
-
           emitidaEm: d.emitidaEm,
-
           recebidaEm: d.recebidaEm,
-
           observacoes: d.observacoes,
-
           importadaXml: d.importadaXml,
-
           chaveNfe: d.chaveNfe,
-
           itens: d.itens,
-
         },
 
         sessao.usuario.id

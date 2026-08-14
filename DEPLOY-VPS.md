@@ -226,15 +226,41 @@ sudo ufw enable
 
 ---
 
+## 8. Atualização Automatizada em Produção (`sgh.pajotech.com.br`)
+
+Para realizar a atualização em produção de forma 100% automatizada e sem intervenção manual em cada etapa:
+
+No servidor de produção (`sgh.pajotech.com.br`), navegue até o diretório do projeto e execute:
+
+```bash
+# Opção 1: Via atalho do npm
+npm run deploy:prod
+
+# Opção 2: Direto via script shell
+./scripts/deploy-producao.sh
+```
+
+Este comando realiza automaticamente:
+1. `git pull origin main` (baixa as últimas alterações do GitHub)
+2. `npm ci` (sincroniza as dependências exatas do pacote)
+3. `npm run db:migrate:deploy` (aplica todas as novas migrações do PostgreSQL)
+4. `npm run build:release` (compila o Next.js e empacota o release)
+5. `pm2 reload sgh.pajotech.com.br` (recarrega o processo PM2 com zero downtime)
+
+---
+
 ## Referência rápida de comandos
 
 | Objetivo | Comando |
 |----------|---------|
+| **Atualizar Produção (Automático)** | `npm run deploy:prod` ou `./scripts/deploy-producao.sh` |
 | Build + pasta `release/app` | `npm run build:release` |
 | Só build Next | `npm run build` |
 | Regenerar SQL do schema | `npm run db:schema:sql` |
 | Aplicar migrações (servidor com repo) | `npm run db:migrate:deploy` |
 | Dados iniciais / utilizadores demo | `npm run db:seed` |
-| Arranque em produção | `NODE_ENV=production node server.js` (na pasta `release/app`) |
+| Status do PM2 em Produção | `pm2 status sgh.pajotech.com.br` |
+| Arranque manual em produção | `NODE_ENV=production node server.js` (na pasta `release/app`) |
 
-Ficheiros úteis neste repositório: `docker-compose.yml` (Postgres local), `.env.example` (variáveis), `database/sgh_schema_completo.sql` (DDL), `README.md` (desenvolvimento).
+Ficheiros úteis neste repositório: `scripts/deploy-producao.sh` (Script de Deploy Automatizado), `docker-compose.yml` (Postgres local), `.env.example` (variáveis), `database/sgh_schema_completo.sql` (DDL), `README.md` (desenvolvimento).
+

@@ -50,18 +50,41 @@ ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'DIRETOR_CLINICO';
 ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'FARMACEUTICO';
 
 DO $$ BEGIN
-  CREATE TYPE "TipoMovimentacaoFarmacia" AS ENUM ('ENTRADA_NF', 'ENTRADA_MANUAL', 'SAIDA_DISPENSACAO', 'SAIDA_MANUAL', 'AJUSTE');
+  CREATE TYPE "TipoMovimentacaoFarmacia" AS ENUM ('ENTRADA_NF', 'ENTRADA_SEM_NOTA', 'EMPRESTIMO_ENTRADA', 'DEVOLUCAO_PACIENTE', 'OUTRAS_ENTRADAS', 'ENTRADA_MANUAL', 'SAIDA_DISPENSACAO', 'SAIDA_SEM_NOTA', 'EMPRESTIMO_SAIDA', 'PERDA_AVARIA_VALIDADE', 'DEVOLUCAO_FORNECEDOR', 'OUTRAS_SAIDAS', 'SAIDA_MANUAL', 'AJUSTE');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 ALTER TYPE "TipoMovimentacaoFarmacia" ADD VALUE IF NOT EXISTS 'ENTRADA_NF';
+ALTER TYPE "TipoMovimentacaoFarmacia" ADD VALUE IF NOT EXISTS 'ENTRADA_SEM_NOTA';
+ALTER TYPE "TipoMovimentacaoFarmacia" ADD VALUE IF NOT EXISTS 'EMPRESTIMO_ENTRADA';
+ALTER TYPE "TipoMovimentacaoFarmacia" ADD VALUE IF NOT EXISTS 'DEVOLUCAO_PACIENTE';
+ALTER TYPE "TipoMovimentacaoFarmacia" ADD VALUE IF NOT EXISTS 'OUTRAS_ENTRADAS';
 ALTER TYPE "TipoMovimentacaoFarmacia" ADD VALUE IF NOT EXISTS 'ENTRADA_MANUAL';
 ALTER TYPE "TipoMovimentacaoFarmacia" ADD VALUE IF NOT EXISTS 'SAIDA_DISPENSACAO';
+ALTER TYPE "TipoMovimentacaoFarmacia" ADD VALUE IF NOT EXISTS 'SAIDA_SEM_NOTA';
+ALTER TYPE "TipoMovimentacaoFarmacia" ADD VALUE IF NOT EXISTS 'EMPRESTIMO_SAIDA';
+ALTER TYPE "TipoMovimentacaoFarmacia" ADD VALUE IF NOT EXISTS 'PERDA_AVARIA_VALIDADE';
+ALTER TYPE "TipoMovimentacaoFarmacia" ADD VALUE IF NOT EXISTS 'DEVOLUCAO_FORNECEDOR';
+ALTER TYPE "TipoMovimentacaoFarmacia" ADD VALUE IF NOT EXISTS 'OUTRAS_SAIDAS';
 ALTER TYPE "TipoMovimentacaoFarmacia" ADD VALUE IF NOT EXISTS 'SAIDA_MANUAL';
 ALTER TYPE "TipoMovimentacaoFarmacia" ADD VALUE IF NOT EXISTS 'AJUSTE';
 
 DO $$ BEGIN
-  CREATE TYPE "TipoSaidaFarmacia" AS ENUM ('DISPENSACAO_PRESCRICAO', 'BAIXA_MANUAL');
+  CREATE TYPE "TipoEntradaFarmacia" AS ENUM ('ENTRADA_NF', 'ENTRADA_SEM_NOTA', 'EMPRESTIMO_ENTRADA', 'DEVOLUCAO_PACIENTE', 'OUTRAS_ENTRADAS');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+ALTER TYPE "TipoEntradaFarmacia" ADD VALUE IF NOT EXISTS 'ENTRADA_NF';
+ALTER TYPE "TipoEntradaFarmacia" ADD VALUE IF NOT EXISTS 'ENTRADA_SEM_NOTA';
+ALTER TYPE "TipoEntradaFarmacia" ADD VALUE IF NOT EXISTS 'EMPRESTIMO_ENTRADA';
+ALTER TYPE "TipoEntradaFarmacia" ADD VALUE IF NOT EXISTS 'DEVOLUCAO_PACIENTE';
+ALTER TYPE "TipoEntradaFarmacia" ADD VALUE IF NOT EXISTS 'OUTRAS_ENTRADAS';
+
+DO $$ BEGIN
+  CREATE TYPE "TipoSaidaFarmacia" AS ENUM ('DISPENSACAO_PRESCRICAO', 'SAIDA_SEM_NOTA', 'EMPRESTIMO_SAIDA', 'PERDA_AVARIA_VALIDADE', 'DEVOLUCAO_FORNECEDOR', 'OUTRAS_SAIDAS', 'BAIXA_MANUAL');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 ALTER TYPE "TipoSaidaFarmacia" ADD VALUE IF NOT EXISTS 'DISPENSACAO_PRESCRICAO';
+ALTER TYPE "TipoSaidaFarmacia" ADD VALUE IF NOT EXISTS 'SAIDA_SEM_NOTA';
+ALTER TYPE "TipoSaidaFarmacia" ADD VALUE IF NOT EXISTS 'EMPRESTIMO_SAIDA';
+ALTER TYPE "TipoSaidaFarmacia" ADD VALUE IF NOT EXISTS 'PERDA_AVARIA_VALIDADE';
+ALTER TYPE "TipoSaidaFarmacia" ADD VALUE IF NOT EXISTS 'DEVOLUCAO_FORNECEDOR';
+ALTER TYPE "TipoSaidaFarmacia" ADD VALUE IF NOT EXISTS 'OUTRAS_SAIDAS';
 ALTER TYPE "TipoSaidaFarmacia" ADD VALUE IF NOT EXISTS 'BAIXA_MANUAL';
 
 DO $$ BEGIN
@@ -162,8 +185,9 @@ ALTER TYPE "CategoriaExame" ADD VALUE IF NOT EXISTS 'PROCEDIMENTO';
 ALTER TYPE "CategoriaExame" ADD VALUE IF NOT EXISTS 'OUTRO';
 
 DO $$ BEGIN
-  CREATE TYPE "TipoEncaminhamento" AS ENUM ('EXTERNO', 'INTERNACAO');
+  CREATE TYPE "TipoEncaminhamento" AS ENUM ('INTERNO', 'EXTERNO', 'INTERNACAO');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+ALTER TYPE "TipoEncaminhamento" ADD VALUE IF NOT EXISTS 'INTERNO';
 ALTER TYPE "TipoEncaminhamento" ADD VALUE IF NOT EXISTS 'EXTERNO';
 ALTER TYPE "TipoEncaminhamento" ADD VALUE IF NOT EXISTS 'INTERNACAO';
 
@@ -1511,6 +1535,16 @@ CREATE TABLE IF NOT EXISTS "tb_medicamento" (
     "forma" TEXT,
     "concentracao" TEXT,
     "unidade" TEXT,
+    "codigoEan" TEXT,
+    "codigoAnvisa" TEXT,
+    "classeTerapeutica" TEXT,
+    "viaAdministracao" TEXT,
+    "mav" BOOLEAN NOT NULL DEFAULT false,
+    "duplaChecagem" BOOLEAN NOT NULL DEFAULT false,
+    "tipoControle" TEXT,
+    "alertasAlergia" TEXT,
+    "localizacaoFisica" TEXT,
+    "temperaturaArmazenamento" TEXT,
     "saldoAtual" INTEGER NOT NULL DEFAULT 0,
     "saldoReservado" INTEGER NOT NULL DEFAULT 0,
     "estoqueMinimo" INTEGER NOT NULL DEFAULT 0,
@@ -1526,6 +1560,16 @@ ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "principioAtivo" TEXT;
 ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "forma" TEXT;
 ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "concentracao" TEXT;
 ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "unidade" TEXT;
+ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "codigoEan" TEXT;
+ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "codigoAnvisa" TEXT;
+ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "classeTerapeutica" TEXT;
+ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "viaAdministracao" TEXT;
+ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "mav" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "duplaChecagem" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "tipoControle" TEXT;
+ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "alertasAlergia" TEXT;
+ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "localizacaoFisica" TEXT;
+ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "temperaturaArmazenamento" TEXT;
 ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "saldoAtual" INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "saldoReservado" INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "estoqueMinimo" INTEGER NOT NULL DEFAULT 0;
@@ -1707,11 +1751,45 @@ ALTER TABLE "tb_farmacia_dispensacao" ADD COLUMN IF NOT EXISTS "validadoEm" TIME
 ALTER TABLE "tb_farmacia_dispensacao" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE "tb_farmacia_dispensacao" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
+-- tb_fornecedores
+CREATE TABLE IF NOT EXISTS "tb_fornecedores" (
+    "id" TEXT NOT NULL,
+    "razaoSocial" TEXT NOT NULL,
+    "nomeFantasia" TEXT,
+    "cnpj" TEXT NOT NULL,
+    "inscricaoEstadual" TEXT,
+    "telefone" TEXT,
+    "email" TEXT,
+    "endereco" TEXT,
+    "cidade" TEXT,
+    "uf" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "tb_fornecedores_pkey" PRIMARY KEY ("id")
+);
+ALTER TABLE "tb_fornecedores" ADD COLUMN IF NOT EXISTS "id" TEXT;
+ALTER TABLE "tb_fornecedores" ADD COLUMN IF NOT EXISTS "razaoSocial" TEXT;
+ALTER TABLE "tb_fornecedores" ADD COLUMN IF NOT EXISTS "nomeFantasia" TEXT;
+ALTER TABLE "tb_fornecedores" ADD COLUMN IF NOT EXISTS "cnpj" TEXT;
+ALTER TABLE "tb_fornecedores" ADD COLUMN IF NOT EXISTS "inscricaoEstadual" TEXT;
+ALTER TABLE "tb_fornecedores" ADD COLUMN IF NOT EXISTS "telefone" TEXT;
+ALTER TABLE "tb_fornecedores" ADD COLUMN IF NOT EXISTS "email" TEXT;
+ALTER TABLE "tb_fornecedores" ADD COLUMN IF NOT EXISTS "endereco" TEXT;
+ALTER TABLE "tb_fornecedores" ADD COLUMN IF NOT EXISTS "cidade" TEXT;
+ALTER TABLE "tb_fornecedores" ADD COLUMN IF NOT EXISTS "uf" TEXT;
+ALTER TABLE "tb_fornecedores" ADD COLUMN IF NOT EXISTS "ativo" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "tb_fornecedores" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE "tb_fornecedores" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
 -- tb_farmacia_entrada_nf
 CREATE TABLE IF NOT EXISTS "tb_farmacia_entrada_nf" (
     "id" TEXT NOT NULL,
+    "tipo" "TipoEntradaFarmacia" NOT NULL DEFAULT 'ENTRADA_NF',
     "numeroNota" TEXT NOT NULL,
     "serie" TEXT,
+    "fornecedorId" TEXT,
     "fornecedorNome" TEXT,
     "fornecedorCnpj" TEXT,
     "emitidaEm" TIMESTAMP(3),
@@ -1726,8 +1804,10 @@ CREATE TABLE IF NOT EXISTS "tb_farmacia_entrada_nf" (
     CONSTRAINT "tb_farmacia_entrada_nf_pkey" PRIMARY KEY ("id")
 );
 ALTER TABLE "tb_farmacia_entrada_nf" ADD COLUMN IF NOT EXISTS "id" TEXT;
+ALTER TABLE "tb_farmacia_entrada_nf" ADD COLUMN IF NOT EXISTS "tipo" "TipoEntradaFarmacia" NOT NULL DEFAULT 'ENTRADA_NF';
 ALTER TABLE "tb_farmacia_entrada_nf" ADD COLUMN IF NOT EXISTS "numeroNota" TEXT;
 ALTER TABLE "tb_farmacia_entrada_nf" ADD COLUMN IF NOT EXISTS "serie" TEXT;
+ALTER TABLE "tb_farmacia_entrada_nf" ADD COLUMN IF NOT EXISTS "fornecedorId" TEXT;
 ALTER TABLE "tb_farmacia_entrada_nf" ADD COLUMN IF NOT EXISTS "fornecedorNome" TEXT;
 ALTER TABLE "tb_farmacia_entrada_nf" ADD COLUMN IF NOT EXISTS "fornecedorCnpj" TEXT;
 ALTER TABLE "tb_farmacia_entrada_nf" ADD COLUMN IF NOT EXISTS "emitidaEm" TIMESTAMP(3);
@@ -1946,6 +2026,10 @@ CREATE INDEX IF NOT EXISTS "tb_prescricao_item_statusValidacao_idx" ON "tb_presc
 CREATE UNIQUE INDEX IF NOT EXISTS "tb_farmacia_dispensacao_itemId_key" ON "tb_farmacia_dispensacao"("itemId");
 CREATE INDEX IF NOT EXISTS "tb_farmacia_dispensacao_status_idx" ON "tb_farmacia_dispensacao"("status");
 CREATE INDEX IF NOT EXISTS "tb_farmacia_dispensacao_validadoEm_idx" ON "tb_farmacia_dispensacao"("validadoEm");
+CREATE UNIQUE INDEX IF NOT EXISTS "tb_fornecedores_cnpj_key" ON "tb_fornecedores"("cnpj");
+CREATE INDEX IF NOT EXISTS "tb_fornecedores_razaoSocial_idx" ON "tb_fornecedores"("razaoSocial");
+CREATE INDEX IF NOT EXISTS "tb_fornecedores_cnpj_idx" ON "tb_fornecedores"("cnpj");
+CREATE INDEX IF NOT EXISTS "tb_farmacia_entrada_nf_tipo_idx" ON "tb_farmacia_entrada_nf"("tipo");
 CREATE INDEX IF NOT EXISTS "tb_farmacia_entrada_nf_numeroNota_idx" ON "tb_farmacia_entrada_nf"("numeroNota");
 CREATE INDEX IF NOT EXISTS "tb_farmacia_entrada_nf_recebidaEm_idx" ON "tb_farmacia_entrada_nf"("recebidaEm");
 CREATE INDEX IF NOT EXISTS "tb_farmacia_entrada_nf_item_entradaId_idx" ON "tb_farmacia_entrada_nf_item"("entradaId");
@@ -2117,6 +2201,9 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   ALTER TABLE "tb_farmacia_dispensacao" ADD CONSTRAINT "tb_farmacia_dispensacao_validadoPorId_fkey" FOREIGN KEY ("validadoPorId") REFERENCES "usuarios"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "tb_farmacia_entrada_nf" ADD CONSTRAINT "tb_farmacia_entrada_nf_fornecedorId_fkey" FOREIGN KEY ("fornecedorId") REFERENCES "tb_fornecedores"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   ALTER TABLE "tb_farmacia_entrada_nf" ADD CONSTRAINT "tb_farmacia_entrada_nf_criadoPorId_fkey" FOREIGN KEY ("criadoPorId") REFERENCES "usuarios"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -2328,6 +2415,9 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 --   tb_prescricao_item.frequencia — adicionada como NULL (NOT NULL sem DEFAULT)
 --   tb_farmacia_dispensacao.id — adicionada como NULL (NOT NULL sem DEFAULT)
 --   tb_farmacia_dispensacao.itemId — adicionada como NULL (NOT NULL sem DEFAULT)
+--   tb_fornecedores.id — adicionada como NULL (NOT NULL sem DEFAULT)
+--   tb_fornecedores.razaoSocial — adicionada como NULL (NOT NULL sem DEFAULT)
+--   tb_fornecedores.cnpj — adicionada como NULL (NOT NULL sem DEFAULT)
 --   tb_farmacia_entrada_nf.id — adicionada como NULL (NOT NULL sem DEFAULT)
 --   tb_farmacia_entrada_nf.numeroNota — adicionada como NULL (NOT NULL sem DEFAULT)
 --   tb_farmacia_entrada_nf_item.id — adicionada como NULL (NOT NULL sem DEFAULT)

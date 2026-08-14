@@ -16,7 +16,7 @@ import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { FormularioAplicacaoMedicamento } from '@/components/enfermagem/FormularioAplicacaoMedicamento'
 import { LABEL_VIA } from '@/lib/fila-medicacao'
-import { formatarDosePrescricao } from '@/lib/prescricao-ui'
+import { formatarDosePrescricao, formatarResumoLinhaPrescricao } from '@/lib/prescricao-ui'
 
 type ItemPrescricao = {
   id: string
@@ -329,7 +329,7 @@ export const AbaInstrucoesEnfermagem = ({
                 <li key={i.id} className="px-3 py-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <span className="text-sm font-semibold text-foreground">{i.nomeMedicamento}</span>
                   <span className="text-xs text-muted-foreground">
-                    {formatarDosePrescricao(i.dose, i.unidadeMedida)} · {LABEL_VIA[i.via] ?? i.via} · {i.frequencia}
+                    {formatarResumoLinhaPrescricao(i)}
                     {i.duracaoDias ? ` · ${i.duracaoDias} dia(s)` : ''}
                   </span>
                   <span
@@ -415,7 +415,7 @@ export const AbaInstrucoesEnfermagem = ({
                     >
                       <span className="font-semibold block truncate">{it.nomeMedicamento}</span>
                       <span className="text-[10px] opacity-80">
-                        {formatarDosePrescricao(it.dose, it.unidadeMedida)} · {LABEL_VIA[it.via] ?? it.via}
+                        {formatarResumoLinhaPrescricao(it)}
                       </span>
                     </button>
                   </li>
@@ -437,7 +437,7 @@ export const AbaInstrucoesEnfermagem = ({
                   item={{
                     id: itemAtivo.id,
                     nomeMedicamento: itemAtivo.nomeMedicamento,
-                    dose: formatarDosePrescricao(itemAtivo.dose, itemAtivo.unidadeMedida),
+                    dose: formatarDosePrescricao(itemAtivo.dose, itemAtivo.unidadeMedida) || itemAtivo.observacoes?.trim() || 'Conforme orientação',
                     via: itemAtivo.via,
                     frequencia: itemAtivo.frequencia,
                   }}

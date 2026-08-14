@@ -144,15 +144,16 @@ export const mapItensPrescricaoMedicaPadraoParaForm = (
       const tipoItem = normalizarTipoItemPrescricao(item.tipoItem)
 
       if (tipoItem === 'LINHA_DUPLA') {
+        const obs = item.observacoes?.trim() ?? ''
         return {
           nomeMedicamento: item.nomeMedicamento.trim(),
           principioAtivo: '',
-          dose: MARCADOR_DOSE_LINHA_DUPLA,
+          dose: obs || '—',
           unidadeMedida: '',
           via: 'ORAL' as ViaPrescricao,
-          frequencia: 'Conforme prescrição',
+          frequencia: obs || 'Conforme prescrição',
           quantidadeSolicitada: 1,
-          observacoes: item.observacoes?.trim() ?? '',
+          observacoes: obs,
         }
       }
 

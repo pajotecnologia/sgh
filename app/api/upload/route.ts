@@ -44,7 +44,9 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    const uploadDir = join(process.cwd(), 'public', 'uploads')
+    const uploadDir = process.env.UPLOAD_DIR
+      ? join(process.env.UPLOAD_DIR)
+      : join(process.cwd(), 'storage', 'uploads')
 
     try {
       await mkdir(uploadDir, { recursive: true })
@@ -59,7 +61,7 @@ export async function POST(req: Request) {
     await writeFile(filePath, buffer)
 
     return NextResponse.json(
-      { sucesso: true, url: `/uploads/${fileName}`, tipo },
+      { sucesso: true, url: `/api/uploads/${fileName}`, tipo },
       { status: 201 }
     )
   } catch (error) {

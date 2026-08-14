@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createHash, randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { enviarEmailSmtp } from '@/lib/enviar-email-smtp';
+import { verificarRateLimit, obterIpCliente } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = obterIpCliente(req);
+    const rl = verificarRateLimit(`recuperar-senha:${ip}`, { limite: 5, janelaSegundos: 60 });
+    if (!rl.sucesso) {
+      return NextResponse.json(
+        { sucesso: false, erro: `Muitas solicitações. Tente novamente em ${rl.retryAfterSegundos} segundos.` },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfterSegundos) } }
+      );
+    }
+
     const body = await req.json();
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
     if (!email || !email.includes('@')) {

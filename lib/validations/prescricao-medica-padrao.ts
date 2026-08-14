@@ -17,14 +17,14 @@ export const schemaItemPrescricaoMedicaPadraoTextoLivre = z.object({
     .string()
     .min(2, 'Informe o texto da linha (mín. 2 caracteres).')
     .max(500, 'Texto muito longo (máx. 500 caracteres).'),
-  principioAtivo: z.string().max(120).optional().or(z.literal('')),
-  dose: z.string().optional().or(z.literal('')),
-  unidadeMedida: z.string().optional().or(z.literal('')),
-  via: z.string().optional().or(z.literal('')),
-  frequencia: z.string().optional().or(z.literal('')),
-  quantidadeSolicitada: z.number().optional(),
-  duracaoDias: z.number().optional(),
-  observacoes: z.string().max(1000).optional().or(z.literal('')),
+  principioAtivo: z.string().max(120).optional().nullable().or(z.literal('')),
+  dose: z.string().optional().nullable().or(z.literal('')),
+  unidadeMedida: z.string().optional().nullable().or(z.literal('')),
+  via: z.string().optional().nullable().or(z.literal('')),
+  frequencia: z.string().optional().nullable().or(z.literal('')),
+  quantidadeSolicitada: z.number().optional().nullable(),
+  duracaoDias: z.number().optional().nullable(),
+  observacoes: z.string().max(1000).optional().nullable().or(z.literal('')),
 })
 
 /** Linha dupla: texto fixo à esquerda (cadastro) + campo à direita (médico na prescrição) */
@@ -38,14 +38,15 @@ export const schemaItemPrescricaoMedicaPadraoLinhaDupla = z.object({
     .string()
     .max(2000, 'Texto da coluna direita muito longo (máx. 2000 caracteres).')
     .optional()
+    .nullable()
     .or(z.literal('')),
-  principioAtivo: z.string().optional().or(z.literal('')),
-  dose: z.string().optional().or(z.literal('')),
-  unidadeMedida: z.string().optional().or(z.literal('')),
-  via: z.string().optional().or(z.literal('')),
-  frequencia: z.string().optional().or(z.literal('')),
-  quantidadeSolicitada: z.number().optional(),
-  duracaoDias: z.number().optional(),
+  principioAtivo: z.string().optional().nullable().or(z.literal('')),
+  dose: z.string().optional().nullable().or(z.literal('')),
+  unidadeMedida: z.string().optional().nullable().or(z.literal('')),
+  via: z.string().optional().nullable().or(z.literal('')),
+  frequencia: z.string().optional().nullable().or(z.literal('')),
+  quantidadeSolicitada: z.number().optional().nullable(),
+  duracaoDias: z.number().optional().nullable(),
 })
 
 export const schemaItemPrescricaoMedicaPadrao = z.discriminatedUnion('tipoItem', [
@@ -55,20 +56,22 @@ export const schemaItemPrescricaoMedicaPadrao = z.discriminatedUnion('tipoItem',
 ])
 
 export const schemaCriarPrescricaoMedicaPadrao = z.object({
-  nome: z.string().min(2, 'Nome obrigatório.').max(120),
-  descricao: z.string().max(500).optional().or(z.literal('')),
-  observacoesPadrao: z.string().max(2000).optional().or(z.literal('')),
+  nome: z.string().min(2, 'Nome da prescrição obrigatório (mín. 2 caracteres).').max(120),
+  descricao: z.string().max(500).optional().nullable().or(z.literal('')),
+  observacoesPadrao: z.string().max(2000).optional().nullable().or(z.literal('')),
   nomeColunaEsquerda: z
     .string()
     .min(2, 'Informe o nome da coluna esquerda.')
     .max(120)
     .optional()
+    .nullable()
     .default(NOME_COLUNA_ESQUERDA_PADRAO),
   nomeColunaDireita: z
     .string()
     .min(2, 'Informe o nome da coluna direita.')
     .max(120)
     .optional()
+    .nullable()
     .default(NOME_COLUNA_DIREITA_PADRAO),
   ativo: z.boolean().optional().default(true),
   itens: z

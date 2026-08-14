@@ -1,6 +1,6 @@
 // lib/farmacia-entrada.ts — Lógica compartilhada de entrada de estoque (manual e XML)
 
-import type { Prisma } from '@prisma/client'
+import type { Prisma, TipoEntradaFarmacia, TipoMovimentacaoFarmacia } from '@prisma/client'
 import { creditarEstoqueLote, type TxClient } from '@/lib/farmacia-estoque'
 
 export type ItemEntradaInput = {
@@ -12,6 +12,7 @@ export type ItemEntradaInput = {
 }
 
 export type DadosEntradaNfInput = {
+  tipo?: TipoEntradaFarmacia
   numeroNota: string
   serie?: string | null
   fornecedorNome?: string | null
@@ -31,9 +32,11 @@ export async function registrarEntradaNf(
 ) {
   const emitidaEm = dados.emitidaEm ? new Date(dados.emitidaEm) : null
   const recebidaEm = dados.recebidaEm ? new Date(dados.recebidaEm) : new Date()
+  const tipoEntrada: TipoEntradaFarmacia = dados.tipo ?? (dados.importadaXml ? 'ENTRADA_NF' : 'ENTRADA_NF')
 
   const entrada = await tx.tbFarmaciaEntradaNf.create({
     data: {
+      tipo: tipoEntrada,
       numeroNota: dados.numeroNota.trim(),
       serie: dados.serie?.trim() || null,
       fornecedorNome: dados.fornecedorNome?.trim() || null,
@@ -49,6 +52,17 @@ export async function registrarEntradaNf(
 
   const itensCriados: Prisma.TbFarmaciaEntradaNfItemGetPayload<object>[] = []
 
+  const tipoMov: TipoMovimentacaoFarmacia =
+    tipoEntrada === 'EMPRESTIMO_ENTRADA'
+      ? 'EMPRESTIMO_ENTRADA'
+      : tipoEntrada === 'DEVOLUCAO_PACIENTE'
+      ? 'DEVOLUCAO_PACIENTE'
+      : tipoEntrada === 'ENTRADA_SEM_NOTA'
+      ? 'ENTRADA_SEM_NOTA'
+      : tipoEntrada === 'OUTRAS_ENTRADAS'
+      ? 'OUTRAS_ENTRADAS'
+      : 'ENTRADA_NF'
+
   for (const it of dados.itens) {
     const loteStr = it.lote?.trim() || 'SEM-LOTE'
     const validade = it.validade ? new Date(it.validade) : null
@@ -58,11 +72,13 @@ export async function registrarEntradaNf(
       quantidade: it.quantidade,
       lote: loteStr,
       validade,
-      tipo: dados.importadaXml ? 'ENTRADA_NF' : 'ENTRADA_NF',
+      tipo: tipoMov,
       referenciaTipo: 'TbFarmaciaEntradaNf',
       referenciaId: entrada.id,
       usuarioId,
-      observacoes: dados.importadaXml ? 'Entrada via importação XML NF-e' : 'Entrada manual NF',
+      observacoes: dados.importadaXml
+        ? 'Entrada via importação XML NF-e'
+        : `Entrada (${tipoEntrada.replace(/_/g, ' ')})`,
     })
 
     const item = await tx.tbFarmaciaEntradaNfItem.create({

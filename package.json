@@ -16,7 +16,8 @@
     "build:release": "node ./node_modules/next/dist/bin/next build && node scripts/package-release.mjs",
     "build:instalador": "node ./node_modules/next/dist/bin/next build && node scripts/package-release.mjs && npm run db:update:sql && node scripts/package-instalador.mjs",
     "db:schema:sql": "node ./node_modules/prisma/build/index.js migrate diff --from-empty --to-schema prisma/schema.prisma --script -o database/sgh_schema_completo.sql",
-    "db:update:sql": "npm run db:schema:sql && node scripts/generate-update-sql.mjs",
+    "db:update:sql": "npm run db:schema:sql && node scripts/generate-update-sql.mjs && node scripts/generate-banco-completo.mjs",
+    "db:full:sql": "node scripts/generate-banco-completo.mjs",
     "start": "node ./node_modules/next/dist/bin/next start",
     "lint": "node ./node_modules/next/dist/bin/next lint",
     "test": "node ./node_modules/vitest/vitest.mjs",
@@ -33,7 +34,9 @@
     "db:constraints": "node scripts/run-prisma.mjs db execute --file prisma/migrations/20260528204500_farmacia_constraints/migration.sql && node scripts/run-prisma.mjs db execute --file prisma/migrations/20260615120000_farmacia_lotes_movimentacao/migration.sql",
     "db:seed:sql": "node scripts/run-tsx.mjs scripts/generate-seed-sql.ts",
     "db:bootstrap": "node scripts/init-sgh-database.mjs",
-    "smoke:rbac": "node scripts/smoke-rbac.mjs"
+    "smoke:rbac": "node scripts/smoke-rbac.mjs",
+    "deploy:prod": "bash scripts/deploy-producao.sh",
+    "deploy:prod:ps": "powershell -ExecutionPolicy Bypass -File scripts/deploy-producao.ps1"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

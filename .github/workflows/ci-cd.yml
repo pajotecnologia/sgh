@@ -1,0 +1,33 @@
+name: CI/CD Pipeline - SGH
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Gerar Prisma Client
+        run: npm run db:generate
+
+      - name: Checagem de Tipos (TypeScript)
+        run: npx tsc --noEmit
+
+      - name: Build da Aplicação
+        run: npm run build

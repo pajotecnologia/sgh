@@ -11,6 +11,7 @@ import { schemaCriarPrescricao, type CriarPrescricaoForm } from '@/lib/validatio
 import { cn } from '@/lib/utils';
 import { ModalInteracaoCritica, type InteracaoCritica } from '@/components/farmacia/ModalInteracaoCritica';
 import { ModalPrescricaoDuplicada, type PrescricaoDuplicada } from '@/components/prescricao/ModalPrescricaoDuplicada';
+import { BuscaMedicamentoEstoque, type MedicamentoCatalogoItem } from '@/components/atendimento/BuscaMedicamentoEstoque';
 import {
   VIAS_ADMINISTRACAO,
   FREQUENCIAS_RAPIDAS,
@@ -453,12 +454,24 @@ export function FormularioPrescricao({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
                 <div className="lg:col-span-4">
                   <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
-                    Medicamento *
+                    Medicamento * <span className="font-normal text-muted-foreground/70">(pesquise no estoque)</span>
                   </label>
-                  <input
-                    {...register(`itens.${itemEmEdicao}.nomeMedicamento`)}
-                    placeholder="Ex.: Dipirona, Losartana"
-                    className={inputClass(itemErrors?.nomeMedicamento)}
+                  <BuscaMedicamentoEstoque
+                    valorNome={itensWatch[itemEmEdicao]?.nomeMedicamento ?? ''}
+                    onNomeChange={(nome) => setValue(`itens.${itemEmEdicao}.nomeMedicamento`, nome, { shouldValidate: true })}
+                    onSelecionarMedicamento={(med: MedicamentoCatalogoItem) => {
+                      setValue(`itens.${itemEmEdicao}.nomeMedicamento`, med.nome, { shouldValidate: true })
+                      if (med.principioAtivo) {
+                        setValue(`itens.${itemEmEdicao}.principioAtivo`, med.principioAtivo, { shouldValidate: true })
+                      }
+                      if (med.concentracao && !itensWatch[itemEmEdicao]?.dose) {
+                        setValue(`itens.${itemEmEdicao}.dose`, med.concentracao, { shouldValidate: true })
+                      }
+                      if (med.unidade) {
+                        setValue(`itens.${itemEmEdicao}.unidadeMedida`, med.unidade, { shouldValidate: true })
+                      }
+                    }}
+                    erro={itemErrors?.nomeMedicamento?.message}
                   />
                   {itemErrors?.nomeMedicamento ? (
                     <span className="text-[10px] text-destructive">{itemErrors.nomeMedicamento.message}</span>

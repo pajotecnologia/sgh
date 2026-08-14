@@ -7,7 +7,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { auditarLgpd } from '@/lib/auditoria-lgpd'
 
-const ROLES = ['ADMIN', 'FARMACEUTICO'] as const
+const ROLES_LEITURA = ['ADMIN', 'FARMACEUTICO', 'MEDICO', 'DIRETOR_CLINICO'] as const
+const ROLES_ESCRITA = ['ADMIN', 'FARMACEUTICO'] as const
 
 const schemaCriar = z.object({
   nome: z.string().min(2).max(120),
@@ -15,6 +16,16 @@ const schemaCriar = z.object({
   forma: z.string().max(80).nullable().optional(),
   concentracao: z.string().max(80).nullable().optional(),
   unidade: z.string().max(40).nullable().optional(),
+  codigoEan: z.string().max(40).nullable().optional(),
+  codigoAnvisa: z.string().max(40).nullable().optional(),
+  classeTerapeutica: z.string().max(120).nullable().optional(),
+  viaAdministracao: z.string().max(60).nullable().optional(),
+  mav: z.boolean().optional(),
+  duplaChecagem: z.boolean().optional(),
+  tipoControle: z.string().max(80).nullable().optional(),
+  alertasAlergia: z.string().max(500).nullable().optional(),
+  localizacaoFisica: z.string().max(150).nullable().optional(),
+  temperaturaArmazenamento: z.string().max(100).nullable().optional(),
   saldoAtual: z.number().int().min(0).optional(),
   estoqueMinimo: z.number().int().min(0).optional(),
 })
@@ -22,7 +33,7 @@ const schemaCriar = z.object({
 export async function GET(req: NextRequest) {
   const sessao = await getServerSession(authOptions)
   if (!sessao) return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 })
-  if (!ROLES.includes(sessao.usuario.role as (typeof ROLES)[number])) {
+  if (!ROLES_LEITURA.includes(sessao.usuario.role as (typeof ROLES_LEITURA)[number])) {
     return NextResponse.json({ sucesso: false, erro: 'Sem permissão.' }, { status: 403 })
   }
 
@@ -39,6 +50,7 @@ export async function GET(req: NextRequest) {
               OR: [
                 { nome: { contains: q, mode: 'insensitive' } },
                 { principioAtivo: { contains: q, mode: 'insensitive' } },
+                { sinonimos: { some: { sinonimo: { contains: q, mode: 'insensitive' } } } },
               ],
             }
           : {}),
@@ -69,7 +81,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const sessao = await getServerSession(authOptions)
   if (!sessao) return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 })
-  if (!ROLES.includes(sessao.usuario.role as (typeof ROLES)[number])) {
+  if (!ROLES_ESCRITA.includes(sessao.usuario.role as (typeof ROLES_ESCRITA)[number])) {
     return NextResponse.json({ sucesso: false, erro: 'Sem permissão.' }, { status: 403 })
   }
 
@@ -91,6 +103,16 @@ export async function POST(req: NextRequest) {
         forma: (d.forma ?? null) ? String(d.forma).trim() : null,
         concentracao: (d.concentracao ?? null) ? String(d.concentracao).trim() : null,
         unidade: (d.unidade ?? null) ? String(d.unidade).trim() : null,
+        codigoEan: (d.codigoEan ?? null) ? String(d.codigoEan).trim() : null,
+        codigoAnvisa: (d.codigoAnvisa ?? null) ? String(d.codigoAnvisa).trim() : null,
+        classeTerapeutica: (d.classeTerapeutica ?? null) ? String(d.classeTerapeutica).trim() : null,
+        viaAdministracao: (d.viaAdministracao ?? null) ? String(d.viaAdministracao).trim() : null,
+        mav: d.mav ?? false,
+        duplaChecagem: d.duplaChecagem ?? false,
+        tipoControle: (d.tipoControle ?? null) ? String(d.tipoControle).trim() : null,
+        alertasAlergia: (d.alertasAlergia ?? null) ? String(d.alertasAlergia).trim() : null,
+        localizacaoFisica: (d.localizacaoFisica ?? null) ? String(d.localizacaoFisica).trim() : null,
+        temperaturaArmazenamento: (d.temperaturaArmazenamento ?? null) ? String(d.temperaturaArmazenamento).trim() : null,
         saldoAtual: d.saldoAtual ?? 0,
         estoqueMinimo: d.estoqueMinimo ?? 0,
         saldoReservado: 0,

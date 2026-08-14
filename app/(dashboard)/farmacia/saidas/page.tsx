@@ -45,18 +45,18 @@ export default async function PaginaSaidasFarmacia() {
         </Link>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-          <p className="text-sm font-semibold text-slate-900">Registros</p>
-          <p className="text-xs text-slate-500">{saidas.length} registros</p>
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Registros</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{saidas.length} registros</p>
         </div>
 
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
           {saidas.map((s) => (
-            <li key={s.id} className="px-4 py-3 flex flex-col md:flex-row md:items-center gap-2">
+            <li key={s.id} className="px-4 py-3 flex flex-col md:flex-row md:items-center gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-900 truncate">{LABEL_TIPO[s.tipo] ?? s.tipo}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{LABEL_TIPO[s.tipo] ?? s.tipo}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(
                     new Date(s.createdAt)
                   )}{' '}
@@ -69,13 +69,13 @@ export default async function PaginaSaidasFarmacia() {
               <div className="flex gap-2 shrink-0">
                 <Link
                   href={`/farmacia/saidas/${s.id}`}
-                  className="no-print rounded-xl px-3 py-2 text-xs font-semibold border border-slate-200 bg-white hover:bg-slate-50"
+                  className="no-print rounded-xl px-3 py-2 text-xs font-semibold border border-slate-200 dark:border-slate-800 bg-background text-foreground hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   Abrir
                 </Link>
                 <Link
                   href={`/farmacia/saidas/imprimir/${s.id}`}
-                  className="no-print rounded-xl px-3 py-2 text-xs font-semibold border border-slate-200 bg-white hover:bg-slate-50"
+                  className="no-print rounded-xl px-3 py-2 text-xs font-semibold border border-slate-200 dark:border-slate-800 bg-background text-foreground hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   Imprimir
                 </Link>
@@ -83,7 +83,7 @@ export default async function PaginaSaidasFarmacia() {
             </li>
           ))}
           {saidas.length === 0 ? (
-            <li className="px-4 py-6 text-sm text-slate-500">Nenhuma saída registrada.</li>
+            <li className="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">Nenhuma saída registrada.</li>
           ) : null}
         </ul>
       </div>

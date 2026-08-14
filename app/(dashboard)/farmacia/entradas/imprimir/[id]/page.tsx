@@ -16,7 +16,20 @@ export default async function ImprimirEntradaNfFarmacia({ params }: { params: Pr
   const entrada = await prisma.tbFarmaciaEntradaNf.findUnique({
     where: { id },
     include: {
-      itens: { include: { medicamento: { select: { nome: true, principioAtivo: true } } } },
+      itens: {
+        include: {
+          medicamento: {
+            select: {
+              nome: true,
+              principioAtivo: true,
+              codigoEan: true,
+              codigoAnvisa: true,
+              saldoAtual: true,
+              unidade: true,
+            },
+          },
+        },
+      },
       criadoPor: { select: { nome: true } },
     },
   })

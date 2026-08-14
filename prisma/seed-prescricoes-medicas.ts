@@ -1,112 +1,18 @@
 import type { PrismaClient } from '@prisma/client'
+import { MODELO_ALA_OBSTETRICA, MODELO_ENFERMARIA_GERAL } from '../lib/prescricao-modelo-hospitalar'
 
-type ItemDemo = {
-  nomeMedicamento: string
-  principioAtivo?: string
-  dose: string
-  unidadeMedida: string
-  via: string
-  frequencia: string
-  quantidadeSolicitada?: number
-  duracaoDias?: number
-  observacoes?: string
-}
-
-type PrescricaoDemo = {
-  nome: string
-  descricao: string
-  observacoesPadrao?: string
-  itens: ItemDemo[]
-}
-
-export const PRESCRICOES_MEDICAS_DEMO: PrescricaoDemo[] = [
+export const PRESCRICOES_MEDICAS_DEMO = [
   {
-    nome: 'Analgesia padrão — internação',
-    descricao: 'Controle álgico de rotina em enfermaria clínica.',
-    observacoesPadrao: 'Avaliar escala de dor antes de cada dose. Suspender se PA < 90/60.',
-    itens: [
-      {
-        nomeMedicamento: 'Dipirona',
-        principioAtivo: 'dipirona',
-        dose: '500',
-        unidadeMedida: 'mg',
-        via: 'ORAL',
-        frequencia: '6/6h',
-        duracaoDias: 5,
-        observacoes: 'Preferir VO se tolerado',
-      },
-      {
-        nomeMedicamento: 'Paracetamol',
-        principioAtivo: 'paracetamol',
-        dose: '750',
-        unidadeMedida: 'mg',
-        via: 'ORAL',
-        frequencia: '8/8h se dor',
-        duracaoDias: 5,
-        observacoes: 'Resgate analgésico — máx. 3 g/dia',
-      },
-    ],
+    nome: 'Prescrição Médica Ala Obstétrica - Enfermaria',
+    descricao: 'Modelo padrão oficial para internação de obstetrícia e maternidade (Hospital Municipal).',
+    observacoesPadrao: 'Observar sangramento vaginal e tónus uterino. Monitorar SSVV a cada 6 horas.',
+    itens: MODELO_ALA_OBSTETRICA,
   },
   {
-    nome: 'Antibioticoterapia — ITU não complicada',
-    descricao: 'Esquema empírico para infecção urinária baixa em adulto.',
-    observacoesPadrao: 'Manter hidratação oral. Coletar urocultura se possível antes do ATB.',
-    itens: [
-      {
-        nomeMedicamento: 'Amoxicilina',
-        principioAtivo: 'amoxicilina',
-        dose: '500',
-        unidadeMedida: 'mg',
-        via: 'ORAL',
-        frequencia: '8/8h',
-        duracaoDias: 7,
-      },
-      {
-        nomeMedicamento: 'Omeprazol',
-        principioAtivo: 'omeprazol',
-        dose: '20',
-        unidadeMedida: 'mg',
-        via: 'ORAL',
-        frequencia: '24/24h',
-        duracaoDias: 7,
-        observacoes: 'Proteção gástrica durante ATB',
-      },
-    ],
-  },
-  {
-    nome: 'Hidratação venosa + antitérmico',
-    descricao: 'Reposição volêmica com controle sintomático de febre.',
-    observacoesPadrao: 'Monitorar balanço hídrico e diurese. Ajustar velocidade conforme cardiopatia.',
-    itens: [
-      {
-        nomeMedicamento: 'Soro fisiológico 0,9%',
-        dose: '500',
-        unidadeMedida: 'mL',
-        via: 'INTRAVENOSA',
-        frequencia: '8/8h',
-        duracaoDias: 3,
-        observacoes: 'Correr em 2 h — via exclusiva se possível',
-      },
-      {
-        nomeMedicamento: 'Dipirona',
-        principioAtivo: 'dipirona',
-        dose: '1',
-        unidadeMedida: 'g',
-        via: 'INTRAVENOSA',
-        frequencia: '6/6h se febre ou dor',
-        duracaoDias: 3,
-        observacoes: 'Administrar lentamente (≥ 15 min)',
-      },
-      {
-        nomeMedicamento: 'Losartana',
-        principioAtivo: 'losartana',
-        dose: '50',
-        unidadeMedida: 'mg',
-        via: 'ORAL',
-        frequencia: '24/24h',
-        observacoes: 'Manter medicação de uso contínuo do paciente',
-      },
-    ],
+    nome: 'Prescrição Médica - Enfermaria Geral',
+    descricao: 'Modelo padrão oficial para internação de enfermaria clínica e cirúrgica (Hospital Municipal).',
+    observacoesPadrao: 'CCGG + SSVV de rotina.',
+    itens: MODELO_ENFERMARIA_GERAL,
   },
 ]
 
@@ -132,22 +38,23 @@ export async function seedPrescricoesMedicasPadrao(prisma: PrismaClient) {
         itens: {
           create: modelo.itens.map((item, ordem) => ({
             ordem,
+            tipoItem: 'LINHA_DUPLA',
             nomeMedicamento: item.nomeMedicamento,
-            principioAtivo: item.principioAtivo ?? null,
-            dose: item.dose,
-            unidadeMedida: item.unidadeMedida,
-            via: item.via,
-            frequencia: item.frequencia,
-            quantidadeSolicitada: item.quantidadeSolicitada ?? 1,
-            duracaoDias: item.duracaoDias ?? null,
-            observacoes: item.observacoes ?? null,
+            principioAtivo: null,
+            dose: 'LINHA_DUPLA',
+            unidadeMedida: null,
+            via: 'ORAL',
+            frequencia: 'Conforme prescrição',
+            quantidadeSolicitada: 1,
+            duracaoDias: null,
+            observacoes: item.observacoes || null,
           })),
         },
       },
     })
 
     inseridas++
-    console.log(`✅ Prescrição padrão: ${modelo.nome} (${modelo.itens.length} itens)`)
+    console.log(`✅ Prescrição padrão inserida: ${modelo.nome} (${modelo.itens.length} itens)`)
   }
 
   return inseridas

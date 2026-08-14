@@ -69,8 +69,35 @@ export const UNIDADES_MEDIDA = [
 export const formatarDosePrescricao = (dose: string, unidadeMedida?: string | null) => {
   const qtd = dose?.trim() ?? ''
   const un = unidadeMedida?.trim() ?? ''
+  if (qtd === 'LINHA_DUPLA' || qtd === '—') return un || ''
   if (qtd && un) return `${qtd} ${un}`
   return qtd || un
+}
+
+export const formatarResumoLinhaPrescricao = (item: {
+  dose: string
+  unidadeMedida?: string | null
+  via: string
+  frequencia?: string | null
+  observacoes?: string | null
+}) => {
+  const doseFmt = formatarDosePrescricao(item.dose, item.unidadeMedida)
+  const viaFmt = labelVia(item.via)
+  const obsOuFreq = item.observacoes?.trim() || item.frequencia?.trim()
+
+  if (!doseFmt || item.dose === 'LINHA_DUPLA' || item.dose === '—') {
+    if (obsOuFreq && obsOuFreq !== 'Conforme prescrição' && obsOuFreq !== '—') {
+      return obsOuFreq
+    }
+    return viaFmt && viaFmt !== 'VO' ? viaFmt : 'Orientação / Enfermagem'
+  }
+
+  const partes = [doseFmt]
+  if (viaFmt) partes.push(viaFmt)
+  if (obsOuFreq && obsOuFreq !== 'Conforme prescrição' && obsOuFreq !== '—' && obsOuFreq !== item.dose?.trim()) {
+    partes.push(obsOuFreq)
+  }
+  return partes.join(' · ')
 }
 
 /** Tenta separar dose legada "500 mg" em quantidade + unidade */

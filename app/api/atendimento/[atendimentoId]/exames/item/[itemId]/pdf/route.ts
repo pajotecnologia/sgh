@@ -73,13 +73,15 @@ export async function POST(
       return NextResponse.json({ sucesso: false, erro: 'Data/hora de realização inválida.' }, { status: 400 });
     }
 
-    const dir = path.join(process.cwd(), 'public', 'uploads', 'exames');
+    const dir = process.env.UPLOAD_DIR
+      ? path.join(process.env.UPLOAD_DIR, 'exames')
+      : path.join(process.cwd(), 'storage', 'uploads', 'exames');
     await mkdir(dir, { recursive: true });
     const fname = `${uuidv4()}.pdf`;
     const diskPath = path.join(dir, fname);
     await writeFile(diskPath, buf);
 
-    const publicPath = `/uploads/exames/${fname}`;
+    const publicPath = `/api/uploads/exames/${fname}`;
 
     const atualizado = await prisma.itemRequisicao.update({
       where: { id: itemId },
