@@ -1,8 +1,19 @@
 // lib/ficha-urgencia.ts — Montagem de dados comuns à ficha de urgência (recepção e atendimento médico)
 
-import { format, differenceInYears } from 'date-fns';
+import { format, differenceInYears, differenceInMonths, differenceInDays } from 'date-fns';
 import { descriptografar, mascararCpf } from '@/lib/encryption';
 import type { PacienteFichaCabecalho } from '@/components/ficha/FichaUrgenciaDocumento';
+
+export function formatarIdadeExtenso(dataNascimento: Date | string): string {
+  const nasck = new Date(dataNascimento);
+  const hoje = new Date();
+  const anos = differenceInYears(hoje, nasck);
+  if (anos >= 1) return `${anos} ano${anos !== 1 ? 's' : ''}`;
+  const meses = differenceInMonths(hoje, nasck);
+  if (meses >= 1) return `${meses} mês${meses !== 1 ? 'es' : ''}`;
+  const dias = Math.max(0, differenceInDays(hoje, nasck));
+  return `${dias} dia${dias !== 1 ? 's' : ''}`;
+}
 
 type PacienteComEndereco = {
   nomeExibicao: string;
@@ -46,8 +57,7 @@ export function montarPacienteFichaCabecalho(p: PacienteComEndereco): PacienteFi
     cpf = '***.***.***-**';
   }
 
-  const idade = differenceInYears(new Date(), new Date(p.dataNascimento));
-  const idadeFmt = `${idade} ano${idade !== 1 ? 's' : ''}`;
+  const idadeFmt = formatarIdadeExtenso(p.dataNascimento);
 
   const enderecoFmt = p.endereco
     ? `${p.endereco.logradouro}, ${p.endereco.numero}${p.endereco.complemento ? ` - ${p.endereco.complemento}` : ''} - ${p.endereco.bairro}, ${p.endereco.cidade}/${p.endereco.estado} - CEP ${p.endereco.cep}`
