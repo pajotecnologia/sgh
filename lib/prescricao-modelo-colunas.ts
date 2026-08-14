@@ -49,7 +49,7 @@ const celulaTextoSimples = (valor: string): CelulaColunaPrescricao[] =>
 const celulasLinhaDuplaModelo = (textoEsquerda: string): CelulaColunaPrescricao[] =>
   celulaTextoSimples(textoEsquerda)
 
-const celulasLinhaDuplaMedicoCadastro = (placeholder?: string): CelulaColunaPrescricao[] => {
+const celulasLinhaDuplaMedicoCadastro = (placeholder?: string | null): CelulaColunaPrescricao[] => {
   if (placeholder?.trim()) {
     return [{ rotulo: 'Sugestão / exemplo', valor: placeholder.trim() }]
   }
