@@ -34,7 +34,7 @@ export const normalizarTipoItemPrescricao = (
 }
 
 export const isLinhaDuplaPrescricao = (
-  item: { dose?: string; tipoItem?: string | null }
+  item: { dose?: string | null; tipoItem?: string | null }
 ): boolean =>
   item.tipoItem === 'LINHA_DUPLA' || item.dose === MARCADOR_DOSE_LINHA_DUPLA
 
