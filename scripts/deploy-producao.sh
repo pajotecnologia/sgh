@@ -24,7 +24,7 @@ git pull origin main
 
 # 2. Instalar / Sincronizar dependências
 echo -e "\n${YELLOW}[2/5] Instalando dependências...${NC}"
-npm ci || npm install
+npm install --registry=https://registry.npmjs.org/
 
 # 3. Aplicar migrações do banco de dados PostgreSQL
 echo -e "\n${YELLOW}[3/5] Aplicando migrações do banco de dados (Prisma Migrate Deploy)...${NC}"
