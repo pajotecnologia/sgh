@@ -23,18 +23,19 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const { path: pathSegments } = await params;
-  if (!pathSegments || pathSegments.length === 0) {
-    return NextResponse.json({ sucesso: false, erro: 'Caminho inválido.' }, { status: 400 });
-  }
+  try {
+    const { path: pathSegments } = await params;
+    if (!pathSegments || pathSegments.length === 0) {
+      return NextResponse.json({ sucesso: false, erro: 'Caminho inválido.' }, { status: 400 });
+    }
 
-  // Se não for imagem (ex: PDFs sensíveis/exames), exige sessão autenticada
-  const isImagem = /\.(png|jpe?g|webp|gif|svg)$/i.test(pathSegments[pathSegments.length - 1] ?? '');
-  const sessao = await getServerSession(authOptions);
+    // Se não for imagem (ex: PDFs sensíveis/exames), exige sessão autenticada
+    const isImagem = /\.(png|jpe?g|webp|gif|svg)$/i.test(pathSegments[pathSegments.length - 1] ?? '');
+    const sessao = await getServerSession(authOptions);
 
-  if (!sessao && !isImagem) {
-    return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 });
-  }
+    if (!sessao && !isImagem) {
+      return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 });
+    }
 
     // Prevenir Directory Traversal (ex: ../../.env)
     const sanitizedPath = pathSegments
