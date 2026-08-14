@@ -22,7 +22,7 @@ instalador/**
 .env_online
 
 # Uploads de pacientes (dados sensíveis)
-uploads/
+storage/
 # Resultados de exame em PDF (servidos em /public; não versionar ficheiros)
 public/uploads/exames/*.pdf
 
