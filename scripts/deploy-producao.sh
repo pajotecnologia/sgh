@@ -23,8 +23,8 @@ echo -e "\n${YELLOW}[1/5] Atualizando código do repositório Git (origin/main).
 git pull origin main
 
 # 2. Instalar / Sincronizar dependências
-echo -e "\n${YELLOW}[2/5] Instalando dependências (npm ci)...${NC}"
-npm ci
+echo -e "\n${YELLOW}[2/5] Instalando dependências...${NC}"
+npm ci || npm install
 
 # 3. Aplicar migrações do banco de dados PostgreSQL
 echo -e "\n${YELLOW}[3/5] Aplicando migrações do banco de dados (Prisma Migrate Deploy)...${NC}"
