@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { StatusAtendimento } from '@prisma/client';
 import { gerarNumeroAtendimento } from '@/lib/attendance';
 import { dispararEventoPusher, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher';
+import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao';
 import type { ApiResponse } from '@/types';
 
 export async function POST(req: NextRequest) {
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     // Verificar se o paciente existe
     const paciente = await prisma.paciente.findUnique({
       where: { id: pacienteId },
-      select: { id: true, nomeExibicao: true }
+      select: { id: true, nomeExibicao: true, nomeCriptografado: true }
     });
 
     if (!paciente) {
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
     dispararEventoPusher(CANAIS_PUSHER.filaTriagem, EVENTOS_PUSHER.FILA_ATUALIZADA, {
       acao: 'NOVO_ATENDIMENTO',
       atendimentoId: atendimento.id,
-      paciente: paciente.nomeExibicao,
+      paciente: obterNomeCompletoPaciente(paciente.nomeExibicao, paciente.nomeCriptografado),
       timestamp: new Date().toISOString(),
     });
 

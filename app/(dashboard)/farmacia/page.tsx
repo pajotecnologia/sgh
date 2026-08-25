@@ -19,6 +19,7 @@ import { FiltrosTriagemFarmacia } from '@/components/farmacia/FiltrosTriagemFarm
 import { ListaTriagemFarmacia } from '@/components/farmacia/ListaTriagemFarmacia'
 
 import { verificarSaldoDisponivel, calcularAlocacaoFefo } from '@/lib/farmacia-estoque'
+import { enriquecerPacienteComNomeCompleto } from '@/lib/nome-paciente-exibicao'
 
 
 
@@ -196,7 +197,20 @@ export default async function PaginaFarmacia({ searchParams }: PageProps) {
 
 
 
-      return { ...disp, saldoInfo }
+      return {
+        ...disp,
+        item: {
+          ...disp.item,
+          prescricao: {
+            ...disp.item.prescricao,
+            atendimento: {
+              ...disp.item.prescricao.atendimento,
+              paciente: enriquecerPacienteComNomeCompleto(disp.item.prescricao.atendimento.paciente),
+            },
+          },
+        },
+        saldoInfo,
+      }
 
     })
 

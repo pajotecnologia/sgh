@@ -41,6 +41,7 @@ export async function PUT(req: Request) {
           estado: dados.estado,
           cep: dados.cep,
           logomarcaUrl: dados.logomarcaUrl,
+          buscaAutomaticaCatalogo: typeof dados.buscaAutomaticaCatalogo === 'boolean' ? dados.buscaAutomaticaCatalogo : true,
         },
       });
     } else {
@@ -56,6 +57,7 @@ export async function PUT(req: Request) {
           estado: dados.estado,
           cep: dados.cep,
           logomarcaUrl: dados.logomarcaUrl,
+          buscaAutomaticaCatalogo: typeof dados.buscaAutomaticaCatalogo === 'boolean' ? dados.buscaAutomaticaCatalogo : true,
         },
       });
     }

@@ -2,6 +2,7 @@
 
 import type { Prisma, TipoMovimentacaoFarmacia } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { enriquecerPacienteComNomeCompleto } from '@/lib/nome-paciente-exibicao'
 
 export type TxClient = Prisma.TransactionClient
 
@@ -273,7 +274,7 @@ export async function listarFaltantesDispensacao() {
                   numeroAtendimento: true,
                   setor: true,
                   sala: true,
-                  paciente: { select: { nomeExibicao: true } },
+                  paciente: { select: { nomeExibicao: true, nomeCriptografado: true } },
                 },
               },
             },
@@ -300,6 +301,9 @@ export async function listarFaltantesDispensacao() {
         d.item.medicamento != null
           ? Math.max(0, (d.item.quantidadeSolicitada ?? 1) - d.item.medicamento.saldoAtual)
           : null,
-      atendimento: d.item.prescricao.atendimento,
+      atendimento: {
+        ...d.item.prescricao.atendimento,
+        paciente: enriquecerPacienteComNomeCompleto(d.item.prescricao.atendimento.paciente),
+      },
     }))
 }

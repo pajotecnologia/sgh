@@ -11,10 +11,37 @@ import {
   drawRodapePajoTecnologia,
   type InstituicaoRelatorioPdf,
 } from '@/lib/pdf-relatorio-cabecalho-ficha';
+import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao';
 
 const DATA_RE = /^\d{4}-\d{2}-\d{2}$/;
 const FOOTER_RESERVE = 40;
 const PAGE_MARGIN = 48;
+
+function formatarDataBr(val: Date | string | null | undefined): string {
+  if (!val) return '—';
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
+    const [y, m, d] = val.split('T')[0].split('-');
+    return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+  }
+  const date = typeof val === 'string' ? new Date(val) : val;
+  if (Number.isNaN(date.getTime())) return '—';
+  const dia = String(date.getDate()).padStart(2, '0');
+  const mes = String(date.getMonth() + 1).padStart(2, '0');
+  const ano = date.getFullYear();
+  return `${dia}/${mes}/${ano}`;
+}
+
+function formatarDataHoraBr(val: Date | string | null | undefined): string {
+  if (!val) return '—';
+  const d = typeof val === 'string' ? new Date(val) : val;
+  if (Number.isNaN(d.getTime())) return '—';
+  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const ano = d.getFullYear();
+  const hora = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${dia}/${mes}/${ano} ${hora}:${min}`;
+}
 
 function intervaloDiaLocal(dataStr: string): { inicio: Date; fim: Date } {
   const [y, m, d] = dataStr.split('-').map((x) => parseInt(x, 10));
@@ -66,7 +93,7 @@ export async function GET(req: NextRequest) {
           setor: true,
           sala: true,
           createdAt: true,
-          paciente: { select: { nomeExibicao: true } },
+          paciente: { select: { nomeExibicao: true, nomeCriptografado: true } },
         },
       }),
       prisma.instituicao.findFirst(),
@@ -76,6 +103,7 @@ export async function GET(req: NextRequest) {
       nomeMunicipio: instRow?.nomeMunicipio ?? null,
       nomeInstituicao: instRow?.nomeInstituicao ?? null,
       logomarcaUrl: instRow?.logomarcaUrl ?? null,
+      cnes: instRow?.cnes ?? null,
       endereco: instRow?.endereco ?? null,
       bairro: instRow?.bairro ?? null,
       cidade: instRow?.cidade ?? null,
@@ -93,20 +121,17 @@ export async function GET(req: NextRequest) {
     const pageH = 841.89;
     let page = pdf.addPage([pageW, pageH]);
 
-    const emitidoFmt = new Date().toLocaleString('pt-BR', {
-      dateStyle: 'short',
-      timeStyle: 'short',
-    });
+    const dataFormatadaBr = formatarDataBr(dataStr);
+    const emitidoFmt = formatarDataHoraBr(new Date());
 
     let y = await drawCabecalhoEstiloFicha(pdf, page, font, fontBold, inst, {
-      rightBoxLabel: 'Relatório',
-      rightBoxMain: dataStr,
-      rightBoxSub: `Emitido: ${emitidoFmt}`,
+      rightBoxMain: `Data: ${dataFormatadaBr}`,
+      rightBoxSub: `Emitido em: ${emitidoFmt}`,
       faixaTexto: 'Atendimentos do dia',
     });
 
     y -= 8;
-    page.drawText(`Total de atendimentos na data: ${lista.length}`, {
+    page.drawText(`Total de atendimentos na data (${dataFormatadaBr}): ${lista.length}`, {
       x: PAGE_MARGIN,
       y,
       size: titleLineSize,
@@ -136,14 +161,15 @@ export async function GET(req: NextRequest) {
     };
 
     if (lista.length === 0) {
-      drawLines(['Nenhum atendimento registado neste dia.']);
+      drawLines(['Nenhum atendimento registrado neste dia.']);
     } else {
       for (const a of lista) {
-        const hora = a.createdAt.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        const hora = formatarDataHoraBr(a.createdAt);
         const setor = a.setor?.trim() || '—';
         const sala = a.sala?.trim() || '—';
+        const nomePaciente = obterNomeCompletoPaciente(a.paciente.nomeExibicao, a.paciente.nomeCriptografado);
         drawLines([
-          `${a.numeroAtendimento}  |  ${a.paciente.nomeExibicao}`,
+          `${a.numeroAtendimento}  |  ${nomePaciente}`,
           `Status: ${a.status}  ·  Setor: ${setor}  ·  Sala: ${sala}`,
           `Aberto em: ${hora}`,
           '—'.repeat(76),
@@ -162,7 +188,7 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${fname}"`,
+        'Content-Disposition': `inline; filename="${fname}"`,
         'Cache-Control': 'no-store',
       },
     });

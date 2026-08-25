@@ -17,14 +17,11 @@ import { z } from 'zod'
 import { auditarLgpd } from '@/lib/auditoria-lgpd'
 
 import {
-
   verificarSaldoDisponivel,
-
   debitarEstoqueFefo,
-
   calcularAlocacaoFefo,
-
 } from '@/lib/farmacia-estoque'
+import { enriquecerPacienteComNomeCompleto } from '@/lib/nome-paciente-exibicao'
 
 
 
@@ -208,7 +205,20 @@ export async function GET(req: NextRequest) {
 
 
 
-        return { ...disp, saldoInfo }
+        return {
+          ...disp,
+          item: {
+            ...disp.item,
+            prescricao: {
+              ...disp.item.prescricao,
+              atendimento: {
+                ...disp.item.prescricao.atendimento,
+                paciente: enriquecerPacienteComNomeCompleto(disp.item.prescricao.atendimento.paciente),
+              },
+            },
+          },
+          saldoInfo,
+        }
 
       })
 

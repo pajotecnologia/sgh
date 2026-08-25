@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
       return new NextResponse(Buffer.from(bytes), {
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': 'attachment; filename="farmacia-estoque-minimo.pdf"',
+          'Content-Disposition': 'inline; filename="farmacia-estoque-minimo.pdf"',
         },
       })
     }

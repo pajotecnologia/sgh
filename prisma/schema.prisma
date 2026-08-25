@@ -1012,6 +1012,8 @@ model Instituicao {
   estado              String?  @db.Char(2)
   cep                 String?
   logomarcaUrl        String?
+  /// Habilita busca/autopreenchimento automático de medicamentos e materiais nas telas de cadastro
+  buscaAutomaticaCatalogo Boolean @default(true)
   updatedAt           DateTime @updatedAt
 
   @@map("instituicoes")

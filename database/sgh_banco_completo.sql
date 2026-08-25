@@ -798,6 +798,7 @@ CREATE TABLE "instituicoes" (
     "estado" CHAR(2),
     "cep" TEXT,
     "logomarcaUrl" TEXT,
+    "buscaAutomaticaCatalogo" BOOLEAN NOT NULL DEFAULT true,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "instituicoes_pkey" PRIMARY KEY ("id")

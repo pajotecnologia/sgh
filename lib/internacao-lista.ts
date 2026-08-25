@@ -124,6 +124,8 @@ export type AtendimentoListaInternados = Prisma.AtendimentoGetPayload<{
   include: typeof includeListaInternados
 }>
 
+import { enriquecerPacienteComNomeCompleto } from '@/lib/nome-paciente-exibicao'
+
 export const carregarListaInternados = async (
   filtros: FiltrosListaInternados,
   skip: number,
@@ -131,7 +133,7 @@ export const carregarListaInternados = async (
 ) => {
   const where = montarWhereInternacao(filtros)
 
-  const [atendimentos, total] = await Promise.all([
+  const [atendimentosRaw, total] = await Promise.all([
     prisma.atendimento.findMany({
       where,
       include: includeListaInternados,
@@ -141,6 +143,11 @@ export const carregarListaInternados = async (
     }),
     prisma.atendimento.count({ where }),
   ])
+
+  const atendimentos = atendimentosRaw.map((a) => ({
+    ...a,
+    paciente: enriquecerPacienteComNomeCompleto(a.paciente),
+  }))
 
   return { atendimentos, total }
 }

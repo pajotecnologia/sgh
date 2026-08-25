@@ -3,7 +3,7 @@ import { format } from 'date-fns'
 import type { ElementType, ReactNode } from 'react'
 import { CheckCircle2, ChevronRight, ClipboardList, Clock, FileText, Pill, Printer } from 'lucide-react'
 import { contarItensPendentes } from '@/lib/fila-medicacao'
-import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao'
+import { obterNomeCompletoPaciente, nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao'
 import { descricaoLeitoInternacao } from '@/lib/prefill-internamento'
 import { linkEvolucoesPaciente, linkProntuarioPaciente } from '@/lib/internacao-abas'
 import type { AtendimentoListaInternados } from '@/lib/internacao-lista'
@@ -167,9 +167,10 @@ export const ListaPacientesInternados = ({
             <LegendaEvolucaoDia variant={variant} />
             <ul className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
             {atendimentos.map((a) => {
-              const nomePaciente = obterNomeCompletoPaciente(
+              const nomePaciente = nomeCompletoParaExibicao(
                 a.paciente.nomeExibicao,
-                a.paciente.nomeCriptografado
+                a.paciente.nomeCriptografado,
+                (a.paciente as any).nomeCompleto
               )
               const encInternacao = a.prontuario?.encaminhamentos?.[0] ?? null
               const dataInternacao = encInternacao?.createdAt ?? a.updatedAt

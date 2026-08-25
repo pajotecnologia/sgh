@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { STATUS_MEDICACAO_ATIVOS } from '@/lib/fila-medicacao'
+import { enriquecerPacienteComNomeCompleto } from '@/lib/nome-paciente-exibicao'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +33,7 @@ export async function GET(
         status: { in: STATUS_MEDICACAO_ATIVOS },
       },
       include: {
-        paciente: { select: { nomeExibicao: true } },
+        paciente: { select: { nomeExibicao: true, nomeCriptografado: true } },
         triagem: { select: { corClassificacao: true } },
         medico: { select: { nome: true } },
         prontuario: {
@@ -97,7 +98,7 @@ export async function GET(
           id: atendimento.id,
           numeroAtendimento: atendimento.numeroAtendimento,
           status: atendimento.status,
-          paciente: atendimento.paciente,
+          paciente: enriquecerPacienteComNomeCompleto(atendimento.paciente),
           triagem: atendimento.triagem,
           medico: atendimento.medico,
         },

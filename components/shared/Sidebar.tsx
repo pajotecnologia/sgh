@@ -1,11 +1,11 @@
 // components/shared/Sidebar.tsx
-// Sidebar responsiva: drawer no mobile, recolhível no desktop (persistência em localStorage)
+// Sidebar responsiva: drawer no mobile, recolhível no desktop com suporte a sub-menus expansíveis (Cadastros e Relatórios)
 
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Activity,
   Users,
@@ -25,11 +25,27 @@ import {
   NotebookTabs,
   UserPlus,
   NotebookPen,
+  ChevronDown,
+  ChevronRight,
+  Building2,
+  BedDouble,
+  Package,
+  Truck,
+  Tags,
+  Calendar,
+  Navigation,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import type { Role, UsuarioSessao } from '@/types';
 import { cn } from '@/lib/utils';
 import { useDashboardNav } from '@/components/shared/dashboard-nav-context';
+
+interface SubItemNav {
+  label: string;
+  href: string;
+  icon: React.ElementType;
+  roles?: Role[];
+}
 
 interface ItemNav {
   label: string;
@@ -37,6 +53,7 @@ interface ItemNav {
   icon: React.ElementType;
   roles?: Role[];
   badge?: string;
+  children?: SubItemNav[];
 }
 
 const ROLES_PRONTUARIO: Role[] = [
@@ -103,6 +120,39 @@ const ITENS_NAVEGACAO: ItemNav[] = [
     roles: ['ADMIN', 'FARMACEUTICO'],
   },
   {
+    label: 'Cadastros',
+    href: '/cadastros/clinicas',
+    icon: NotebookTabs,
+    roles: ['ADMIN', 'FARMACEUTICO', 'DIRETOR_CLINICO'],
+    children: [
+      { label: 'Clínicas', href: '/cadastros/clinicas', icon: Building2 },
+      { label: 'Leitos', href: '/cadastros/leitos', icon: BedDouble },
+      { label: 'Prescrições Médicas', href: '/cadastros/prescricoes-medicas', icon: ClipboardList },
+      { label: 'Profissionais / Usuários', href: '/cadastros/profissionais', icon: Users },
+      { label: 'Medicamentos e Materiais', href: '/cadastros/medicamentos', icon: Package },
+      { label: 'Fornecedores', href: '/cadastros/fornecedores', icon: Truck },
+      { label: 'Sinônimos (Farmácia)', href: '/cadastros/sinonimos', icon: Tags },
+    ],
+  },
+  {
+    label: 'Relatórios',
+    href: '/relatorios/atendimentos',
+    icon: BarChart3,
+    roles: ['ADMIN', 'DIRETOR_CLINICO', 'FARMACEUTICO'],
+    children: [
+      { label: 'Atendimentos', href: '/relatorios/atendimentos', icon: Calendar },
+      { label: 'Pacientes', href: '/relatorios/pacientes', icon: Users },
+      { label: 'Profissionais / Usuários', href: '/relatorios/profissionais', icon: Stethoscope },
+      { label: 'Clínicas', href: '/relatorios/clinicas', icon: Building2 },
+      { label: 'Leitos', href: '/relatorios/leitos', icon: BedDouble },
+      { label: 'Medicamentos', href: '/relatorios/medicamentos', icon: Package },
+      { label: 'Fornecedores', href: '/relatorios/fornecedores', icon: Truck },
+      { label: 'Prescrições Padrão', href: '/relatorios/prescricoes-padrao', icon: ClipboardList },
+      { label: 'Origens de Pacientes', href: '/relatorios/origens', icon: Navigation },
+      { label: 'Sinônimos (Farmácia)', href: '/relatorios/sinonimos', icon: Tags },
+    ],
+  },
+  {
     label: 'Auditoria',
     href: '/auditoria',
     icon: Shield,
@@ -113,18 +163,6 @@ const ITENS_NAVEGACAO: ItemNav[] = [
     href: '/painel',
     icon: Monitor,
     roles: ['ADMIN', 'ENFERMEIRO', 'MEDICO'],
-  },
-  {
-    label: 'Relatórios',
-    href: '/relatorios',
-    icon: BarChart3,
-    roles: ['ADMIN', 'DIRETOR_CLINICO'],
-  },
-  {
-    label: 'Cadastros',
-    href: '/cadastros/leitos',
-    icon: NotebookTabs,
-    roles: ['ADMIN'],
   },
   {
     label: 'Configurações',
@@ -142,9 +180,26 @@ export function Sidebar({ usuario }: SidebarProps) {
   const pathname = usePathname();
   const { mobileOpen, setMobileOpen, desktopCollapsed, toggleDesktopCollapsed } = useDashboardNav();
 
+  // Controle de menus expandidos no sidebar
+  const [expandidos, setExpandidos] = useState<Record<string, boolean>>({
+    Cadastros: pathname.startsWith('/cadastros'),
+    Relatórios: pathname.startsWith('/relatorios'),
+  });
+
   useEffect(() => {
     setMobileOpen(false);
+    // Auto-expande o menu ativo ao navegar
+    if (pathname.startsWith('/cadastros')) {
+      setExpandidos((p) => ({ ...p, Cadastros: true }));
+    }
+    if (pathname.startsWith('/relatorios')) {
+      setExpandidos((p) => ({ ...p, Relatórios: true }));
+    }
   }, [pathname, setMobileOpen]);
+
+  const toggleExpandido = (label: string) => {
+    setExpandidos((p) => ({ ...p, [label]: !p[label] }));
+  };
 
   const itensVisiveis = ITENS_NAVEGACAO.filter(
     (item) => !item.roles || item.roles.includes(usuario.role)
@@ -232,7 +287,7 @@ export function Sidebar({ usuario }: SidebarProps) {
           </div>
         </div>
 
-        <nav className="flex-1 px-2 py-3 sm:px-3 space-y-0.5 overflow-y-auto overscroll-contain" role="navigation">
+        <nav className="flex-1 px-2 py-3 sm:px-3 space-y-1 overflow-y-auto overscroll-contain" role="navigation">
           <p
             className={cn(
               'px-2 text-[10px] text-slate-500 uppercase tracking-widest font-semibold mb-2',
@@ -246,15 +301,85 @@ export function Sidebar({ usuario }: SidebarProps) {
               item.href === '/internamento/admissoes' &&
               (pathname === '/internamento/admissoes' ||
                 pathname.startsWith('/internamento/admitir'))
-            const ativoCadastros =
-              item.href === '/cadastros/leitos' && pathname.startsWith('/cadastros')
-            const Icone = item.icon
+            
+            const eCadastros = item.label === 'Cadastros'
+            const eRelatorios = item.label === 'Relatórios'
+            
             const ativo =
               ativoAdmissoes ||
-              ativoCadastros ||
+              (eCadastros && pathname.startsWith('/cadastros')) ||
+              (eRelatorios && pathname.startsWith('/relatorios')) ||
               pathname === item.href ||
               pathname.startsWith(`${item.href}/`)
 
+            const temFilhos = item.children && item.children.length > 0;
+            const estaExpandido = Boolean(expandidos[item.label]);
+
+            if (temFilhos) {
+              return (
+                <div key={item.label} className="space-y-0.5">
+                  <div className="flex items-center">
+                    <Link
+                      href={item.children![0].href}
+                      title={collapsed ? item.label : undefined}
+                      className={cn(
+                        'flex-1 flex items-center gap-2.5 rounded-lg text-xs font-medium transition-all duration-150 py-2 px-2.5',
+                        collapsed && 'md:justify-center md:px-2',
+                        ativo
+                          ? 'bg-primary/20 text-white font-bold border border-primary/30'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                      )}
+                    >
+                      <item.icon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                      <span className={cn('truncate', collapsed && 'md:sr-only')}>{item.label}</span>
+                    </Link>
+
+                    {!collapsed && (
+                      <button
+                        type="button"
+                        onClick={() => toggleExpandido(item.label)}
+                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors ml-0.5"
+                        title={estaExpandido ? 'Recolher sub-menu' : 'Expandir sub-menu'}
+                      >
+                        {estaExpandido ? (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Sub-itens expansíveis */}
+                  {!collapsed && estaExpandido && (
+                    <div className="pl-4 pr-1 py-1 space-y-0.5 border-l-2 border-primary/30 ml-3">
+                      {item.children!.map((sub) => {
+                        const subAtivo = pathname === sub.href || pathname.startsWith(`${sub.href}/`);
+                        const SubIcone = sub.icon;
+
+                        return (
+                          <Link
+                            key={sub.href}
+                            href={sub.href}
+                            className={cn(
+                              'flex items-center gap-2 rounded-lg text-[11px] font-medium transition-all py-1.5 px-2.5',
+                              subAtivo
+                                ? 'bg-primary text-white font-bold shadow-xs'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                            )}
+                          >
+                            <SubIcone className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{sub.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            const Icone = item.icon;
             return (
               <Link
                 key={item.href}
@@ -282,7 +407,7 @@ export function Sidebar({ usuario }: SidebarProps) {
                   </span>
                 ) : null}
               </Link>
-            )
+            );
           })}
         </nav>
 

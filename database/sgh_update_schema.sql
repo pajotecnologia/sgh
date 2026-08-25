@@ -1434,6 +1434,7 @@ CREATE TABLE IF NOT EXISTS "instituicoes" (
     "estado" CHAR(2),
     "cep" TEXT,
     "logomarcaUrl" TEXT,
+    "buscaAutomaticaCatalogo" BOOLEAN NOT NULL DEFAULT true,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "instituicoes_pkey" PRIMARY KEY ("id")
@@ -1449,6 +1450,7 @@ ALTER TABLE "instituicoes" ADD COLUMN IF NOT EXISTS "cidade" TEXT;
 ALTER TABLE "instituicoes" ADD COLUMN IF NOT EXISTS "estado" CHAR(2);
 ALTER TABLE "instituicoes" ADD COLUMN IF NOT EXISTS "cep" TEXT;
 ALTER TABLE "instituicoes" ADD COLUMN IF NOT EXISTS "logomarcaUrl" TEXT;
+ALTER TABLE "instituicoes" ADD COLUMN IF NOT EXISTS "buscaAutomaticaCatalogo" BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE "instituicoes" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
 -- config_painel

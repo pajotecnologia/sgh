@@ -1,6 +1,8 @@
 // lib/pdf-relatorio-cabecalho-ficha.ts
-// Cabeçalho PDF alinhado ao topo da ficha de urgência + rodapé PAJO Tecnologia (relatórios).
+// Cabeçalho PDF alinhado ao padrão da instituição + rodapé PAJO Tecnologia.
 
+import fs from 'fs';
+import path from 'path';
 import type { PDFDocument, PDFFont, PDFImage, PDFPage } from 'pdf-lib';
 import { rgb } from 'pdf-lib';
 
@@ -8,21 +10,13 @@ export type InstituicaoRelatorioPdf = {
   nomeMunicipio: string | null;
   nomeInstituicao: string | null;
   logomarcaUrl: string | null;
+  cnes?: string | null;
   endereco: string | null;
   bairro: string | null;
   cidade: string | null;
   estado: string | null;
   cep: string | null;
 };
-
-function absolutizeAssetUrl(url: string): string | null {
-  const u = url.trim();
-  if (!u) return null;
-  if (u.startsWith('http://') || u.startsWith('https://')) return u;
-  const base = (process.env.NEXTAUTH_URL || process.env.VERCEL_URL || '').replace(/\/$/, '');
-  if (!base) return null;
-  return u.startsWith('/') ? `${base}${u}` : `${base}/${u}`;
-}
 
 function linhaEndereco(inst: InstituicaoRelatorioPdf): string {
   const partes = [
@@ -31,7 +25,7 @@ function linhaEndereco(inst: InstituicaoRelatorioPdf): string {
     [inst.cidade, inst.estado].filter(Boolean).join('/') || null,
     inst.cep ? `CEP ${inst.cep}` : null,
   ].filter(Boolean) as string[];
-  return partes.length ? partes.join(' — ') : 'Endereço da unidade não cadastrado em Configurações.';
+  return partes.length ? partes.join(' — ') : 'Endereço da unidade não cadastrado';
 }
 
 /** Distância a partir do TOPO → coordenada Y (pdf-lib, origem em baixo). */
@@ -40,25 +34,69 @@ function yFromTop(page: PDFPage, fromTop: number): number {
 }
 
 async function carregarImagemLogo(pdf: PDFDocument, url: string | null): Promise<PDFImage | null> {
-  const abs = url ? absolutizeAssetUrl(url) : null;
-  if (!abs) return null;
+  if (!url || !url.trim()) return null;
+  const u = url.trim();
+
   try {
-    const res = await fetch(abs, { cache: 'no-store' });
-    if (!res.ok) return null;
-    const buf = await res.arrayBuffer();
-    const u8 = new Uint8Array(buf);
+    let u8: Uint8Array | null = null;
+
+    // 1. Se for Base64 Data URI (data:image/png;base64,...)
+    if (u.startsWith('data:image/')) {
+      const parts = u.split(',');
+      if (parts.length > 1) {
+        const base64Data = parts[1];
+        const buf = Buffer.from(base64Data, 'base64');
+        u8 = new Uint8Array(buf);
+      }
+    }
+
+    // 2. Se for um arquivo local no sistema de arquivos (/uploads, /public/uploads, etc.)
+    if (!u8 && !u.startsWith('http://') && !u.startsWith('https://')) {
+      const cleanPath = u.startsWith('/') ? u.slice(1) : u;
+      const possiblePaths = [
+        path.join(process.cwd(), 'public', cleanPath),
+        path.join(process.cwd(), cleanPath),
+      ];
+      for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+          const buf = fs.readFileSync(p);
+          u8 = new Uint8Array(buf);
+          break;
+        }
+      }
+    }
+
+    // 3. Se for URL absoluta HTTP/HTTPS ou se o arquivo local não foi localizado
+    if (!u8) {
+      let fetchUrl = u;
+      if (u.startsWith('/')) {
+        const baseUrl = process.env.NEXTAUTH_URL || 'http://127.0.0.1:3000';
+        fetchUrl = `${baseUrl.replace(/\/$/, '')}${u}`;
+      }
+      const res = await fetch(fetchUrl, { cache: 'no-store' });
+      if (res.ok) {
+        const buf = await res.arrayBuffer();
+        u8 = new Uint8Array(buf);
+      }
+    }
+
+    if (!u8) return null;
+
+    // Embutir na biblioteca pdf-lib
     try {
       return await pdf.embedPng(u8);
     } catch {
       return await pdf.embedJpg(u8);
     }
-  } catch {
+  } catch (err) {
+    console.error('[carregarImagemLogo PDF]', err);
     return null;
   }
 }
 
 /**
- * Cabeçalho no arranjo da ficha (logo | unidade | caixa) + faixa cinza.
+ * Cabeçalho elegante para relatórios:
+ * Logo (Esquerda) | Dados da Instituição (Centro) | Data/Emissão (Direita - sem caixa) + Faixa do Relatório.
  * @returns Y (pdf-lib) onde o corpo do relatório deve começar.
  */
 export async function drawCabecalhoEstiloFicha(
@@ -68,34 +106,24 @@ export async function drawCabecalhoEstiloFicha(
   fontBold: PDFFont,
   inst: InstituicaoRelatorioPdf,
   opts: {
-    rightBoxLabel: string;
-    rightBoxMain: string;
-    rightBoxSub: string;
+    rightBoxLabel?: string;
+    rightBoxMain?: string;
+    rightBoxSub?: string;
     faixaTexto: string;
   }
 ): Promise<number> {
   const W = page.getWidth();
   const margin = 36;
-  const logoSize = 72;
-  const rightW = 78;
-  const rightX = W - margin - rightW;
+  const logoSize = 64;
   const logoX = margin;
-  const topStart = 36;
-  const black = rgb(0, 0, 0);
-  const grayFill = rgb(0.88, 0.88, 0.9);
-  const grayBand = rgb(0.82, 0.82, 0.85);
+  const topStart = 32;
+  const black = rgb(0.1, 0.1, 0.14);
+  const darkBlue = rgb(0.08, 0.2, 0.45);
+  const grayText = rgb(0.35, 0.38, 0.42);
+  const grayBand = rgb(0.93, 0.95, 0.98);
+  const bandBorder = rgb(0.8, 0.84, 0.9);
 
   const logoBottomPdf = yFromTop(page, topStart + logoSize);
-
-  page.drawRectangle({
-    x: logoX,
-    y: logoBottomPdf,
-    width: logoSize,
-    height: logoSize,
-    borderColor: black,
-    borderWidth: 1,
-    color: rgb(1, 1, 1),
-  });
 
   const logoImg = await carregarImagemLogo(pdf, inst.logomarcaUrl);
   if (logoImg) {
@@ -105,113 +133,106 @@ export async function drawCabecalhoEstiloFicha(
       width: logoSize,
       height: logoSize,
     });
-    page.drawRectangle({
-      x: logoX,
-      y: logoBottomPdf,
-      width: logoSize,
-      height: logoSize,
-      borderColor: black,
-      borderWidth: 1,
-    });
   } else {
     page.drawRectangle({
       x: logoX,
       y: logoBottomPdf,
       width: logoSize,
       height: logoSize,
-      borderColor: black,
+      borderColor: rgb(0.85, 0.85, 0.88),
       borderWidth: 1,
-      color: rgb(0.93, 0.93, 0.94),
+      color: rgb(0.96, 0.96, 0.98),
     });
-    page.drawText('Sem logomarca', {
-      x: logoX + 6,
-      y: logoBottomPdf + logoSize / 2 - 3,
-      size: 6,
-      font,
-      color: rgb(0.35, 0.35, 0.38),
-      maxWidth: logoSize - 12,
+    page.drawText('SGH', {
+      x: logoX + (logoSize - fontBold.widthOfTextAtSize('SGH', 10)) / 2,
+      y: logoBottomPdf + logoSize / 2 - 4,
+      size: 10,
+      font: fontBold,
+      color: darkBlue,
     });
   }
 
   const centerX = logoX + logoSize + 14;
-  const centerW = Math.max(100, rightX - centerX - 10);
-  let fromTop = topStart + 11;
-  const municipio = inst.nomeMunicipio?.trim() || 'Município / Secretaria não configurados';
-  page.drawText(municipio, {
+  const rightReservedW = 140;
+  const centerW = W - margin * 2 - logoSize - 14 - rightReservedW;
+
+  let fromTop = topStart + 8;
+  const municipio = inst.nomeMunicipio?.trim() || 'Prefeitura Municipal / Secretaria de Saúde';
+  page.drawText(municipio.toUpperCase(), {
     x: centerX,
     y: yFromTop(page, fromTop),
-    size: 11,
+    size: 8.5,
     font: fontBold,
-    color: black,
+    color: grayText,
     maxWidth: centerW,
   });
+
   fromTop += 13;
-  const nomeInst = inst.nomeInstituicao?.trim() || 'Instituição não configurada';
+  const nomeInst = inst.nomeInstituicao?.trim() || 'Sistema de Gestão Hospitalar - SGH';
   page.drawText(nomeInst, {
     x: centerX,
     y: yFromTop(page, fromTop),
-    size: 9,
+    size: 11.5,
     font: fontBold,
-    color: black,
+    color: darkBlue,
     maxWidth: centerW,
   });
-  fromTop += 11;
-  page.drawText(linhaEndereco(inst), {
+
+  fromTop += 14;
+  let endStr = linhaEndereco(inst);
+  if (inst.cnes) {
+    endStr += ` — CNES: ${inst.cnes}`;
+  }
+  page.drawText(endStr, {
     x: centerX,
     y: yFromTop(page, fromTop),
     size: 8,
     font,
     color: black,
-    maxWidth: centerW,
+    maxWidth: centerW + 30,
   });
 
-  const boxH = 46;
-  const boxBottomPdf = yFromTop(page, topStart + boxH);
-  page.drawRectangle({
-    x: rightX,
-    y: boxBottomPdf,
-    width: rightW,
-    height: boxH,
-    borderColor: black,
-    borderWidth: 2,
-    color: grayFill,
-  });
-  page.drawText(opts.rightBoxLabel.toUpperCase(), {
-    x: rightX + 4,
-    y: yFromTop(page, topStart + 12),
-    size: 7,
-    font: fontBold,
-    color: black,
-    maxWidth: rightW - 8,
-  });
-  page.drawText(opts.rightBoxMain, {
-    x: rightX + 4,
-    y: yFromTop(page, topStart + 26),
-    size: 9,
-    font: fontBold,
-    color: black,
-    maxWidth: rightW - 8,
-  });
-  page.drawText(opts.rightBoxSub, {
-    x: rightX,
-    y: yFromTop(page, topStart + boxH + 6),
-    size: 7,
-    font,
-    color: black,
-    maxWidth: rightW + 40,
-  });
+  // Emissão no lado direito (Texto Limpo sem retângulo)
+  const rightX = W - margin;
+  let rightFromTop = topStart + 10;
+  if (opts.rightBoxMain || opts.rightBoxLabel) {
+    const mainTxt = opts.rightBoxMain || opts.rightBoxLabel || '';
+    const mainW = fontBold.widthOfTextAtSize(mainTxt, 9);
+    page.drawText(mainTxt, {
+      x: rightX - mainW,
+      y: yFromTop(page, rightFromTop),
+      size: 9,
+      font: fontBold,
+      color: darkBlue,
+    });
+    rightFromTop += 12;
+  }
 
-  const bandTop = topStart + logoSize + 8;
-  const bandH = 16;
+  if (opts.rightBoxSub) {
+    const subTxt = opts.rightBoxSub;
+    const subW = font.widthOfTextAtSize(subTxt, 7.5);
+    page.drawText(subTxt, {
+      x: rightX - subW,
+      y: yFromTop(page, rightFromTop),
+      size: 7.5,
+      font,
+      color: grayText,
+    });
+  }
+
+  // Faixa de Título do Relatório
+  const bandTop = topStart + logoSize + 10;
+  const bandH = 20;
   page.drawRectangle({
     x: margin,
     y: yFromTop(page, bandTop + bandH),
     width: W - margin * 2,
     height: bandH,
-    borderColor: black,
-    borderWidth: 2,
+    borderColor: bandBorder,
+    borderWidth: 1,
     color: grayBand,
   });
+
   const faixa = opts.faixaTexto.toUpperCase();
   const faixaW = fontBold.widthOfTextAtSize(faixa, 10);
   page.drawText(faixa, {
@@ -219,10 +240,10 @@ export async function drawCabecalhoEstiloFicha(
     y: yFromTop(page, bandTop + bandH / 2 + 3),
     size: 10,
     font: fontBold,
-    color: black,
+    color: darkBlue,
   });
 
-  const bodyStartFromTop = bandTop + bandH + 14;
+  const bodyStartFromTop = bandTop + bandH + 16;
   return yFromTop(page, bodyStartFromTop);
 }
 
@@ -234,7 +255,7 @@ export function drawRodapePajoTecnologia(page: PDFPage, font: PDFFont) {
   const tw = font.widthOfTextAtSize(texto, size);
   page.drawText(texto, {
     x: (W - tw) / 2,
-    y: 22,
+    y: 20,
     size,
     font,
     color: cor,

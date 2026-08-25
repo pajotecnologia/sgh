@@ -41,7 +41,7 @@ type Linha = {
         numeroAtendimento: string
         setor: string | null
         sala: string | null
-        paciente: { nomeExibicao: string; nomeCriptografado: string | null }
+        paciente: { nomeExibicao: string; nomeCriptografado: string | null; nomeCompleto?: string | null }
         triagem: { corClassificacao: string } | null
       }
     }
@@ -147,7 +147,8 @@ export function ListaTriagemFarmacia({
           const a = l.item.prescricao.atendimento
           const nomePaciente = nomeCompletoParaExibicao(
             a.paciente.nomeExibicao,
-            a.paciente.nomeCriptografado ?? ''
+            a.paciente.nomeCriptografado ?? '',
+            a.paciente.nomeCompleto
           )
           const temCritico = Boolean((l.item.alertasInteracao as any)?.criticas?.length)
           const semSaldo = l.status === 'AGUARDANDO_TRIAGEM' && l.saldoInfo && !l.saldoInfo.saldoSuficiente
@@ -207,11 +208,23 @@ export function ListaTriagemFarmacia({
           aria-modal="true"
         >
           <div className="bg-card w-full max-w-2xl rounded-2xl shadow-2xl border border-border m-4">
-            <div className="p-6 border-b border-border">
-              <p className="text-sm font-semibold text-foreground">Triagem farmacêutica</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Aprovar ou rejeitar item. Rejeição exige motivo.
-              </p>
+            <div className="p-6 border-b border-border flex items-start justify-between">
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Triagem Farmacêutica</p>
+                <h3 className="text-base font-bold text-foreground mt-0.5">
+                  {nomeCompletoParaExibicao(
+                    itemModal.item.prescricao.atendimento.paciente.nomeExibicao,
+                    itemModal.item.prescricao.atendimento.paciente.nomeCriptografado ?? '',
+                    itemModal.item.prescricao.atendimento.paciente.nomeCompleto
+                  )}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Atendimento: <span className="font-mono font-medium text-foreground">{itemModal.item.prescricao.atendimento.numeroAtendimento}</span>
+                  {itemModal.item.prescricao.atendimento.setor ? ` • Ala/Setor: ${itemModal.item.prescricao.atendimento.setor}` : ''}
+                  {itemModal.item.prescricao.atendimento.sala ? ` • Leito: ${itemModal.item.prescricao.atendimento.sala}` : ''}
+                </p>
+              </div>
+              <BadgeStatus status={itemModal.status} />
             </div>
             <div className="p-6 space-y-4">
               {/* Alerta Crítico de Estoque Insuficiente */}

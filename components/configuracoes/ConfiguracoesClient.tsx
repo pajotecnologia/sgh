@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Building2, MapPin, Upload, Image as ImageIcon, Loader2, Plus, Trash2, Tag, Volume2, Palette, Settings2, Mail, Pencil, LayoutPanelLeft, Video } from 'lucide-react';
+import { Building2, MapPin, Upload, Image as ImageIcon, Loader2, Plus, Trash2, Tag, Volume2, Palette, Settings2, Mail, Pencil, LayoutPanelLeft, Video, Sparkles } from 'lucide-react';
 import { textoCadastroMaiusculo } from '@/lib/cadastro-maiusculo';
 import { cn } from '@/lib/utils';
 import type { MidiaPainelRotativa, ConfigPainelExibicao } from '@/lib/painel-config';
@@ -19,6 +19,7 @@ interface Instituicao {
   estado: string;
   cep: string;
   logomarcaUrl: string;
+  buscaAutomaticaCatalogo?: boolean;
 }
 
 interface Origem {
@@ -42,8 +43,9 @@ export function ConfiguracoesClient() {
   >('INSTITUICAO');
   
   const [instituicao, setInstituicao] = useState<Instituicao>({
-    nomeMunicipio: '', nomeInstituicao: '', cnes: '', codigoIbgeMunicipio: '', endereco: '', bairro: '', cidade: '', estado: '', cep: '', logomarcaUrl: ''
+    nomeMunicipio: '', nomeInstituicao: '', cnes: '', codigoIbgeMunicipio: '', endereco: '', bairro: '', cidade: '', estado: '', cep: '', logomarcaUrl: '', buscaAutomaticaCatalogo: true
   });
+
   const [carregandoInst, setCarregandoInst] = useState(true);
   const [salvandoInst, setSalvandoInst] = useState(false);
   const [fazendoUpload, setFazendoUpload] = useState(false);
@@ -132,6 +134,7 @@ export function ConfiguracoesClient() {
           estado: d.estado ?? '',
           cep: d.cep ?? '',
           logomarcaUrl: d.logomarcaUrl ?? '',
+          buscaAutomaticaCatalogo: d.buscaAutomaticaCatalogo !== false,
         });
       }
       if (jsonOrigens.sucesso) setOrigens(jsonOrigens.dados);
@@ -689,6 +692,27 @@ export function ConfiguracoesClient() {
                   <div className="space-y-1"><label className="text-sm font-medium">Bairro</label><input value={instituicao.bairro} onChange={e => setInstituicao({ ...instituicao, bairro: textoCadastroMaiusculo(e.target.value) })} className={inputClass} /></div>
                   <div className="space-y-1"><label className="text-sm font-medium">Cidade</label><input value={instituicao.cidade} onChange={e => setInstituicao({ ...instituicao, cidade: textoCadastroMaiusculo(e.target.value) })} className={inputClass} /></div>
                 </div>
+
+                <div className="p-4 bg-muted/30 rounded-xl border border-border space-y-2">
+                  <label className="flex items-center justify-between cursor-pointer gap-4">
+                    <div className="space-y-0.5">
+                      <span className="text-sm font-semibold flex items-center gap-2 text-foreground">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        Busca Automática no Catálogo de Medicamentos e Materiais (ANVISA / CATMAT)
+                      </span>
+                      <p className="text-xs text-muted-foreground">
+                        Habilita a barra de pesquisa rápida e autopreenchimento online nos formulários de cadastro de farmácia e almoxarifado.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={instituicao.buscaAutomaticaCatalogo !== false}
+                      onChange={(e) => setInstituicao({ ...instituicao, buscaAutomaticaCatalogo: e.target.checked })}
+                      className="w-5 h-5 rounded border-border text-primary focus:ring-primary shrink-0 cursor-pointer"
+                    />
+                  </label>
+                </div>
+
                 <div className="flex justify-end pt-4 border-t border-border"><button type="submit" disabled={salvandoInst} className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-70">{salvandoInst ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar Configurações'}</button></div>
               </form>
             )}

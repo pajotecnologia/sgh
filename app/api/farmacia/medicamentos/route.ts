@@ -12,7 +12,7 @@ const ROLES_ESCRITA = ['ADMIN', 'FARMACEUTICO'] as const
 
 const schemaCriar = z.object({
   nome: z.string().min(2).max(120),
-  principioAtivo: z.string().min(2).max(180),
+  principioAtivo: z.string().max(180).optional().nullable(),
   forma: z.string().max(80).nullable().optional(),
   concentracao: z.string().max(80).nullable().optional(),
   unidade: z.string().max(40).nullable().optional(),
@@ -96,10 +96,12 @@ export async function POST(req: NextRequest) {
     }
 
     const d = validacao.data
+    const principioAtivoFinal = d.principioAtivo?.trim() || d.nome.trim() || 'Material Hospitalar'
+
     const med = await prisma.tbMedicamento.create({
       data: {
         nome: d.nome.trim(),
-        principioAtivo: d.principioAtivo.trim(),
+        principioAtivo: principioAtivoFinal,
         forma: (d.forma ?? null) ? String(d.forma).trim() : null,
         concentracao: (d.concentracao ?? null) ? String(d.concentracao).trim() : null,
         unidade: (d.unidade ?? null) ? String(d.unidade).trim() : null,
