@@ -4,7 +4,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$Pm2AppName = "sgh.pajotech.com.br"
+$Pm2AppName = "sgh"
 
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host "     Iniciando Atualização em Produção: $Pm2AppName" -ForegroundColor Cyan
