@@ -18,9 +18,10 @@ git pull origin main
 Write-Host "`n[2/5] Instalando dependências (npm ci)..." -ForegroundColor Yellow
 npm ci
 
-# 3. Prisma Migrate Deploy
-Write-Host "`n[3/5] Aplicando migrações do banco de dados (Prisma Migrate Deploy)..." -ForegroundColor Yellow
+# 3. Prisma Migrate Deploy & Generate
+Write-Host "`n[3/5] Aplicando migrações do banco de dados e gerando Prisma Client..." -ForegroundColor Yellow
 npm run db:migrate:deploy
+npm run db:generate
 
 # 4. Build
 Write-Host "`n[4/5] Compilando aplicação Next.js (npm run build:release)..." -ForegroundColor Yellow

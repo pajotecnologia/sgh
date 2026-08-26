@@ -27,8 +27,9 @@ echo -e "\n${YELLOW}[2/5] Instalando dependências...${NC}"
 npm install --registry=https://registry.npmjs.org/
 
 # 3. Aplicar migrações do banco de dados PostgreSQL
-echo -e "\n${YELLOW}[3/5] Aplicando migrações do banco de dados (Prisma Migrate Deploy)...${NC}"
+echo -e "\n${YELLOW}[3/5] Aplicando migrações do banco de dados e gerando Prisma Client...${NC}"
 npm run db:migrate:deploy || npm run db:migrate:baseline
+npm run db:generate
 
 # 4. Executar build da aplicação e gerar pacote de release
 echo -e "\n${YELLOW}[4/5] Compilando aplicação Next.js (npm run build:release)...${NC}"
