@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     const base =
       process.env.NEXTAUTH_URL?.replace(/\/$/, '') ||
       req.headers.get('origin') ||
-      'http://localhost:3000';
+      'http://localhost:3002';
     const link = `${base}/redefinir-senha?token=${rawToken}`;
 
     try {

@@ -80,8 +80,8 @@ O script:
 3. **Website → Node Project → Add**
    - Diretório: `/www/wwwroot/sgh.pajotech.com.br`
    - **Startup file: `index.js`**
-   - Porta: **3000**
-4. **Reverse proxy** do site → `http://127.0.0.1:3000` (ver `nginx.example.conf`)
+   - Porta: **3002**
+4. **Reverse proxy** do site → `http://127.0.0.1:3002` (ver `nginx.example.conf`)
 5. Importe `database/sgh_schema_completo.sql` no PostgreSQL pelo painel
 
 Aceda: **https://sgh.pajotech.com.br** → `index.html` redireciona para login.
@@ -125,7 +125,7 @@ npm run build:instalador
 
 Isto significa que o **Nginx procura ficheiros no disco** em vez de encaminhar para o **Node.js**.
 
-O SGH **não** funciona só com `index.html` estático — rotas como `/login`, `/api/...` precisam do Node na porta **3000**.
+O SGH **não** funciona só com `index.html` estático — rotas como `/login`, `/api/...` precisam do Node na porta **3002**.
 
 ### Corrigir (aaPanel)
 
@@ -134,17 +134,17 @@ O SGH **não** funciona só com `index.html` estático — rotas como `/login`, 
    cd /www/wwwroot/sgh.pajotech.com.br
    ./instalar.sh
    ```
-   Ou: PM2 Manager → projeto → path acima → startup **`index.js`** → porta **3000** → Start
+   Ou: PM2 Manager → projeto → path acima → startup **`index.js`** → porta **3002** → Start
 
 2. **Reverse proxy** (obrigatório):
    - Website → **sgh.pajotech.com.br** → **Reverse proxy** → Create
-   - Target: `http://127.0.0.1:3000`
+   - Target: `http://127.0.0.1:3002`
    - Proxy path: `/` (todo o site)
 
 3. **Testar no servidor**:
    ```bash
    ./verificar.sh
-   curl -I http://127.0.0.1:3000/login
+   curl -I http://127.0.0.1:3002/login
    ```
    Se local retorna **200/307** mas o domínio dá **404** → falta proxy nginx (ver `nginx-aapanel-CORRIGIR-404.conf`).
 
@@ -156,6 +156,6 @@ O SGH **não** funciona só com `index.html` estático — rotas como `/login`, 
 |-------------|----------------|
 | Ficheiros na raiz do site | `ls index.js server.js .next` |
 | Node a correr | `pm2 list` ou `./verificar.sh` |
-| Resposta local | `curl http://127.0.0.1:3000/login` |
-| Proxy nginx | aaPanel → Reverse proxy → `:3000` |
+| Resposta local | `curl http://127.0.0.1:3002/login` |
+| Proxy nginx | aaPanel → Reverse proxy → `:3002` |
 | `.env` | `NEXTAUTH_URL=https://sgh.pajotech.com.br` |

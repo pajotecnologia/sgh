@@ -3,7 +3,7 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-PORT="${PORT:-3000}"
+PORT="${PORT:-3002}"
 
 echo "=============================================="
 echo "  SGH — Diagnóstico"

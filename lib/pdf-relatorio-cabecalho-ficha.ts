@@ -70,7 +70,7 @@ async function carregarImagemLogo(pdf: PDFDocument, url: string | null): Promise
     if (!u8) {
       let fetchUrl = u;
       if (u.startsWith('/')) {
-        const baseUrl = process.env.NEXTAUTH_URL || 'http://127.0.0.1:3000';
+        const baseUrl = process.env.NEXTAUTH_URL || 'http://127.0.0.1:3002';
         fetchUrl = `${baseUrl.replace(/\/$/, '')}${u}`;
       }
       const res = await fetch(fetchUrl, { cache: 'no-store' });

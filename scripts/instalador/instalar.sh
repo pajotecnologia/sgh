@@ -110,8 +110,8 @@ if [ "$STARTED" -eq 0 ]; then
   echo ""
   echo "Configure no aaPanel (uma vez):"
   echo "  Site → Node → Projeto Node → pasta: $ROOT"
-  echo "  Ficheiro de arranque: index.js   Porta: 3000"
-  echo "  Proxy reverso: http://127.0.0.1:3000  (ver nginx.example.conf)"
+  echo "  Ficheiro de arranque: index.js   Porta: 3002"
+  echo "  Proxy reverso: http://127.0.0.1:3002  (ver nginx.example.conf)"
   echo ""
   echo "Ou instale PM2: npm i -g pm2 && ./instalar.sh"
 fi

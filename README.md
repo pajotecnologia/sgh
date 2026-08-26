@@ -77,7 +77,7 @@ npm run db:bootstrap       # cria banco + aplica migrations + seed
 npm run dev
 ```
 
-Acesse http://localhost:3000
+Acesse http://localhost:3002
 
 ### Usuários iniciais (seed)
 

@@ -149,7 +149,7 @@ export NODE_ENV=production
 node server.js
 ```
 
-Por defeito o Next escuta na porta **3000**. Em produção use **systemd** ou **PM2** e coloque Nginx à frente.
+Por defeito o Next escuta na porta **3002**. Em produção use **systemd** ou **PM2** e coloque Nginx à frente.
 
 ### Exemplo de unidade systemd (`/etc/systemd/system/sgh.service`)
 
@@ -196,7 +196,7 @@ server {
     client_max_body_size 25m;
 
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3002;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

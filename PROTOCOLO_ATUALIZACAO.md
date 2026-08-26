@@ -43,26 +43,20 @@ git push origin main
 Acesse a pasta do projeto na VPS (`/www/wwwroot/sgh.pajotech.com.br`) pelo terminal ou aaPanel e rode **este comando único**:
 
 ```bash
-npm run deploy:prod
+cd /www/wwwroot/sgh.pajotech.com.br && git pull origin main && npm run build && cp -r .next/static .next/standalone/.next/ 2>/dev/null || true && cp -r public .next/standalone/ 2>/dev/null || true
 ```
 
-ou (em caso de sincronização forçada):
-
-```bash
-git fetch origin main && git reset --hard origin/main && npm run deploy:prod
-```
+Depois clique em **Restart** no projeto `sgh` no aaPanel.
 
 ---
 
-## 4. O que o comando `npm run deploy:prod` faz sozinho:
+## 4. Mapeamento das Portas na VPS
 
-| Etapa | Ação | Descrição |
-|-------|------|-----------|
-| **1/5** | `git pull origin main` | Baixa as alterações mais recentes do GitHub. |
-| **2/5** | `npm install --registry=https://registry.npmjs.org/` | Instala/sincroniza pacotes usando o servidor oficial do NPM. |
-| **3/5** | `npm run db:migrate:deploy` | Aplica as novas migrações do PostgreSQL sem perda de dados. |
-| **4/5** | `npm run build:release` | Compila o Next.js e empacota a release de produção. |
-| **5/5** | `pm2 reload sgh.pajotech.com.br` | Recarrega a instância do PM2 com **zero downtime**. |
+| Aplicação | Porta | Proxy Nginx aaPanel |
+|-----------|-------|---------------------|
+| **SGH (Hospitalar)** | **`3002`** | `http://127.0.0.1:3002` |
+| **Contratos** | **`3005`** | `http://127.0.0.1:3005` |
+| **DNYL (Flats)** | **`3010`** | `http://127.0.0.1:3010` |
 
 ---
 
