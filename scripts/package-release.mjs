@@ -34,14 +34,18 @@ async function main() {
 
   const staticSrc = path.join(root, '.next', 'static');
   const staticDst = path.join(outDir, '.next', 'static');
+  const standaloneStaticDst = path.join(standaloneDir, '.next', 'static');
   if (await exists(staticSrc)) {
     await fs.mkdir(path.dirname(staticDst), { recursive: true });
     await fs.cp(staticSrc, staticDst, { recursive: true, dereference: true });
+    await fs.mkdir(path.dirname(standaloneStaticDst), { recursive: true });
+    await fs.cp(staticSrc, standaloneStaticDst, { recursive: true, dereference: true });
   }
 
   const publicSrc = path.join(root, 'public');
   if (await exists(publicSrc)) {
     await fs.cp(publicSrc, path.join(outDir, 'public'), { recursive: true, dereference: true });
+    await fs.cp(publicSrc, path.join(standaloneDir, 'public'), { recursive: true, dereference: true });
   }
 
   console.log(`Deploy pronto em: ${outDir}`);

@@ -18,7 +18,7 @@
     "db:schema:sql": "node ./node_modules/prisma/build/index.js migrate diff --from-empty --to-schema prisma/schema.prisma --script -o database/sgh_schema_completo.sql",
     "db:update:sql": "npm run db:schema:sql && node scripts/generate-update-sql.mjs && node scripts/generate-banco-completo.mjs",
     "db:full:sql": "node scripts/generate-banco-completo.mjs",
-    "start": "PORT=3002 node .next/standalone/server.js || node scripts/start.mjs",
+    "start": "node scripts/start.mjs",
     "lint": "node ./node_modules/next/dist/bin/next lint",
     "test": "node ./node_modules/vitest/vitest.mjs",
     "test:run": "node ./node_modules/vitest/vitest.mjs run",

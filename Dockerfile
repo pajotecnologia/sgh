@@ -1,24 +1,32 @@
-FROM node:22-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Copia os arquivos de pacotes primeiro
-COPY package*.json ./
+RUN apk add --no-cache libc6-compat
 
-# Instala as dependências de forma limpa (sem o erro do Prisma)
-RUN npm ci
+# 1. Copia os arquivos de pacotes e o .npmrc (resolve o conflito de peer dependencies)
+COPY package*.json .npmrc* ./
 
-# Copia o restante do código
+# 2. Instala as dependências respeitando o --legacy-peer-deps
+RUN npm ci --legacy-peer-deps
+
+# 3. Copia o schema do Prisma e gera o Prisma Client ANTES do build
+COPY prisma ./prisma
+RUN npx prisma generate
+
+# 4. Copia o restante do código
 COPY . .
 
-# Executa o build caso use TypeScript ou Next.js (se não usar, não tem problema)
-RUN npm run build --if-present
+# 5. Compila a aplicação Next.js
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+RUN npm run build
+RUN node scripts/package-release.mjs
 
-# Gera os arquivos do Prisma Client se o seu projeto usar Prisma
-RUN npx prisma generate --if-present
+# 6. Configurações de execução
+ENV PORT=3002
+ENV HOSTNAME="0.0.0.0"
 
-# Expõe a porta que está configurada no seu Coolify (3002)
 EXPOSE 3002
 
-# Comando para iniciar sua aplicação
 CMD ["npm", "start"]
