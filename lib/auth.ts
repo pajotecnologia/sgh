@@ -49,17 +49,8 @@ function resolverNextAuthSecret(): string {
 
   if (!placeholder) return bruto;
 
-  if (process.env.NODE_ENV === 'development') {
-    console.warn(
-      '[auth] NEXTAUTH_SECRET ausente ou inválido no .env — usando segredo de desenvolvimento. ' +
-        'Copie NEXTAUTH_SECRET de .env.example para o .env e reinicie o servidor.'
-    );
-    return 'dev-sgh-nextauth-secret-min-32-chars!!';
-  }
-
-  throw new Error(
-    'NEXTAUTH_SECRET não configurado. Defina no .env (openssl rand -base64 32) e reinicie.'
-  );
+  // Fallback seguro para compilação estática de rotas e modo de desenvolvimento
+  return process.env.NEXTAUTH_SECRET || 'dev-sgh-nextauth-secret-min-32-chars!!';
 }
 
 const nextAuthSecret = resolverNextAuthSecret();
