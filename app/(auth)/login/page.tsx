@@ -5,6 +5,8 @@ import type { Metadata } from 'next';
 import { FormularioLogin } from '@/components/auth/FormularioLogin';
 import { Activity, Shield, Clock } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Acesso ao Sistema',
 };
