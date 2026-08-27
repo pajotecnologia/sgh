@@ -9,7 +9,7 @@ COPY package*.json .npmrc* ./
 
 # 2. Instala todas as dependências necessárias para o build
 ENV NODE_ENV=development
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 
 # 3. Copia o schema do Prisma e gera o Prisma Client ANTES do build
 COPY prisma ./prisma
