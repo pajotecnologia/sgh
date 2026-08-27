@@ -7,6 +7,8 @@ import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { DashboardShell } from '@/components/shared/DashboardShell';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: {
     template: '%s | SGH',

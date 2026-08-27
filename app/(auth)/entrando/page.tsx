@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import type { Role } from '@/types'
 
+export const dynamic = 'force-dynamic';
+
 const DESTINO_POR_ROLE: Partial<Record<Role, string>> = {
   FARMACEUTICO: '/farmacia',
   RECEPCIONISTA: '/recepcao',
