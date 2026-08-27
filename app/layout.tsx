@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   },
   description:
     'Sistema de Gerenciamento Hospitalar integrado com Recepção, Triagem Manchester, Painel de Chamada, Atendimento Médico e Prontuário Eletrônico.',
-  keywords: ['hospital', 'gestão hospitalar', 'triagem', 'prontuário eletrônico', 'SGH'],
+  keywords: 'hospital, gestão hospitalar, triagem, prontuário eletrônico, SGH',
   robots: { index: false, follow: false }, // Sistema interno — não indexar
 };
 

@@ -4,8 +4,8 @@ import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao';
 import { PainelChamada } from '@/components/painel/PainelChamada';
 import { configPainelFromDb, CONFIG_PAINEL_PADRAO } from '@/lib/painel-config';
 
-// Revalidar a cada 30s (SSR + ISR como fallback se Pusher não conectar)
-export const revalidate = 30;
+// Rota dinâmica sob demanda (SSR para TVs e terminais do painel)
+export const dynamic = 'force-dynamic';
 
 export default async function PaginaPainel({
   searchParams,
