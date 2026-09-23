@@ -36,7 +36,9 @@
     "db:bootstrap": "node scripts/init-sgh-database.mjs",
     "smoke:rbac": "node scripts/smoke-rbac.mjs",
     "deploy:prod": "bash scripts/deploy-producao.sh",
-    "deploy:prod:ps": "powershell -ExecutionPolicy Bypass -File scripts/deploy-producao.ps1"
+    "deploy:prod:ps": "powershell -ExecutionPolicy Bypass -File scripts/deploy-producao.ps1",
+    "security:audit": "node scripts/dependency-audit.mjs",
+    "test:smoke": "node scripts/smoke-rbac.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
