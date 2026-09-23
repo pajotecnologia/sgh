@@ -58,7 +58,12 @@ export async function autorizarArquivoClinico({
   }
 
   const resultadoPdf = `/api/uploads/${caminhoNormalizado}`
-  const item = await prisma.itemRequisicao.findFirst({
+  const [usuario, item] = await Promise.all([
+    prisma.usuario.findFirst({
+      where: { id: usuarioId, ativo: true, deletedAt: null },
+      select: { id: true },
+    }),
+    prisma.itemRequisicao.findFirst({
     where: { resultadoPdf },
     select: {
       id: true,
@@ -78,10 +83,11 @@ export async function autorizarArquivoClinico({
         },
       },
     },
-  })
+    }),
+  ])
 
   const atendimento = item?.requisicao.prontuario.atendimento
-  if (!item || !atendimento || atendimento.deletedAt !== null) {
+  if (!usuario || !item || !atendimento || atendimento.deletedAt !== null) {
     return {
       permitido: false,
       pacienteId: null,
