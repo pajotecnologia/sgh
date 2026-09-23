@@ -82,6 +82,19 @@ O sistema **não está “fechado” para produção hospitalar completa**: falt
 
 ---
 
+## 6. Fase 5 — Sessões, dispositivos e revogação de acesso
+
+- Tabela existente `SessaoUsuario` passou a ser integrada ao JWT do NextAuth sem trocar a estratégia `jwt`.
+- Cada login válido cria uma sessão persistida com identificador aleatório armazenado somente como hash SHA-256.
+- Sessões carregam IP, user-agent, dispositivo, criação, último acesso e expiração.
+- O JWT passa a carregar apenas o identificador da sessão; o servidor valida a sessão persistida a cada renovação/acesso do JWT.
+- Sessões revogadas, expiradas ou vinculadas a usuário inativo deixam de ser aceitas.
+- Logout normal revoga a sessão atual no banco.
+- Nova tela `/seguranca/sessoes` permite consultar sessões/dispositivos ativos e encerrar acessos individuais ou todas as outras sessões.
+- Novas APIs de segurança para listar, revogar uma sessão e revogar as demais sessões.
+- Atualização do menu lateral para acesso à gestão de sessões por qualquer usuário autenticado.
+- Testes unitários para geração/hash de identificador, duração de sessão e identificação de dispositivo.
+
 ## 5. Fase 4 concluída nesta rodada — MFA e segurança de conta
 
 - TOTP compatível com aplicativos autenticadores, sem nova dependência externa.
@@ -111,16 +124,16 @@ O sistema **não está “fechado” para produção hospitalar completa**: falt
 
 ---
 
-## 8. Como validar rapidamente
+## 9. Como validar rapidamente
 
 ```bash
 npm run db:migrate   # se schema mudou noutra máquina
-npm run test:run     # inclui sessao4.test.ts
+npm run test:run     # inclui testes unitários de sessões, TOTP e fluxos anteriores
 npm run build
 ```
 
-Rotas novas relevantes: `/enfermagem`, `/prontuario`, `/auditoria`, `/relatorios`; APIs sob `/api/atendimento/[id]/…` e `/api/relatorios/atendimentos-dia` conforme `README.md`.
+Rotas novas relevantes: `/enfermagem`, `/prontuario`, `/auditoria`, `/relatorios`, `/seguranca/mfa`, `/seguranca/sessoes`; APIs sob `/api/atendimento/[id]/…` e `/api/relatorios/atendimentos-dia` conforme `README.md`.
 
 ---
 
-*Última atualização: inclui `pdf-lib`, upload de resultado em PDF nos exames e relatório diário de atendimentos.*
+*Última atualização: inclui a Fase 5 de controle de sessões/dispositivos e revogação de acessos.*
