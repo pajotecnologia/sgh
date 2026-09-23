@@ -1,4 +1,4 @@
-import type { StatusAtendimento } from '@prisma/client'
+import type { Role, StatusAtendimento } from '@prisma/client'
 
 const transicoes: Record<StatusAtendimento, StatusAtendimento[]> = {
   AGUARDANDO_TRIAGEM: ['EM_TRIAGEM'],
@@ -15,6 +15,35 @@ const transicoes: Record<StatusAtendimento, StatusAtendimento[]> = {
 
 export function transicaoAtendimentoPermitida(de: StatusAtendimento, para: StatusAtendimento) {
   return transicoes[de]?.includes(para) ?? false
+}
+
+/**
+ * Define quem pode executar cada transição operacional/assistencial.
+ * A regra fica centralizada para que APIs e UI não criem fluxos divergentes.
+ */
+export function usuarioPodeExecutarTransicao(
+  role: Role,
+  de: StatusAtendimento,
+  para: StatusAtendimento
+) {
+  if (!transicaoAtendimentoPermitida(de, para)) return false
+  if (role === 'ADMIN') return true
+
+  if (role === 'ENFERMEIRO') {
+    return de === 'AGUARDANDO_TRIAGEM' && para === 'EM_TRIAGEM'
+  }
+
+  if (role === 'MEDICO' || role === 'DIRETOR_CLINICO') {
+    return (
+      (de === 'AGUARDANDO_TRIAGEM' && para === 'EM_TRIAGEM') ||
+      (de === 'AGUARDANDO_ATENDIMENTO' && para === 'EM_ATENDIMENTO') ||
+      (de === 'EM_ATENDIMENTO' && (para === 'CONCLUIDO' || para === 'AGUARDANDO_INTERNACAO')) ||
+      (de === 'AGUARDANDO_INTERNACAO' && para === 'INTERNADO') ||
+      (de === 'INTERNADO' && ['ALTA', 'TRANSFERIDO', 'OBITO'].includes(para))
+    )
+  }
+
+  return false
 }
 
 export function statusFinaisInternacao(status: StatusAtendimento) {
