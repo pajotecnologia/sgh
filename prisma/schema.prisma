@@ -36,6 +36,9 @@ model Usuario {
   chamadaePainel     ChamadaPainel[]
   evolucoes          EvolucaoMedica[]
   logsAuditoria            LogAuditoria[]
+  sessoes                  SessaoUsuario[]
+  tentativasLogin          TentativaLogin[]
+  eventosMfa               EventoMfa[]
   tbPrescricoesCriadas     TbPrescricaoCabecalho[]
   tbFarmaciaValidacoes     TbFarmaciaDispensacao[]
   tbAuditoriaLog           TbAuditoriaLog[]
@@ -47,6 +50,61 @@ model Usuario {
 
   @@index([email])
   @@map("usuarios")
+}
+
+/// Sessões autenticadas e dispositivos confiáveis.
+/// Preparado para controle de revogação, encerramento global e rastreabilidade.
+model SessaoUsuario {
+  id           String   @id @default(uuid())
+  usuarioId    String
+  sessionTokenHash String @unique
+  ipOrigem     String?
+  userAgent    String?
+  dispositivo  String?
+  criadoEm     DateTime @default(now())
+  ultimoAcesso DateTime @default(now())
+  expiraEm     DateTime
+  revogadoEm   DateTime?
+  motivoRevogacao String?
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([expiraEm])
+  @@index([revogadoEm])
+  @@map("sessoes_usuario")
+}
+
+/// Tentativas de autenticação para detecção de abuso e investigação de incidentes.
+model TentativaLogin {
+  id          String   @id @default(uuid())
+  email       String?
+  usuarioId   String?
+  sucesso     Boolean
+  ipOrigem    String?
+  userAgent   String?
+  motivo      String?
+  criadoEm    DateTime @default(now())
+  usuario     Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([email, criadoEm])
+  @@index([ipOrigem, criadoEm])
+  @@index([usuarioId, criadoEm])
+  @@map("tentativas_login")
+}
+
+/// Eventos de MFA para auditoria e segurança operacional.
+model EventoMfa {
+  id         String   @id @default(uuid())
+  usuarioId  String
+  evento     String
+  ipOrigem   String?
+  userAgent  String?
+  criadoEm   DateTime @default(now())
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, criadoEm])
+  @@index([evento, criadoEm])
+  @@map("eventos_mfa")
 }
 
 /// Token único (hash SHA-256) para fluxo «esqueci minha senha»
