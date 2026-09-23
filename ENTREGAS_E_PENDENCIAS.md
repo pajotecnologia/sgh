@@ -147,3 +147,29 @@ Rotas novas relevantes: `/enfermagem`, `/prontuario`, `/auditoria`, `/relatorios
 ---
 
 *Última atualização: inclui a Fase 5 de controle de sessões/dispositivos e revogação de acessos.*
+
+
+## Fases 7–10 — bloco de endurecimento operacional
+
+### Fase 7 — Dependências
+- Criado `npm run security:audit` para relatório automatizado de vulnerabilidades.
+- Dependabot já monitora npm e GitHub Actions.
+- Não foi aplicado `npm audit fix --force`; a atualização de major/lockfile continua exigindo validação coordenada para não quebrar Next.js 16/React 19/Prisma 7.
+
+### Fase 8 — RBAC clínico contextual
+- Criada política central em `lib/rbac-clinico.ts`.
+- Médico comum passa a ser limitado ao atendimento que está atribuído a ele nas APIs clínicas endurecidas.
+- Diagnóstico DELETE agora exige `atendimentoId` e verifica que o diagnóstico pertence ao prontuário daquele atendimento.
+- APIs de prescrição, diagnóstico e evolução verificam atendimento ativo + vínculo do médico antes da operação.
+- Testes unitários adicionados para leitura/edição, vínculo médico-atendimento e estados encerrados.
+
+### Fase 9 — Backup e recuperação
+- Criado backup PostgreSQL em formato custom + backup dos uploads.
+- Manifesto SHA-256 é gerado para os artefatos.
+- Restauração exige `CONFIRM_RESTORE=YES`, reduzindo risco de execução destrutiva acidental.
+- A restauração valida o manifesto antes de executar `pg_restore`.
+
+### Fase 10 — Regressão E2E
+- CI recebeu job PostgreSQL isolado para smoke test RBAC.
+- O job prepara banco, gera Prisma, executa seed, gera build, sobe a aplicação e executa `npm run test:smoke`.
+- Falhas do smoke exibem o log da aplicação para diagnóstico.
