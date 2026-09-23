@@ -18,6 +18,10 @@ export async function POST(
   if (!['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'].includes(sessao.usuario.role)) {
     return NextResponse.json({ sucesso: false, erro: 'Sem permissão.' }, { status: 403 });
   }
+  const atendimento = await prisma.atendimento.findUnique({ where: { id: atendimentoId }, select: { medicoId: true, deletedAt: true } });
+  if (!atendimento || atendimento.deletedAt !== null || !medicoPodeAcessarAtendimento(sessao.usuario.role, sessao.usuario.id, atendimento.medicoId)) {
+    return NextResponse.json({ sucesso: false, erro: 'Atendimento não autorizado para este usuário.' }, { status: 403 });
+  }
 
   try {
     if (await prontuarioEstaEncerrado(atendimentoId)) {
@@ -66,6 +70,9 @@ export async function GET(
   const { atendimentoId } = await params;
   const sessao = await getServerSession(authOptions);
   if (!sessao) return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 });
+  if (!['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'].includes(sessao.usuario.role)) return NextResponse.json({ sucesso: false, erro: 'Sem permissão.' }, { status: 403 });
+  const atendimento = await prisma.atendimento.findUnique({ where: { id: atendimentoId }, select: { medicoId: true, deletedAt: true } });
+  if (!atendimento || atendimento.deletedAt !== null || !medicoPodeAcessarAtendimento(sessao.usuario.role, sessao.usuario.id, atendimento.medicoId)) return NextResponse.json({ sucesso: false, erro: 'Atendimento não autorizado para este usuário.' }, { status: 403 });
 
   try {
     const prontuario = await prisma.prontuarioMedico.findUnique({
@@ -81,14 +88,15 @@ export async function GET(
 // DELETE — Remover diagnóstico
 export async function DELETE(req: NextRequest) {
   const sessao = await getServerSession(authOptions);
-  if (!sessao || !['ADMIN', 'MEDICO'].includes(sessao.usuario.role)) {
-    return NextResponse.json({ sucesso: false, erro: 'Sem permissão.' }, { status: 403 });
-  }
-
+  if (!sessao || !['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'].includes(sessao.usuario.role)) return NextResponse.json({ sucesso: false, erro: 'Sem permissão.' }, { status: 403 });
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
-  if (!id) return NextResponse.json({ sucesso: false, erro: 'ID obrigatório.' }, { status: 400 });
-
+  const atendimentoId = searchParams.get('atendimentoId');
+  if (!id || !atendimentoId) return NextResponse.json({ sucesso: false, erro: 'ID e atendimentoId são obrigatórios.' }, { status: 400 });
+  const atendimento = await prisma.atendimento.findUnique({ where: { id: atendimentoId }, select: { medicoId: true, deletedAt: true } });
+  if (!atendimento || atendimento.deletedAt !== null || !medicoPodeAcessarAtendimento(sessao.usuario.role, sessao.usuario.id, atendimento.medicoId)) return NextResponse.json({ sucesso: false, erro: 'Atendimento não autorizado.' }, { status: 403 });
+  const diagnostico = await prisma.diagnostico.findUnique({ where: { id }, select: { prontuarioId: true } });
+  if (!diagnostico || !(await prontuarioPertenceAoAtendimento(atendimentoId, diagnostico.prontuarioId))) return NextResponse.json({ sucesso: false, erro: 'Diagnóstico não pertence ao atendimento.' }, { status: 403 });
   await prisma.diagnostico.delete({ where: { id } });
   return NextResponse.json({ sucesso: true, mensagem: 'Diagnóstico removido.' });
 }
