@@ -62,7 +62,7 @@ function resolverNextAuthSecret(): string {
 const nextAuthSecret = resolverNextAuthSecret();
 
 export const authOptions: NextAuthOptions = {
-  // Usar JWT (stateless) — não requer tabela de sessões no banco
+  // JWT continua sendo o mecanismo de sessão do NextAuth; SessaoUsuario adiciona revogação e rastreabilidade persistidas.
   session: {
     strategy: 'jwt',
     // 8 horas = turno de trabalho padrão
