@@ -21,6 +21,8 @@ export async function GET(
   if (!ROLES_LER.includes(sessao.usuario.role as (typeof ROLES_LER)[number])) {
     return NextResponse.json({ sucesso: false, erro: 'Sem permissão.' }, { status: 403 });
   }
+  const atendimento = await prisma.atendimento.findUnique({ where: { id: atendimentoId }, select: { medicoId: true, deletedAt: true } });
+  if (!atendimento || atendimento.deletedAt !== null || !medicoPodeAcessarAtendimento(sessao.usuario.role, sessao.usuario.id, atendimento.medicoId)) return NextResponse.json({ sucesso: false, erro: 'Atendimento não autorizado para este usuário.' }, { status: 403 });
 
   const prontuario = await prisma.prontuarioMedico.findUnique({
     where: { atendimentoId },
@@ -49,6 +51,8 @@ export async function POST(
   if (!ROLES_ESCREVER.includes(sessao.usuario.role as (typeof ROLES_ESCREVER)[number])) {
     return NextResponse.json({ sucesso: false, erro: 'Sem permissão.' }, { status: 403 });
   }
+  const atendimento = await prisma.atendimento.findUnique({ where: { id: atendimentoId }, select: { medicoId: true, deletedAt: true } });
+  if (!atendimento || atendimento.deletedAt !== null || !medicoPodeAcessarAtendimento(sessao.usuario.role, sessao.usuario.id, atendimento.medicoId)) return NextResponse.json({ sucesso: false, erro: 'Atendimento não autorizado para este usuário.' }, { status: 403 });
 
   try {
     if (await prontuarioEstaEncerrado(atendimentoId)) {
