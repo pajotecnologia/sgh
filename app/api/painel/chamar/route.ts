@@ -10,6 +10,7 @@ import { mensagemErroValidacaoApi } from '@/lib/validations/id';
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao';
 import { dispararEventoPusher, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher';
 import type { ApiResponse, ChamadaPainelDTO } from '@/types';
+import { usuarioPodeExecutarTransicao } from '@/lib/fluxo-atendimento';
 
 export async function POST(req: NextRequest) {
   const sessao = await getServerSession(authOptions);
@@ -67,6 +68,10 @@ export async function POST(req: NextRequest) {
       if (atendimento.status === 'AGUARDANDO_TRIAGEM') novoStatus = 'EM_TRIAGEM';
       else if (atendimento.status === 'AGUARDANDO_ATENDIMENTO') novoStatus = 'EM_ATENDIMENTO';
 
+      if (novoStatus !== atendimento.status && !usuarioPodeExecutarTransicao(sessao.usuario.role, atendimento.status, novoStatus)) {
+        throw new Error('TRANSICAO_NAO_PERMITIDA');
+      }
+
       // Atualizar sala do atendimento
       await tx.atendimento.update({
         where: { id: atendimentoId },
@@ -109,11 +114,24 @@ export async function POST(req: NextRequest) {
       timestamp: new Date().toISOString(),
     });
 
+    if (chamada) {
+      dispararEventoPusher(CANAIS_PUSHER.filaTriagem, EVENTOS_PUSHER.FILA_ATUALIZADA, {
+        atendimentoId,
+        statusAnterior: atendimento.status,
+        statusNovo: novoStatus,
+        motivo: 'CHAMADA_PAINEL',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     return NextResponse.json<ApiResponse<ChamadaPainelDTO>>(
       { sucesso: true, dados: payload, mensagem: 'Paciente chamado com sucesso.' },
       { status: 201 }
     );
   } catch (erro) {
+    if (erro instanceof Error && erro.message === 'TRANSICAO_NAO_PERMITIDA') {
+      return NextResponse.json({ sucesso: false, erro: 'Seu perfil não pode avançar este atendimento pela chamada do painel.' }, { status: 403 });
+    }
     console.error('[POST /api/painel/chamar] Erro:', erro);
     return NextResponse.json({ sucesso: false, erro: 'Erro interno.' }, { status: 500 });
   }
