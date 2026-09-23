@@ -36,6 +36,7 @@ model Usuario {
   chamadaePainel     ChamadaPainel[]
   evolucoes          EvolucaoMedica[]
   logsAuditoria            LogAuditoria[]
+  logsAcessoPaciente       LogAcessoPaciente[]
   sessoes                  SessaoUsuario[]
   tentativasLogin          TentativaLogin[]
   eventosMfa               EventoMfa[]
@@ -121,6 +122,29 @@ model TokenRedefinicaoSenha {
 }
 
 /// Ficha do paciente — dados sensíveis são criptografados (AES-256)
+/// Registro LGPD de acesso a dados sensíveis do paciente.
+model LogAcessoPaciente {
+  id            String   @id @default(uuid())
+  usuarioId     String?
+  pacienteId    String
+  atendimentoId String?
+  acao          String
+  modulo        String?
+  motivo        String?
+  ipOrigem      String?
+  userAgent     String?
+  acessadoEm    DateTime @default(now())
+  usuario       Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  paciente      Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  atendimento   Atendimento? @relation(fields: [atendimentoId], references: [id], onDelete: SetNull)
+
+  @@index([pacienteId, acessadoEm])
+  @@index([usuarioId, acessadoEm])
+  @@index([atendimentoId, acessadoEm])
+  @@index([acao, acessadoEm])
+  @@map("logs_acesso_paciente")
+}
+
 model Paciente {
   id                    String                @id @default(uuid())
   /// CPF criptografado — usado como identificador único
@@ -162,6 +186,7 @@ model Paciente {
   documentos            DocumentoPaciente[]
   endereco              Endereco?
   medicamentosCont      MedicamentoContinuo[]
+  logsAcesso              LogAcessoPaciente[]
 
   @@index([cpfHash])
   @@index([nomeExibicao])
@@ -281,6 +306,7 @@ model Atendimento {
   tbPrescricoes     TbPrescricaoCabecalho[]
   tbAuditoriaLog    TbAuditoriaLog[]
   tbFarmaciaSaidas  TbFarmaciaSaida[]
+  logsAcessoPaciente LogAcessoPaciente[]
   leito             Leito?            @relation(fields: [leitoId], references: [id])
 
   @@index([pacienteId])
