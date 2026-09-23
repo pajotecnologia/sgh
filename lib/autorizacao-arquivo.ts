@@ -76,6 +76,7 @@ export async function autorizarArquivoClinico({
                   id: true,
                   deletedAt: true,
                   pacienteId: true,
+                  paciente: { select: { deletedAt: true } },
                 },
               },
             },
@@ -87,7 +88,7 @@ export async function autorizarArquivoClinico({
   ])
 
   const atendimento = item?.requisicao.prontuario.atendimento
-  if (!usuario || !item || !atendimento || atendimento.deletedAt !== null) {
+  if (!usuario || !item || !atendimento || atendimento.deletedAt !== null || atendimento.paciente.deletedAt !== null) {
     return {
       permitido: false,
       pacienteId: null,
