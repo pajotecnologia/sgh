@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth';
 import { v4 as uuidv4 } from 'uuid';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { auditarLgpd } from '@/lib/auditoria-lgpd';
 
 const ROLES = ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM'] as const;
 const MAX_BYTES = 12 * 1024 * 1024;
@@ -91,15 +92,19 @@ export async function POST(
       },
     });
 
-    await prisma.logAuditoria.create({
-      data: {
-        usuarioId: sessao.usuario.id,
-        acao: 'ATUALIZACAO',
-        entidade: 'ItemRequisicao',
-        entidadeId: itemId,
-        valorNovo: `PDF resultado exame (${item.nomeExame})`,
-        ipOrigem: req.headers.get('x-forwarded-for') ?? null,
-      },
+    await auditarLgpd({
+      usuarioId: sessao.usuario.id,
+      role: sessao.usuario.role,
+      atendimentoId,
+      pacienteId: item.requisicao.prontuario.atendimentoId === atendimentoId
+        ? (await prisma.atendimento.findUnique({ where: { id: atendimentoId }, select: { pacienteId: true } }))?.pacienteId ?? null
+        : null,
+      acao: 'UPLOAD_DOCUMENTO_CLINICO',
+      entidade: 'ItemRequisicao',
+      entidadeId: itemId,
+      ipOrigem: req.headers.get('x-forwarded-for') ?? null,
+      userAgent: req.headers.get('user-agent'),
+      detalhes: { tipo: 'resultado_exame_pdf', nomeExame: item.nomeExame },
     });
 
     return NextResponse.json({
