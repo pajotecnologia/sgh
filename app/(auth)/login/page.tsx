@@ -129,7 +129,7 @@ export default function PaginaLogin() {
         {/* Rodapé Alinhado à Esquerda com a Logomarca PAJO Tecnologia e Versão */}
         <div className="pt-6 border-t border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <LogoPajo className="h-6 w-auto opacity-75 hover:opacity-100 transition-opacity" width={110} height={26} />
+            <LogoPajo className="hover:opacity-100 transition-opacity" />
           </div>
           <div className="text-[11px] text-muted-foreground text-left sm:text-right flex items-center gap-2">
             <span>Sessão segura com expiração automática</span>

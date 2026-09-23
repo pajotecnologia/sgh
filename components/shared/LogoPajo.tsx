@@ -2,36 +2,67 @@ import React from 'react'
 
 interface LogoPajoProps {
   className?: string
-  height?: number
-  width?: number
+  showSubtitle?: boolean
+  variant?: 'dark' | 'light' | 'auto'
 }
 
-export function LogoPajo({ className = 'h-7 w-auto text-foreground', height = 30, width = 120 }: LogoPajoProps) {
+export function LogoPajo({
+  className = '',
+  showSubtitle = true,
+  variant = 'auto',
+}: LogoPajoProps) {
+  const textColor =
+    variant === 'light'
+      ? 'text-white'
+      : variant === 'dark'
+      ? 'text-slate-900'
+      : 'text-foreground'
+
+  const subColor =
+    variant === 'light'
+      ? 'text-slate-300'
+      : variant === 'dark'
+      ? 'text-slate-500'
+      : 'text-muted-foreground'
+
   return (
-    <div className={`inline-flex flex-col items-start select-none ${className}`} title="PAJO Tecnologia">
-      <svg
-        viewBox="0 0 480 120"
-        width={width}
-        height={height}
-        fill="currentColor"
-        xmlns="http://www.w3.org/2000/svg"
-        className="h-auto w-auto max-w-full"
-      >
-        {/* P */}
-        <path d="M 10 10 L 95 10 C 130 10 145 28 145 52 C 145 76 130 94 95 94 L 52 94 L 52 110 L 10 110 Z M 52 32 L 52 72 L 90 72 C 108 72 118 64 118 52 C 118 40 108 32 90 32 Z" />
-        
-        {/* A */}
-        <path d="M 185 10 L 225 10 L 275 110 L 232 110 L 220 84 L 170 84 L 158 110 L 118 110 Z M 180 62 L 210 62 L 195 28 Z" />
-        
-        {/* J */}
-        <path d="M 285 10 L 328 10 L 328 78 C 328 98 316 110 288 110 C 265 110 252 100 248 88 L 285 78 C 286 84 292 88 298 88 C 304 88 308 84 308 76 L 308 10 Z" />
-        
-        {/* O */}
-        <path d="M 405 8 C 445 8 475 32 475 60 C 475 88 445 112 405 112 C 365 112 335 88 335 60 C 335 32 365 8 405 8 Z M 405 32 C 382 32 365 44 365 60 C 365 76 382 88 405 88 C 428 88 445 76 445 60 C 445 44 428 32 405 32 Z" />
-      </svg>
-      <span className="text-[9px] sm:text-[10px] font-semibold tracking-[0.42em] uppercase text-muted-foreground/80 pl-1 mt-0.5">
-        Tecnologia
-      </span>
+    <div
+      className={`inline-flex items-center gap-2.5 select-none ${className}`}
+      title="PAJO Tecnologia"
+    >
+      {/* Ícone estilizado PAJO */}
+      <div className="relative flex items-center justify-center h-8 w-8 rounded-lg bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 text-white shadow-sm shadow-indigo-500/20 shrink-0">
+        <svg
+          viewBox="0 0 24 24"
+          className="h-4.5 w-4.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M7 21V3h7a5 5 0 0 1 5 5v0a5 5 0 0 1-5 5H7" />
+          <circle cx="12" cy="18" r="1.5" fill="currentColor" />
+        </svg>
+      </div>
+
+      {/* Tipografia da Marca */}
+      <div className="flex flex-col text-left leading-none">
+        <div className="flex items-center gap-0.5">
+          <span className={`text-[15px] font-black tracking-wider uppercase font-sans ${textColor}`}>
+            PAJO
+          </span>
+          <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 inline-block ml-0.5" />
+        </div>
+        {showSubtitle && (
+          <span
+            className={`text-[8.5px] font-bold tracking-[0.28em] uppercase ${subColor} mt-0.5`}
+          >
+            TECNOLOGIA
+          </span>
+        )}
+      </div>
     </div>
   )
 }
+

@@ -124,11 +124,12 @@ function FormularioLoginInner() {
       }
 
       toast.error('Não foi possível entrar', {
-        description: 'Tente http://localhost:3002/login (evite 127.0.0.1 se o login falhar).',
+        description: 'Verifique se o endereço no navegador é http://localhost:3002/login.',
       })
-    } catch {
-      toast.error('Erro inesperado', {
-        description: 'Verifique se o servidor está rodando (npm run dev).',
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      toast.error('Erro na autenticação', {
+        description: msg || 'Verifique se o servidor está ativo na porta 3002.',
       })
     }
   }
