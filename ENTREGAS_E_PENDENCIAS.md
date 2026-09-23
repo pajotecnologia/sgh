@@ -82,7 +82,17 @@ O sistema **não está “fechado” para produção hospitalar completa**: falt
 
 ---
 
-## 5. Riscos e débito técnico conhecidos
+## 5. Fase 4 concluída nesta rodada — MFA e segurança de conta
+
+- TOTP compatível com aplicativos autenticadores, sem nova dependência externa.
+- Segredo TOTP criptografado com AES-256-GCM usando chave derivada de `NEXTAUTH_SECRET`.
+- Ativação somente após validação do primeiro código.
+- Login passa a exigir código MFA para contas com MFA ativo.
+- Registro de eventos `MFA_ATIVADO`, `MFA_DESATIVADO`, `MFA_CODIGO_AUSENTE`, `MFA_CODIGO_INVALIDO` e `MFA_VALIDADO`.
+- Tela `/seguranca/mfa` para configuração e desativação mediante código atual.
+- Testes unitários das primitivas TOTP.
+
+## 6. Riscos e débito técnico conhecidos
 
 - **Campo `resumoClinco`** no modelo `Encaminhamento` (typo histórico no Prisma): mantido por consistência com o banco; renomear exige migration + ajuste em toda a stack.
 - **Múltiplas instâncias `next dev`** — Podem causar “Failed to fetch” no cliente; operação deve usar **uma** porta/instância por projeto.
@@ -91,7 +101,7 @@ O sistema **não está “fechado” para produção hospitalar completa**: falt
 
 ---
 
-## 6. Próximos passos sugeridos (ordem prática)
+## 7. Próximos passos sugeridos (ordem prática)
 
 1. ~~**Exames — PDF**~~ — Upload por item + link público estático (em produção: bucket privado + URL assinada ou proxy autenticado).
 2. ~~**Relatório PDF útil**~~ — Atendimentos do dia em `/relatorios`; evoluir para filtros por setor e mais indicadores.
@@ -101,7 +111,7 @@ O sistema **não está “fechado” para produção hospitalar completa**: falt
 
 ---
 
-## 7. Como validar rapidamente
+## 8. Como validar rapidamente
 
 ```bash
 npm run db:migrate   # se schema mudou noutra máquina
