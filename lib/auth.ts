@@ -44,6 +44,7 @@ declare module 'next-auth/jwt' {
     crm?: string | null;
     coren?: string | null;
     sessaoId?: string;
+    sessaoValida?: boolean;
   }
 }
 
