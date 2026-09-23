@@ -14,7 +14,7 @@ export async function auditarLgpd({
   ipOrigem,
   userAgent,
   detalhes,
-  pacienteId,
+  pacienteId: pacienteIdInformado,
 }: {
   usuarioId: string | null
   role: Role | null
@@ -44,7 +44,7 @@ export async function auditarLgpd({
   // Log dedicado a acessos a dados sensíveis do paciente. Quando o contexto
   // vem de um atendimento, resolve o paciente pelo próprio vínculo para evitar
   // duplicação de lógica nos endpoints clínicos.
-  const pacienteId = pacienteId ?? (atendimentoId
+  const pacienteId = pacienteIdInformado ?? (atendimentoId
     ? (await prisma.atendimento.findUnique({ where: { id: atendimentoId }, select: { pacienteId: true } }))?.pacienteId ?? null
     : null)
 
