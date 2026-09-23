@@ -10,6 +10,7 @@ import { verificarInteracoes, verificarAlergiaMedicamento } from '@/lib/interaco
 import { prontuarioPertenceAoAtendimento, prontuarioEstaEncerrado } from '@/lib/atendimento-prontuario';
 import { detectarInteracoesPorPrincipioAtivo } from '@/lib/farmacia-interacoes';
 import { auditarLgpd } from '@/lib/auditoria-lgpd';
+import { medicoPodeAcessarAtendimento } from '@/lib/rbac-clinico';
 import { resolverMedicamentoCatalogo } from '@/lib/medicamento-catalogo-match';
 import { dispararEventoPusher, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher';
 
@@ -26,6 +27,10 @@ export async function POST(
   if (!sessao) return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 });
   if (!['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'].includes(sessao.usuario.role)) {
     return NextResponse.json({ sucesso: false, erro: 'Sem permissão.' }, { status: 403 });
+  }
+  const atendimento = await prisma.atendimento.findUnique({ where: { id: atendimentoId }, select: { medicoId: true, deletedAt: true } });
+  if (!atendimento || atendimento.deletedAt !== null || !medicoPodeAcessarAtendimento(sessao.usuario.role, sessao.usuario.id, atendimento.medicoId)) {
+    return NextResponse.json({ sucesso: false, erro: 'Atendimento não autorizado para este usuário.' }, { status: 403 });
   }
 
   try {
