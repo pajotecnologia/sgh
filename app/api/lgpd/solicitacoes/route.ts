@@ -3,12 +3,13 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { randomUUID } from 'node:crypto'
+import type { Session } from 'next-auth'
 
 const ROLES = ['ADMIN', 'DIRETOR_CLINICO'] as const
 const TIPOS = ['CONFIRMACAO_DADOS','ACESSO_DADOS','CORRECAO_DADOS','ELIMINACAO_DADOS','PORTABILIDADE','REVOGACAO_CONSENTIMENTO','OUTRA'] as const
 const STATUS = ['RECEBIDA','EM_ANALISE','AGUARDANDO_COMPLEMENTO','CONCLUIDA','NEGADA','CANCELADA'] as const
 
-function autorizado(sessao: Awaited<ReturnType<typeof getServerSession>>) {
+function autorizado(sessao: Session | null) {
   return !!sessao?.usuario?.role && ROLES.includes(sessao.usuario.role as (typeof ROLES)[number])
 }
 
