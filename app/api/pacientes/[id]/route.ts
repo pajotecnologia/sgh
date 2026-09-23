@@ -46,6 +46,7 @@ export async function GET(
       usuarioId: sessao.usuario.id,
       role: sessao.usuario.role,
       atendimentoId: null,
+      pacienteId: id,
       acao: 'VISUALIZACAO',
       entidade: 'Paciente',
       entidadeId: id,
