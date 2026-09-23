@@ -11,6 +11,7 @@ import {
   FlaskConical,
   TrendingUp,
   UserCheck,
+  ShieldCheck,
 } from 'lucide-react'
 import { DashboardChartCard } from '@/components/dashboard/DashboardChartCard'
 import { DashboardFiltroPeriodo } from '@/components/dashboard/DashboardFiltroPeriodo'
@@ -241,6 +242,15 @@ export default async function PaginaDashboard({
             >
               <FlaskConical className="h-6 w-6 text-indigo-600" />
               <span className="text-xs font-medium">Relatórios</span>
+            </a>
+          )}
+          {['ADMIN', 'DIRETOR_CLINICO'].includes(sessao?.usuario.role ?? '') && (
+            <a
+              href="/dashboard/governanca"
+              className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border hover:bg-muted/50 transition-colors text-center"
+            >
+              <ShieldCheck className="h-6 w-6 text-primary" />
+              <span className="text-xs font-medium">Governança e segurança</span>
             </a>
           )}
           <a
