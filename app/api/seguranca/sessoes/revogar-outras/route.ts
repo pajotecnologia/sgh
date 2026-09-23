@@ -18,7 +18,7 @@ export async function POST() {
       revogadoEm: null,
       NOT: { sessionTokenHash: hashIdentificadorSessao(session.usuario.sessaoId) },
     },
-    data: { revogadoEm: new Date(), motivoRevocacao: 'REVOGAR_OUTRAS' },
+    data: { revogadoEm: new Date(), motivoRevogacao: 'REVOGAR_OUTRAS' },
   });
 
   return NextResponse.json(
