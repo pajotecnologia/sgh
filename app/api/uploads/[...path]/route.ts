@@ -4,6 +4,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { autorizarArquivoClinico, normalizarCaminhoRelativo } from '@/lib/autorizacao-arquivo';
+import { auditarLgpd } from '@/lib/auditoria-lgpd';
 import { readFile, stat, realpath } from 'fs/promises';
 import path from 'path';
 
@@ -29,7 +31,8 @@ export async function GET(
       return NextResponse.json({ sucesso: false, erro: 'Caminho inválido.' }, { status: 400 });
     }
 
-    // Se não for imagem (ex: PDFs sensíveis/exames), exige sessão autenticada
+    // Imagens de mídia institucional podem continuar públicas; conteúdo clínico
+    // exige autenticação + autorização no recurso persistido.
     const isImagem = /\.(png|jpe?g|webp|gif|svg)$/i.test(pathSegments[pathSegments.length - 1] ?? '');
     const sessao = await getServerSession(authOptions);
 
@@ -37,10 +40,42 @@ export async function GET(
       return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 });
     }
 
+    const caminhoRelativo = normalizarCaminhoRelativo(pathSegments.join('/'));
+    if (!caminhoRelativo) {
+      return NextResponse.json({ sucesso: false, erro: 'Caminho inválido.' }, { status: 400 });
+    }
+
+    if (!isImagem) {
+      if (!sessao) {
+        return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 });
+      }
+
+      const autorizacao = await autorizarArquivoClinico({
+        caminho: caminhoRelativo,
+        usuarioId: sessao.usuario.id,
+        role: sessao.usuario.role,
+      });
+
+      if (!autorizacao.permitido) {
+        return NextResponse.json({ sucesso: false, erro: 'Arquivo não autorizado.' }, { status: 403 });
+      }
+
+      await auditarLgpd({
+        usuarioId: sessao.usuario.id,
+        role: sessao.usuario.role,
+        atendimentoId: autorizacao.atendimentoId,
+        pacienteId: autorizacao.pacienteId,
+        acao: 'VISUALIZACAO_ARQUIVO_CLINICO',
+        entidade: autorizacao.entidade,
+        entidadeId: autorizacao.entidadeId,
+        ipOrigem: req.headers.get('x-forwarded-for'),
+        userAgent: req.headers.get('user-agent'),
+        detalhes: { caminho: caminhoRelativo },
+      });
+    }
+
     // Prevenir Directory Traversal (ex: ../../.env)
-    const sanitizedPath = pathSegments
-      .map((p) => p.replace(/[^\w.\-()]/g, '_'))
-      .join(path.sep);
+    const sanitizedPath = caminhoRelativo;
 
     let baseStorageDir = process.env.UPLOAD_DIR
       ? path.resolve(process.env.UPLOAD_DIR)
