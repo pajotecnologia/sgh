@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
+import { randomUUID } from 'crypto'
 import {
   MAX_TAMANHO_IMAGEM_PAINEL,
   MAX_TAMANHO_VIDEO_PAINEL,
