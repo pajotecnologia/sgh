@@ -1,9 +1,8 @@
-// lib/carregar-dados-ficha-multidisciplinar.ts
-
 import { prisma } from '@/lib/prisma'
 import { montarPrefillFichaMultidisciplinar } from '@/lib/multidisciplinar-internacao'
 import type { FichaMultidisciplinarPrefill } from '@/lib/multidisciplinar-internacao'
 import { includeAtendimentoInternacao } from '@/lib/prefill-internamento'
+import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao'
 
 export type DadosFichaMultidisciplinar = {
   prefill: FichaMultidisciplinarPrefill
@@ -42,7 +41,10 @@ export async function carregarDadosFichaMultidisciplinar(
     prefill,
     ficha: ficha ? { id: ficha.id, status: ficha.status, updatedAt: ficha.updatedAt } : null,
     paciente: {
-      nomeExibicao: atendimento.paciente.nomeExibicao,
+      nomeExibicao: obterNomeCompletoPaciente(
+        atendimento.paciente.nomeExibicao,
+        atendimento.paciente.nomeCriptografado
+      ),
       numeroAtendimento: atendimento.numeroAtendimento,
     },
   }

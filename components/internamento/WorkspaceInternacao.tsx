@@ -13,6 +13,7 @@ import {
   Stethoscope,
   Users,
   AlertTriangle,
+  HeartPulse,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao'
@@ -221,6 +222,17 @@ export function WorkspaceInternacao({
           Voltar à lista
         </Link>
         <div className="flex flex-wrap items-center justify-end gap-2">
+          {atendimento?.pacienteId && (
+            <Link
+              href={`/prontuario/paciente/${atendimento.pacienteId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-primary/40 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/15 transition-colors"
+            >
+              <HeartPulse className="h-4 w-4" aria-hidden />
+              Histórico Longitudinal (PEP)
+            </Link>
+          )}
           {modo === 'evolucoes' ? (
             <>
               <Link

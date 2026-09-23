@@ -90,8 +90,9 @@ export async function POST(
           especialidade: d.especialidade,
           medicoDestinoId: d.medicoDestinoId ?? null,
           prioridade: d.prioridade ?? null,
-          resumoClinco: d.resumoClinco?.trim() || null,
+          resumoClinico: (d.resumoClinico || d.resumoClinco)?.trim() || null,
           justificativa: d.justificativa?.trim() || null,
+
           cidInternacao: d.cidInternacao?.trim() || null,
         },
       });

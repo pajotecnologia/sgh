@@ -50,7 +50,8 @@ type AtendimentoCompleto = {
     encaminhamentos: {
       tipo: string
       especialidade: string
-      resumoClinco: string | null
+      resumoClinico?: string | null
+      resumoClinco?: string | null
       justificativa: string | null
       cidInternacao: string | null
     }[]
@@ -203,8 +204,9 @@ function montarPrefillLaudoInternacaoNovo(
 
   const condicoesPartes = [
     encInternacao?.justificativa,
-    encInternacao?.resumoClinco,
+    encInternacao?.resumoClinico || encInternacao?.resumoClinco,
     diagPrincipal?.hipotese,
+
   ].filter(Boolean) as string[]
   const condicoesJustificativa = condicoesPartes.join('\n\n')
 

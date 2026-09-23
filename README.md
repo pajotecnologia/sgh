@@ -26,16 +26,27 @@ Sistema hospitalar completo para unidades de urgência/emergência e internaçã
 | Recepção / Ficha do paciente | `/recepcao` | ✅ Cadastro multi-etapa, edição, ViaCEP, upload de documentos |
 | Triagem — Protocolo Manchester | `/triagem` | ✅ Classificação por cor, sinais vitais, IMC, discriminadores |
 | Painel de chamada (TV) | `/painel` | ✅ Tela cheia, voz, mídia rotativa, múltiplos setores |
-| Atendimento médico | `/atendimento` | ✅ Anamnese, CID-10, prescrição, evolução, exames, encaminhamentos |
+| Atendimento médico | `/atendimento` | ✅ Anamnese, CID-10, prescrição, evolução, exames estruturados, encaminhamentos |
 | Medicação (PS, não internados) | `/medicacao` | ✅ Fila + aplicação com checklist dos 5 certos |
-| Internamento | `/internamento` | ✅ Admissões, evolução por turno, sinais vitais 24h, SAE, multidisciplinar, CCIH, obstetrícia, berçário |
+| Internamento | `/internamento` | ✅ Admissões, mapa visual de leitos, evolução por turno, sinais vitais 24h, SAE, multidisciplinar, CCIH |
 | Farmácia hospitalar | `/farmacia` | ✅ Catálogo, lotes (FEFO), entrada por NF-e (XML), dispensação, matriz de interações |
-| Prontuário eletrônico | `/prontuario` | ✅ Busca de atendimentos + histórico consolidado |
-| Evoluções | `/evolucoes` | ✅ Registro cronológico multiprofissional |
-| Auditoria (LGPD) | `/auditoria` | ✅ Logs imutáveis (admin) |
-| Cadastros | `/cadastros` | ✅ Leitos, clínicas, origens, prescrições-padrão |
-| Configurações | `/configuracoes` | ✅ Instituição, painel, SMTP |
-| Relatórios | `/relatorios` | ✅ PDF de atendimentos do dia |
+| Prontuário eletrônico (PEP) | `/prontuario` | ✅ Busca de atendimentos + histórico longitudinal por paciente |
+| Central de Tarefas | `/dashboard` | ✅ Pendências clínicas em tempo real por perfil (Médico, Enfermagem, Farmácia) |
+| Gestão de Segurança | `/seguranca/sessoes` | ✅ MFA (TOTP nativo) + gestão e revogação remota de sessões |
+| Auditoria (LGPD) | `/auditoria` | ✅ Logs imutáveis, filtros, exportação CSV e solicitações de titulares |
+| Relatórios Gerenciais | `/relatorios` | ✅ Dashboards, taxa de ocupação de leitos, exportações CSV/PDF |
+
+---
+
+## 📚 Documentação Técnica Oficial (`/docs`)
+
+Para documentação aprofundada de engenharia e operação, consulte os manuais em `/docs`:
+
+- [**Arquitetura do Sistema**](file:///docs/architecture.md) — Visão global, fluxo clínico e stack.
+- [**Segurança e LGPD**](file:///docs/security.md) — Criptografia AES-256-GCM, MFA, rate limit e sessões.
+- [**Modelagem de Dados**](file:///docs/database.md) — Schema relacional Prisma e entidades.
+- [**Backup e Restauração**](file:///docs/backup-restore.md) — Procedimentos operacionais e disaster recovery.
+- [**Roadmap**](file:///docs/roadmap.md) — Evoluções concluídas e planejamento futuro.
 
 ---
 

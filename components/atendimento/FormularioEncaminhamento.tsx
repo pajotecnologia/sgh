@@ -32,10 +32,12 @@ type EncaminhamentoRegistrado = {
   tipo: string
   especialidade: string
   prioridade?: string | null
+  resumoClinico?: string | null
   resumoClinco?: string | null
   justificativa?: string | null
   createdAt: string
 }
+
 
 export function FormularioEncaminhamento({
   atendimentoId,
@@ -83,8 +85,10 @@ export function FormularioEncaminhamento({
           tipo: desfecho,
           especialidade: especialidade.trim(),
           prioridade: prioridade || null,
+          resumoClinico: resumo.trim() || undefined,
           resumoClinco: resumo.trim() || undefined,
           justificativa: justificativa.trim() || undefined,
+
           cidInternacao: ehInternacao ? cidInternacao.trim() || undefined : undefined,
         }),
       })
@@ -371,7 +375,9 @@ export function FormularioEncaminhamento({
                     {en.tipo === 'EXTERNO' ? 'Relatório' : en.tipo === 'INTERNACAO' ? 'Solicitação' : 'Imprimir'}
                   </Link>
                 </div>
-                {en.resumoClinco ? <p className="text-xs whitespace-pre-wrap mb-1">{en.resumoClinco}</p> : null}
+                {en.resumoClinico || en.resumoClinco ? (
+                  <p className="text-xs whitespace-pre-wrap mb-1">{en.resumoClinico || en.resumoClinco}</p>
+                ) : null}
                 {en.justificativa ? (
                   <p className="text-xs text-muted-foreground whitespace-pre-wrap">Just.: {en.justificativa}</p>
                 ) : null}

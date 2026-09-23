@@ -208,7 +208,7 @@ type AtendimentoFicha = {
   prontuario: {
     anamnese: { hda: string | null; exameFisico: unknown } | null
     diagnosticos: { codigoCid: string; descricaoCid: string; principal: boolean }[]
-    encaminhamentos: { especialidade: string; resumoClinco: string | null }[]
+    encaminhamentos: { especialidade: string; resumoClinico?: string | null; resumoClinco?: string | null }[]
     evolucoes?: EvolucaoMedicaCtx[]
   } | null
   fichasEvolucaoTurno?: FichaEvolucaoTurnoCtx[]
@@ -476,8 +476,10 @@ export function montarPrefillFichaInternacaoAlta(
     historiaDoencaAtual:
       atendimento.prontuario?.anamnese?.hda?.trim() ||
       atendimento.triagem?.queixaPrincipal ||
+      enc?.resumoClinico?.trim() ||
       enc?.resumoClinco?.trim() ||
       '',
+
     pressaoArterial: sv ? montarPressaoArterial(sv) : '',
     pulso: sv?.frequenciaCardiaca != null ? String(sv.frequenciaCardiaca) : '',
     temperatura: sv?.temperatura != null ? String(sv.temperatura) : '',

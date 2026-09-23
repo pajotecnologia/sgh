@@ -2,7 +2,7 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-RUN apk add --no-cache libc6-compat curl
+RUN apk add --no-cache libc6-compat curl wget
 
 # Ignora ARGs que o Coolify injeta automaticamente (não usar durante build)
 ARG NEXTAUTH_SECRET
@@ -42,6 +42,11 @@ ENV HOSTNAME="0.0.0.0"
 
 EXPOSE 3002
 
-# O entrypoint executa as migrações antes de iniciar o Next.js.\n# O start-period evita que o healthcheck do Docker/Coolify falhe durante essa etapa.\nHEALTHCHECK --interval=10s --timeout=5s --start-period=45s --retries=5 CMD curl -fsS http://127.0.0.1:3002/login >/dev/null || exit 1\n\nENTRYPOINT ["./docker-entrypoint.sh"]
+# O entrypoint executa as migrações antes de iniciar o Next.js.
+# O start-period evita que o healthcheck do Docker/Coolify falhe durante essa etapa.
+HEALTHCHECK --interval=15s --timeout=5s --start-period=45s --retries=5 CMD curl -f http://127.0.0.1:3002/api/health || exit 1
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["npm", "start"]
+
 

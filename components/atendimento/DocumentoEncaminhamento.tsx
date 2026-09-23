@@ -94,14 +94,15 @@ export function DocumentoEncaminhamento({ instituicao, encaminhamento }: { insti
             </div>
           </section>
 
-          {encaminhamento.resumoClinco ? (
+          {(encaminhamento.resumoClinico || encaminhamento.resumoClinco) ? (
             <section className="mt-4">
               <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Resumo clínico</p>
               <div className="rounded-lg border border-slate-200 p-3 text-xs text-slate-800 whitespace-pre-wrap">
-                {encaminhamento.resumoClinco}
+                {encaminhamento.resumoClinico || encaminhamento.resumoClinco}
               </div>
             </section>
           ) : null}
+
 
           {encaminhamento.justificativa ? (
             <section className="mt-4">

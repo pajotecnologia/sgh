@@ -103,6 +103,12 @@ const ITENS_NAVEGACAO: ItemNav[] = [
     roles: ['ADMIN', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM', 'RECEPCIONISTA'],
   },
   {
+    label: 'Mapa de Leitos',
+    href: '/internamento/mapa-leitos',
+    icon: BedDouble,
+    roles: ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM', 'RECEPCIONISTA', 'FARMACEUTICO'],
+  },
+  {
     label: 'Prontuário Médico',
     href: '/prontuario',
     icon: FileText,

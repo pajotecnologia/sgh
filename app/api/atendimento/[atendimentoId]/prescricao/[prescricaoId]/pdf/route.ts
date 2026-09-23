@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { drawCabecalhoEstiloFicha, drawRodapePajoTecnologia } from '@/lib/pdf-relatorio-cabecalho-ficha';
 import { descriptografarSeguro } from '@/lib/encryption';
+import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao';
 import { abreviarViaPrescricao } from '@/lib/relatorio-prescricao-dinamico';
 
 const ROLES = ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM', 'FARMACEUTICO'] as const;
@@ -69,7 +70,7 @@ export async function GET(
 
     const atendimento = prescricao.prontuario.atendimento;
     const paciente = atendimento.paciente;
-    const nomeCompleto = descriptografarSeguro(paciente.nomeCriptografado) ?? paciente.nomeExibicao;
+    const nomeCompleto = obterNomeCompletoPaciente(paciente.nomeExibicao, paciente.nomeCriptografado);
     const cpf = descriptografarSeguro(paciente.cpfCriptografado) ?? '—';
 
     let curY = await drawCabecalhoEstiloFicha(doc, page, font, fontBold, inst, {

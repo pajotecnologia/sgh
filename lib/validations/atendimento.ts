@@ -156,10 +156,12 @@ export const schemaEncaminhamento = z.object({
   especialidade: z.string().min(2).max(200),
   medicoDestinoId: z.string().uuid().optional().nullable(),
   prioridade: z.enum(['Alta', 'Média', 'Baixa']).optional().nullable(),
+  resumoClinico: z.string().max(4000).optional().or(z.literal('')),
   resumoClinco: z.string().max(4000).optional().or(z.literal('')),
   justificativa: z.string().max(4000).optional().or(z.literal('')),
   cidInternacao: z.string().max(12).optional().or(z.literal('')),
 });
+
 
 // =============================================================================
 // Tipos inferidos

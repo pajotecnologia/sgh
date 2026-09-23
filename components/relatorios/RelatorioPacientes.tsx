@@ -165,7 +165,7 @@ export function RelatorioPacientes() {
           <table className="w-full text-left text-sm">
             <thead className="bg-muted/50 text-xs font-semibold uppercase text-muted-foreground border-b border-border">
               <tr>
-                <th className="px-4 py-3">Paciente</th>
+                <th className="px-4 py-3">Nome Completo</th>
                 <th className="px-4 py-3">Data Nasc.</th>
                 <th className="px-4 py-3">Sexo</th>
                 <th className="px-4 py-3">Convênio</th>

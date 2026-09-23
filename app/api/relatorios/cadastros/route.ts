@@ -62,27 +62,21 @@ export async function GET(req: NextRequest) {
     let titulo = '';
     let colunas: string[] = [];
     let dadosLinhas: string[][] = [];
-    let payloadJson: any = null;
+    let largurasColunas: number[] | null = null;
+    let payloadJson: any = [];
 
     if (tipo === 'pacientes') {
       titulo = 'Relatório de Cadastros de Pacientes';
       colunas = ['Nome Completo', 'CPF / RG', 'Data Nasc.', 'Sexo', 'Convênio', 'Cadastro Em'];
+      largurasColunas = [180, 75, 60, 55, 85, 68];
       const pacientes = await prisma.paciente.findMany({
         where: {
           deletedAt: null,
-          ...(busca
-            ? {
-                OR: [
-                  { nomeExibicao: { contains: busca, mode: 'insensitive' } },
-                  { convenio: { contains: busca, mode: 'insensitive' } },
-                ],
-              }
-            : {}),
         },
         orderBy: { createdAt: 'desc' },
       });
 
-      payloadJson = pacientes.map((p) => {
+      let mappedPacientes = pacientes.map((p) => {
         const nomeComp = obterNomeCompletoPaciente(p.nomeExibicao, p.nomeCriptografado);
         return {
           id: p.id,
@@ -95,6 +89,17 @@ export async function GET(req: NextRequest) {
         };
       });
 
+      if (busca) {
+        const b = busca.toLowerCase();
+        mappedPacientes = mappedPacientes.filter((p) =>
+          p.nomeCompleto.toLowerCase().includes(b) ||
+          p.convenio.toLowerCase().includes(b) ||
+          p.numeroCarteirinha.toLowerCase().includes(b)
+        );
+      }
+
+      payloadJson = mappedPacientes;
+
       dadosLinhas = payloadJson.map((p: any) => [
         p.nomeCompleto,
         'Sim (Criptografado)',
@@ -106,6 +111,7 @@ export async function GET(req: NextRequest) {
     } else if (tipo === 'profissionais') {
       titulo = 'Relatório de Profissionais e Usuários';
       colunas = ['Nome', 'E-mail', 'Perfil / Role', 'CRM / COREN', 'Status', 'Cadastrado Em'];
+      largurasColunas = [125, 140, 85, 75, 45, 53];
       const usuarios = await prisma.usuario.findMany({
         where: {
           deletedAt: null,
@@ -147,6 +153,7 @@ export async function GET(req: NextRequest) {
     } else if (tipo === 'clinicas') {
       titulo = 'Relatório de Cadastros de Clínicas';
       colunas = ['Nome da Clínica', 'Descrição', 'Status', 'Leitos Vinculados', 'Cadastrada Em'];
+      largurasColunas = [140, 180, 55, 80, 68];
       const clinicas = await prisma.clinica.findMany({
         where: {
           ...(filtroStatus ? { ativo: filtroStatus === 'ativo' } : {}),
@@ -175,6 +182,7 @@ export async function GET(req: NextRequest) {
     } else if (tipo === 'leitos') {
       titulo = 'Relatório de Cadastros de Leitos';
       colunas = ['Código', 'Ala', 'Quarto', 'Tipo', 'Clínica', 'Status Ocupação', 'Ativo'];
+      largurasColunas = [60, 65, 55, 90, 125, 80, 48];
       const leitos = await prisma.leito.findMany({
         where: {
           ...(filtroStatus ? { status: filtroStatus as any } : {}),
@@ -215,6 +223,7 @@ export async function GET(req: NextRequest) {
     } else if (tipo === 'medicamentos') {
       titulo = 'Relatório de Catálogo de Medicamentos';
       colunas = ['Nome', 'Princípio Ativo', 'Forma', 'Saldo Atual', 'Estoque Mín.', 'MAV / Retenção'];
+      largurasColunas = [125, 145, 65, 55, 55, 78];
       const meps = await prisma.tbMedicamento.findMany({
         where: {
           ...(filtroStatus ? { ativo: filtroStatus === 'ativo' } : {}),
@@ -253,6 +262,7 @@ export async function GET(req: NextRequest) {
     } else if (tipo === 'fornecedores') {
       titulo = 'Relatório de Fornecedores da Farmácia';
       colunas = ['Razão Social', 'Nome Fantasia', 'CNPJ', 'Telefone', 'Cidade/UF', 'Status'];
+      largurasColunas = [135, 115, 85, 75, 65, 48];
       const fornecedores = await prisma.tbFornecedor.findMany({
         where: {
           ...(filtroStatus ? { ativo: filtroStatus === 'ativo' } : {}),
@@ -290,6 +300,7 @@ export async function GET(req: NextRequest) {
     } else if (tipo === 'prescricoes-padrao') {
       titulo = 'Relatório de Prescrições Médicas Padrão';
       colunas = ['Nome da Prescrição Padrão', 'Coluna Esquerda', 'Coluna Direita', 'Qtd Itens', 'Status'];
+      largurasColunas = [160, 115, 115, 65, 68];
       const prescricoes = await prisma.prescricaoMedicaPadrao.findMany({
         where: {
           ...(filtroStatus ? { ativo: filtroStatus === 'ativo' } : {}),
@@ -319,6 +330,7 @@ export async function GET(req: NextRequest) {
     } else if (tipo === 'origens') {
       titulo = 'Relatório de Origens de Pacientes';
       colunas = ['Descrição', 'Procedência na Ficha', 'Total Atendimentos', 'Status'];
+      largurasColunas = [190, 175, 90, 68];
       const origens = await prisma.origemPaciente.findMany({
         where: {
           ...(filtroStatus ? { ativo: filtroStatus === 'ativo' } : {}),
@@ -345,6 +357,7 @@ export async function GET(req: NextRequest) {
     } else if (tipo === 'sinonimos') {
       titulo = 'Relatório de Sinônimos de Medicamentos';
       colunas = ['Sinônimo', 'Medicamento Associado', 'Princípio Ativo', 'Status'];
+      largurasColunas = [160, 160, 135, 68];
       const sinonimos = await prisma.tbMedicamentoSinonimo.findMany({
         where: {
           ...(filtroStatus ? { ativo: filtroStatus === 'ativo' } : {}),
@@ -431,16 +444,32 @@ export async function GET(req: NextRequest) {
     });
     y -= titleSize + 12;
 
+    const totalLargura = pageW - PAGE_MARGIN * 2;
+    const getColWidth = (c: number) => {
+      if (largurasColunas && largurasColunas[c] != null) {
+        return largurasColunas[c];
+      }
+      return totalLargura / colunas.length;
+    };
+
+    const getColX = (colIdx: number) => {
+      let x = PAGE_MARGIN;
+      for (let i = 0; i < colIdx; i++) {
+        x += getColWidth(i);
+      }
+      return x;
+    };
+
     // Draw Headers
-    const colWidth = (pageW - PAGE_MARGIN * 2) / colunas.length;
     for (let c = 0; c < colunas.length; c++) {
+      const cWidth = getColWidth(c);
       page.drawText(colunas[c], {
-        x: PAGE_MARGIN + c * colWidth,
+        x: getColX(c),
         y,
         size: bodySize + 0.5,
         font: fontBold,
         color: rgb(0, 0, 0),
-        maxWidth: colWidth - 4,
+        maxWidth: cWidth - 4,
       });
     }
     y -= bodySize + 6;
@@ -468,13 +497,14 @@ export async function GET(req: NextRequest) {
           y = pageH - PAGE_MARGIN - 20;
 
           for (let c = 0; c < colunas.length; c++) {
+            const cWidth = getColWidth(c);
             page.drawText(colunas[c], {
-              x: PAGE_MARGIN + c * colWidth,
+              x: getColX(c),
               y,
               size: bodySize + 0.5,
               font: fontBold,
               color: rgb(0, 0, 0),
-              maxWidth: colWidth - 4,
+              maxWidth: cWidth - 4,
             });
           }
           y -= bodySize + 6;
@@ -489,13 +519,14 @@ export async function GET(req: NextRequest) {
 
         for (let c = 0; c < linha.length; c++) {
           const val = String(linha[c] ?? '—');
+          const cWidth = getColWidth(c);
           page.drawText(val, {
-            x: PAGE_MARGIN + c * colWidth,
+            x: getColX(c),
             y,
             size: bodySize,
             font,
             color: rgb(0.15, 0.15, 0.18),
-            maxWidth: colWidth - 6,
+            maxWidth: cWidth - 6,
           });
         }
         y -= bodySize + 7;

@@ -1067,7 +1067,7 @@ model Encaminhamento {
   /// Alta, Média, Baixa
   prioridade      String?
   /// Resumo clínico para o receptor
-  resumoClinco    String?
+  resumoClinico   String?            @map("resumoClinco")
   /// Justificativa (obrigatória para externos)
   justificativa   String?
   /// Para internação: CID informado pelo médico (leito/apartamento é definido pela enfermagem em Admissões)

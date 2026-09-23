@@ -648,7 +648,7 @@ async function seedAtendimentos(
             tipo: 'INTERNACAO',
             especialidade: 'Clínica Médica',
             prioridade: 'Alta',
-            resumoClinco: 'Internação para observação e suporte hemodinâmico.',
+            resumoClinico: 'Internação para observação e suporte hemodinâmico.',
           },
         })
       }

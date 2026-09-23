@@ -91,7 +91,7 @@ export async function carregarSolicitacaoInternacao(
       tipoClinica: enc.especialidade,
       cidInternacao: enc.cidInternacao ?? '',
       prioridade: enc.prioridade ?? '',
-      resumoClinico: enc.resumoClinco ?? '',
+      resumoClinico: (enc as any).resumoClinico ?? (enc as any).resumoClinco ?? '',
       justificativa: enc.justificativa ?? '',
       solicitadoEm: enc.createdAt.toISOString(),
     },

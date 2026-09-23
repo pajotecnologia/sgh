@@ -132,8 +132,10 @@ type AtendimentoCtx = {
       tipo: string
       especialidade: string
       justificativa: string | null
-      resumoClinco: string | null
+      resumoClinico?: string | null
+      resumoClinco?: string | null
       createdAt: Date
+
     }[]
     evolucoes: { conteudo: string; registradoEm: Date }[]
     prescricoes: {

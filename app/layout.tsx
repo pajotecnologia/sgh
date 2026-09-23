@@ -33,7 +33,23 @@ export const metadata: Metadata = {
     'Sistema de Gerenciamento Hospitalar integrado com Recepção, Triagem Manchester, Painel de Chamada, Atendimento Médico e Prontuário Eletrônico.',
   keywords: 'hospital, gestão hospitalar, triagem, prontuário eletrônico, SGH',
   robots: { index: false, follow: false }, // Sistema interno — não indexar
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'SGH',
+  },
+  icons: {
+    icon: [
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/icons/apple-touch-icon.png', sizes: '192x192', type: 'image/png' },
+    ],
+  },
 };
+
 
 export default function RootLayout({
   children,

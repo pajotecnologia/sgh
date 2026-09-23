@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
-import { FormularioRelatorioAtendimentosDia } from '@/components/relatorios/FormularioRelatorioAtendimentosDia'
+import { PainelRelatoriosGerenciais } from '@/components/relatorios/PainelRelatoriosGerenciais'
 
-export const metadata: Metadata = { title: 'Relatórios' }
+export const metadata: Metadata = { title: 'Relatórios Gerenciais' }
 
 export default function PaginaRelatoriosIndex() {
   return (
-    <div className="max-w-4xl mx-auto">
-      <FormularioRelatorioAtendimentosDia />
+    <div className="max-w-6xl mx-auto py-2">
+      <PainelRelatoriosGerenciais />
     </div>
   )
 }

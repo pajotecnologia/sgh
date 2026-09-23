@@ -35,9 +35,12 @@ export function FormularioAplicacaoMedicamento({
     dose: string;
     via: string;
     frequencia: string;
+    duracaoDias?: number | null;
+    totalAplicacoes?: number;
   };
   onAplicado: () => void;
 }) {
+
   const [doseAplicada, setDoseAplicada] = useState(item.dose);
   const [via, setVia] = useState<ViaValor>((item.via as ViaValor) ?? 'ORAL');
   const [observacoes, setObservacoes] = useState('');
@@ -107,15 +110,29 @@ export function FormularioAplicacaoMedicamento({
 
   return (
     <form onSubmit={salvar} className="border border-border rounded-xl p-4 space-y-3 bg-card">
-      <div className="flex items-start gap-2">
-        <Syringe className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-        <div className="min-w-0">
-          <p className="font-semibold text-sm">{item.nomeMedicamento}</p>
-          <p className="text-xs text-muted-foreground">
-            Prescrito: {item.dose} — {item.via} — {item.frequencia}
-          </p>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2 min-w-0">
+          <Syringe className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="font-semibold text-sm">{item.nomeMedicamento}</p>
+            <p className="text-xs text-muted-foreground">
+              Prescrito: {item.dose} — {item.via} — {item.frequencia}
+              {item.duracaoDias ? ` (por ${item.duracaoDias} dias)` : ''}
+            </p>
+          </div>
         </div>
+        {typeof item.totalAplicacoes === 'number' && item.totalAplicacoes > 0 && (
+          <span className="shrink-0 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold">
+            {item.totalAplicacoes + 1}ª dose
+          </span>
+        )}
       </div>
+      {typeof item.totalAplicacoes === 'number' && item.totalAplicacoes >= 5 && (
+        <div className="p-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-xs flex items-center gap-2">
+          <span>⚠️ <strong>Atenção clínica:</strong> Este item já possui {item.totalAplicacoes} doses registradas. Certifique-se da continuidade da prescrição.</span>
+        </div>
+      )}
+
       <div className="grid sm:grid-cols-2 gap-3">
         <div>
           <label className="text-xs font-medium">Dose aplicada</label>

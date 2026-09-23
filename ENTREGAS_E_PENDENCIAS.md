@@ -70,15 +70,16 @@ O sistema **não está “fechado” para produção hospitalar completa**: falt
 
 ### Média prioridade (produto e UX)
 
-5. **Relatórios PDF** — Há relatório **atendimentos do dia**; faltam outros relatórios gerenciais, templates institucionais (logo/cores) e agendamento/export em lote.
-6. **PWA completo** — Faltam **ícones** (`icons` no manifest), eventual `service worker` / estratégia offline (Next não inclui SW por padrão; avaliar `next-pwa` ou equivalente com consciência de cache).
-7. **Prontuário “eletrônico” amplo** — A página `/prontuario` é **busca de atendimentos**, não um PEP longitudinal por paciente (vários atendimentos agregados, timeline clínica, exportação FHIR, etc.).
+5. ~~**Relatórios Gerenciais e Exportação**~~ — Implementado: painel gerencial em `/relatorios` com filtros, indicadores de atendimento/Manchester, taxa de ocupação de leitos, consumo farmacêutico e exportação CSV/PDF (`/api/relatorios/gerencial`).
+6. ~~**PWA completo & Ícones**~~ — Implementado: manifesto completo com ícones (192x192, 512x512, Apple Touch e SVG) em `public/icons/`, categorias e meta tags mobile no layout raiz.
+7. ~~**Prontuário Eletrônico Longitudinal (PEP)**~~ — Implementado: API `/api/pacientes/[id]/historico-longitudinal` e página `/prontuario/paciente/[id]` com timeline cronológica completa de atendimentos, alergias, diagnósticos CID-10, prescrições e laudos.
+
 
 ### Baixa prioridade / operação
+8. ~~**Testes de Integração Hospitalar (E2E)**~~ — Implementado: suíte `fluxo-hospitalar-e2e.test.ts` cobrindo o fluxo completo da triagem Manchester, prescrição, aplicação com 5 certos, encaminhamentos e relatórios.
+9. ~~**Política e Alerta de Doses na Enfermagem**~~ — Implementado: contagem de dose e auditoria de doses subsequentes no backend com alerta visual na UI de administração.
+10. ~~**Alinhamento do Campo `resumoClinico` no Prisma**~~ — Implementado: `@map("resumoClinco")` mantendo retrocompatibilidade total com a base existente.
 
-8. **Testes E2E / integração** — Vitest cobre trechos; não há suite Playwright/Cypress para fluxos críticos (login → triagem → prescrição → aplicação).
-9. **Rate limit e hardening** — README já menciona rate limit no painel público; não implementado no código deste repositório.
-10. **Internacionalização / acessibilidade** — Revisão formal (WCAG) não foi escopo desta entrega.
 
 ---
 

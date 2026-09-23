@@ -124,7 +124,7 @@ function FormularioLoginInner() {
       }
 
       toast.error('Não foi possível entrar', {
-        description: 'Tente http://localhost:3000/login (evite 127.0.0.1 se o login falhar).',
+        description: 'Tente http://localhost:3002/login (evite 127.0.0.1 se o login falhar).',
       })
     } catch {
       toast.error('Erro inesperado', {
@@ -134,9 +134,9 @@ function FormularioLoginInner() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-      <div className="form-field">
-        <label htmlFor="email" className="text-sm font-medium text-foreground">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <div className="space-y-1.5">
+        <label htmlFor="email" className="text-xs font-semibold text-foreground">
           E-mail institucional
         </label>
         <input
@@ -145,11 +145,11 @@ function FormularioLoginInner() {
           autoComplete="email"
           placeholder="admin@hospital.com"
           className={`
-            w-full px-3.5 py-2.5 rounded-lg border bg-background text-sm
-            outline-none transition-all duration-150
-            focus:ring-2 focus:ring-primary/30 focus:border-primary
-            disabled:opacity-50 disabled:cursor-not-allowed
-            ${errors.email ? 'border-destructive focus:ring-destructive/30' : 'border-input'}
+            w-full px-3.5 py-2.5 rounded-xl border bg-background text-sm
+            outline-none transition-all duration-200
+            focus:ring-2 focus:ring-primary/20 focus:border-primary
+            disabled:opacity-50 disabled:cursor-not-allowed shadow-xs
+            ${errors.email ? 'border-destructive focus:ring-destructive/30' : 'border-border/80'}
           `}
           disabled={isSubmitting}
           name={emailRegister.name}
@@ -162,10 +162,15 @@ function FormularioLoginInner() {
         ) : null}
       </div>
 
-      <div className="form-field">
-        <label htmlFor="senha" className="text-sm font-medium text-foreground">
-          Senha
-        </label>
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label htmlFor="senha" className="text-xs font-semibold text-foreground">
+            Senha
+          </label>
+          <Link href="/recuperar-senha" className="text-xs font-medium text-primary hover:underline">
+            Esqueceu a senha?
+          </Link>
+        </div>
         <div className="relative">
           <input
             id="senha"
@@ -178,11 +183,11 @@ function FormularioLoginInner() {
             onBlur={() => undefined}
             type={mostrarSenha ? 'text' : 'password'}
             className={`
-              w-full px-3.5 py-2.5 pr-11 rounded-lg border bg-background text-sm
-              outline-none transition-all duration-150
-              focus:ring-2 focus:ring-primary/30 focus:border-primary
-              disabled:opacity-50 disabled:cursor-not-allowed
-              ${errors.senha ? 'border-destructive focus:ring-destructive/30' : 'border-input'}
+              w-full px-3.5 py-2.5 pr-11 rounded-xl border bg-background text-sm
+              outline-none transition-all duration-200
+              focus:ring-2 focus:ring-primary/20 focus:border-primary
+              disabled:opacity-50 disabled:cursor-not-allowed shadow-xs
+              ${errors.senha ? 'border-destructive focus:ring-destructive/30' : 'border-border/80'}
             `}
             aria-label="Senha de acesso"
           />
@@ -190,7 +195,7 @@ function FormularioLoginInner() {
             type="button"
             onClick={handleToggleSenha}
             onMouseDown={(e) => e.preventDefault()}
-            className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="absolute right-2.5 top-1/2 z-10 -translate-y-1/2 rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             tabIndex={0}
             aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
             aria-pressed={mostrarSenha}
@@ -205,15 +210,12 @@ function FormularioLoginInner() {
         {errors.senha ? (
           <p className="text-xs text-destructive">{errors.senha.message}</p>
         ) : null}
-        <p className="text-right">
-          <Link href="/recuperar-senha" className="text-xs font-medium text-primary hover:underline">
-            Esqueci minha senha
-          </Link>
-        </p>
       </div>
 
-      <div className="form-field">
-        <label htmlFor="mfaCode" className="text-sm font-medium text-foreground">Código MFA (se ativado)</label>
+      <div className="space-y-1.5">
+        <label htmlFor="mfaCode" className="text-xs font-semibold text-foreground">
+          Código MFA <span className="text-muted-foreground font-normal">(se ativado)</span>
+        </label>
         <input
           id="mfaCode"
           inputMode="numeric"
@@ -222,11 +224,10 @@ function FormularioLoginInner() {
           placeholder="000000"
           disabled={isSubmitting}
           value={mfaCodeValor}
-          onChange={(e) => setValue('mfaCode', e.target.value.replace(/\\D/g, '').slice(0, 6), { shouldValidate: true, shouldDirty: true })}
-          className="w-full px-3.5 py-2.5 rounded-lg border border-input bg-background text-sm outline-none transition-all focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          onChange={(e) => setValue('mfaCode', e.target.value.replace(/\D/g, '').slice(0, 6), { shouldValidate: true, shouldDirty: true })}
+          className="w-full px-3.5 py-2.5 rounded-xl border border-border/80 bg-background text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-xs tracking-widest text-center sm:text-left"
           aria-describedby="mfa-help"
         />
-        <p id="mfa-help" className="text-[11px] text-muted-foreground">Se sua conta usa autenticação em dois fatores, informe o código do aplicativo autenticador.</p>
         {errors.mfaCode ? <p className="text-xs text-destructive">{errors.mfaCode.message}</p> : null}
       </div>
 
@@ -235,11 +236,11 @@ function FormularioLoginInner() {
         disabled={isSubmitting}
         className="
           w-full flex items-center justify-center gap-2
-          px-4 py-2.5 rounded-lg
+          px-4 py-2.5 rounded-xl
           bg-primary text-primary-foreground
-          text-sm font-semibold
-          hover:bg-primary/90 active:scale-[0.98]
-          transition-all duration-150
+          text-sm font-semibold shadow-md shadow-primary/20
+          hover:bg-primary/90 active:scale-[0.99]
+          transition-all duration-200
           disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
         "
@@ -248,7 +249,7 @@ function FormularioLoginInner() {
         {isSubmitting ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            Entrando...
+            Autenticando...
           </>
         ) : (
           <>
@@ -258,28 +259,24 @@ function FormularioLoginInner() {
         )}
       </button>
 
-      <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 space-y-2">
-        <p className="text-xs font-semibold text-foreground">Acesso demonstração</p>
-        <p className="text-[11px] text-muted-foreground">
-          Senha padrão: <span className="font-mono font-semibold text-foreground">{SENHA_DEMO}</span>
-        </p>
-        <p className="text-[11px] text-muted-foreground">
-          Use <strong className="text-foreground">http://localhost:3000/login</strong>, preencha os campos e clique em Entrar.
-        </p>
-        <ul className="flex flex-wrap gap-1.5">
+      <div className="rounded-xl border border-border/70 bg-muted/40 p-3.5 space-y-2">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-semibold text-foreground">Acesso Rápido de Demonstração</span>
+          <span className="text-[10px] text-muted-foreground font-mono">Senha: {SENHA_DEMO}</span>
+        </div>
+        <div className="flex flex-wrap gap-1.5 pt-1">
           {CREDENCIAIS_DEMO.map((c) => (
-            <li key={c.email}>
-              <button
-                type="button"
-                onClick={() => handlePreencherDemo(c.email)}
-                className="rounded-md border border-border bg-background px-2 py-1 text-[10px] font-semibold hover:bg-muted/60"
-                aria-label={`Preencher login ${c.perfil}`}
-              >
-                {c.perfil}
-              </button>
-            </li>
+            <button
+              key={c.email}
+              type="button"
+              onClick={() => handlePreencherDemo(c.email)}
+              className="rounded-lg border border-border/80 bg-background px-2.5 py-1 text-[11px] font-medium hover:bg-muted/80 hover:border-primary/50 transition-colors shadow-2xs"
+              aria-label={`Preencher login ${c.perfil}`}
+            >
+              {c.perfil}
+            </button>
           ))}
-        </ul>
+        </div>
       </div>
     </form>
   )

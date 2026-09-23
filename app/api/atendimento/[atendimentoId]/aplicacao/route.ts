@@ -102,6 +102,11 @@ export async function POST(
     const aplicadoEm = new Date();
     const primeiraDose = item.status === 'PENDENTE';
 
+    const totalAnteriores = await prisma.aplicacaoMedicamento.count({
+      where: { itemPrescricaoId },
+    });
+    const numeroDose = totalAnteriores + 1;
+
     const aplicacao = await prisma.$transaction(async (tx) => {
       const a = await tx.aplicacaoMedicamento.create({
         data: {
@@ -129,7 +134,7 @@ export async function POST(
           acao: 'CRIACAO',
           entidade: 'AplicacaoMedicamento',
           entidadeId: a.id,
-          valorNovo: doseAplicada,
+          valorNovo: `${doseAplicada} (Dose #${numeroDose})`,
           ipOrigem: req.headers.get('x-forwarded-for') ?? null,
         },
       });
@@ -144,10 +149,12 @@ export async function POST(
           id: aplicacao.id,
           aplicadoEm: aplicacao.aplicadoEm,
           aplicadoPor: aplicacao.aplicadoPor,
+          numeroDose,
         },
       },
       { status: 201 }
     );
+
   } catch (erro) {
     console.error('[POST aplicacao]', erro);
     return NextResponse.json({ sucesso: false, erro: 'Erro interno.' }, { status: 500 });

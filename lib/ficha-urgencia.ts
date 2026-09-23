@@ -4,6 +4,8 @@ import { format, differenceInYears, differenceInMonths, differenceInDays } from 
 import { descriptografar, mascararCpf } from '@/lib/encryption';
 import type { PacienteFichaCabecalho } from '@/components/ficha/FichaUrgenciaDocumento';
 
+import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao';
+
 export function formatarIdadeExtenso(dataNascimento: Date | string): string {
   const nasck = new Date(dataNascimento);
   const hoje = new Date();
@@ -43,12 +45,7 @@ type PacienteComEndereco = {
 };
 
 export function montarPacienteFichaCabecalho(p: PacienteComEndereco): PacienteFichaCabecalho {
-  let nomeCompleto = p.nomeExibicao;
-  try {
-    if (p.nomeCriptografado) nomeCompleto = descriptografar(p.nomeCriptografado);
-  } catch {
-    nomeCompleto = p.nomeExibicao;
-  }
+  const nomeCompleto = obterNomeCompletoPaciente(p.nomeExibicao, p.nomeCriptografado);
 
   let cpf = '***.***.***-**';
   try {

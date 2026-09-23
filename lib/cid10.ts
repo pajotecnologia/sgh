@@ -211,8 +211,13 @@ export const CID10_BASE: EntraCid10[] = [
  * Busca CIDs por código ou descrição com algoritmo de ranking inteligente e insensível a acentos.
  */
 export function buscarCid10(query: string, limite = 20): EntraCid10[] {
+  if (!query || query.trim().length < 2) {
+    return [];
+  }
+
   const qNorm = normalizarTextoCid(query);
-  if (qNorm.length < 2) return [];
+  if (!qNorm || qNorm.length < 2) return [];
+
 
   // Sistema de pontuação / ranking
   const resultadosComScore = CID10_BASE.map((cid) => {

@@ -1,9 +1,8 @@
-// lib/carregar-dados-ficha-ccih.ts
-
 import { prisma } from '@/lib/prisma'
 import { montarPrefillFichaCcih } from '@/lib/ccih-internacao'
 import type { FichaCcihPrefill } from '@/lib/ccih-internacao'
 import { includeAtendimentoInternacao } from '@/lib/prefill-internamento'
+import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao'
 
 export type DadosFichaCcih = {
   prefill: FichaCcihPrefill
@@ -55,7 +54,10 @@ export async function carregarDadosFichaCcih(
         }
       : null,
     paciente: {
-      nomeExibicao: atendimento.paciente.nomeExibicao,
+      nomeExibicao: obterNomeCompletoPaciente(
+        atendimento.paciente.nomeExibicao,
+        atendimento.paciente.nomeCriptografado
+      ),
       numeroAtendimento: atendimento.numeroAtendimento,
     },
   }

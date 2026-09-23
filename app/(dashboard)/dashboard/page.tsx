@@ -15,7 +15,9 @@ import {
 } from 'lucide-react'
 import { DashboardChartCard } from '@/components/dashboard/DashboardChartCard'
 import { DashboardFiltroPeriodo } from '@/components/dashboard/DashboardFiltroPeriodo'
+import { CentralTarefasPendencias } from '@/components/dashboard/CentralTarefasPendencias'
 import { obterEstatisticasDashboard, resolverPeriodo } from '@/lib/dashboard-stats'
+import { obterPendenciasUsuario } from '@/lib/central-tarefas'
 import { cn } from '@/lib/utils'
 
 export const metadata: Metadata = { title: 'Dashboard' }
@@ -28,7 +30,10 @@ export default async function PaginaDashboard({
   const params = await searchParams
   const sessao = await getServerSession(authOptions)
   const periodo = resolverPeriodo(params.periodo)
-  const stats = await obterEstatisticasDashboard(periodo)
+  const [stats, pendenciasIniciais] = await Promise.all([
+    obterEstatisticasDashboard(periodo),
+    sessao ? obterPendenciasUsuario(sessao.usuario.id, sessao.usuario.role) : Promise.resolve(undefined),
+  ])
 
   const cardsResumo = [
     {
@@ -120,6 +125,9 @@ export default async function PaginaDashboard({
           </div>
         ))}
       </div>
+
+      {/* Central de Tarefas & Pendências Clínicas por Perfil */}
+      {pendenciasIniciais && <CentralTarefasPendencias dadosIniciais={pendenciasIniciais} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <DashboardChartCard
