@@ -29,6 +29,7 @@ declare module 'next-auth' {
       role: Role;
       crm?: string | null;
       coren?: string | null;
+      sessaoId?: string;
     };
   }
 }
