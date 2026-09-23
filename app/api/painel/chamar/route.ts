@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
       dispararEventoPusher(CANAIS_PUSHER.filaTriagem, EVENTOS_PUSHER.FILA_ATUALIZADA, {
         atendimentoId,
         statusAnterior: atendimento.status,
-        statusNovo: novoStatus,
+        statusNovo: atendimento.status === 'AGUARDANDO_TRIAGEM' ? 'EM_TRIAGEM' : atendimento.status === 'AGUARDANDO_ATENDIMENTO' ? 'EM_ATENDIMENTO' : atendimento.status,
         motivo: 'CHAMADA_PAINEL',
         timestamp: new Date().toISOString(),
       });
