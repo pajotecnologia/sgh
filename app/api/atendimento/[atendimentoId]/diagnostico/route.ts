@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { schemaDiagnostico } from '@/lib/validations/atendimento';
 import { prontuarioPertenceAoAtendimento, prontuarioEstaEncerrado } from '@/lib/atendimento-prontuario';
+import { medicoPodeAcessarAtendimento } from '@/lib/rbac-clinico';
 
 export async function POST(
   req: NextRequest,
