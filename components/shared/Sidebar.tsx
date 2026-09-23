@@ -19,6 +19,7 @@ import {
   LogOut,
   Pill,
   Shield,
+  ShieldCheck,
   ChevronsLeft,
   ChevronsRight,
   LayoutDashboard,
@@ -157,6 +158,11 @@ const ITENS_NAVEGACAO: ItemNav[] = [
     href: '/auditoria',
     icon: Shield,
     roles: ['ADMIN'],
+  },
+  {
+    label: 'Sessões e dispositivos',
+    href: '/seguranca/sessoes',
+    icon: ShieldCheck,
   },
   {
     label: 'Painel de Chamada',
