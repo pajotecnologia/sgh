@@ -34,3 +34,68 @@ jobs:
 
       - name: Build da Aplicação
         run: npm run build
+
+  e2e-smoke:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: senha
+          POSTGRES_DB: sgh_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sgh_db"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      DATABASE_URL: postgresql://postgres:senha@127.0.0.1:5432/sgh_db
+      NEXTAUTH_SECRET: ci-sgh-nextauth-secret-min-32-chars-2026
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      NODE_ENV: test
+    steps:
+      - name: Checkout repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Preparar banco
+        run: |
+          npm run db:generate
+          npm run db:push
+          npm run db:seed
+
+      - name: Build
+        run: npm run build
+
+      - name: Iniciar aplicação
+        run: |
+          npm run start > /tmp/sgh.log 2>&1 &
+          echo $! > /tmp/sgh.pid
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/login >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:3000/login >/dev/null
+
+      - name: Smoke RBAC
+        env:
+          BASE_URL: http://127.0.0.1:3000
+        run: npm run test:smoke
+
+      - name: Logs da aplicação em caso de falha
+        if: failure()
+        run: cat /tmp/sgh.log || true
