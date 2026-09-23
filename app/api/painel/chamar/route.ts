@@ -72,11 +72,19 @@ export async function POST(req: NextRequest) {
         throw new Error('TRANSICAO_NAO_PERMITIDA');
       }
 
-      // Atualizar sala do atendimento
-      await tx.atendimento.update({
-        where: { id: atendimentoId },
+      // Atualizar sala/status de forma condicional para evitar avanço duplicado
+      const atualizacao = await tx.atendimento.updateMany({
+        where: {
+          id: atendimentoId,
+          deletedAt: null,
+          status: atendimento.status,
+        },
         data: { sala: salaDestino, status: novoStatus },
       });
+
+      if (atualizacao.count !== 1) {
+        throw new Error('ATENDIMENTO_ALTERADO_CONCORRENTEMENTE');
+      }
 
       await tx.logAuditoria.create({
         data: {
@@ -88,6 +96,22 @@ export async function POST(req: NextRequest) {
           ipOrigem: req.headers.get('x-forwarded-for') ?? null,
         },
       });
+
+      if (novoStatus !== atendimento.status) {
+        await tx.logAuditoria.create({
+          data: {
+            usuarioId: sessao.usuario.id,
+            acao: 'ATUALIZACAO',
+            entidade: 'Atendimento',
+            entidadeId: atendimentoId,
+            campo: 'status',
+            valorAnterior: atendimento.status,
+            valorNovo: novoStatus,
+            ipOrigem: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? req.headers.get('x-real-ip'),
+            userAgent: req.headers.get('user-agent'),
+          },
+        });
+      }
 
       return novaChamada;
     });
@@ -131,6 +155,9 @@ export async function POST(req: NextRequest) {
   } catch (erro) {
     if (erro instanceof Error && erro.message === 'TRANSICAO_NAO_PERMITIDA') {
       return NextResponse.json({ sucesso: false, erro: 'Seu perfil não pode avançar este atendimento pela chamada do painel.' }, { status: 403 });
+    }
+    if (erro instanceof Error && erro.message === 'ATENDIMENTO_ALTERADO_CONCORRENTEMENTE') {
+      return NextResponse.json({ sucesso: false, erro: 'O atendimento foi atualizado por outro usuário. Recarregue a fila e tente novamente.' }, { status: 409 });
     }
     console.error('[POST /api/painel/chamar] Erro:', erro);
     return NextResponse.json({ sucesso: false, erro: 'Erro interno.' }, { status: 500 });
