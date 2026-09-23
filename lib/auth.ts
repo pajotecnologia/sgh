@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import type { Role } from '@/types';
 import { verificarRateLimit, obterIpCliente } from '@/lib/rate-limit';
 import { descriptografarSegredoTotp, verificarTotp } from '@/lib/totp';
+import { criarIdentificadorSessao, hashIdentificadorSessao, DURACAO_SESSAO_MS, obterDispositivo } from '@/lib/sessoes';
 
 declare module 'next-auth' {
   interface User {
@@ -17,6 +18,7 @@ declare module 'next-auth' {
     nome: string;
     crm?: string | null;
     coren?: string | null;
+    sessaoId?: string;
   }
 
   interface Session {
@@ -39,6 +41,7 @@ declare module 'next-auth/jwt' {
     nome: string;
     crm?: string | null;
     coren?: string | null;
+    sessaoId?: string;
   }
 }
 
@@ -141,7 +144,25 @@ export const authOptions: NextAuthOptions = {
           await prisma.eventoMfa.create({ data: { usuarioId: usuario.id, evento: 'MFA_VALIDADO', ipOrigem, userAgent: req.headers?.['user-agent'] ?? null } }).catch(() => undefined);
         }
 
-        await prisma.tentativaLogin.create({ data: { email, usuarioId: usuario.id, sucesso: true, ipOrigem, userAgent: req.headers?.['user-agent'] ?? null, motivo: usuario.mfaAtivo ? 'LOGIN_OK_MFA' : 'LOGIN_OK' } }).catch(() => undefined);
+        const sessaoId = criarIdentificadorSessao();
+        const agora = new Date();
+        const expiraEm = new Date(agora.getTime() + DURACAO_SESSAO_MS);
+        const userAgent = req.headers?.['user-agent'] ?? null;
+
+        await prisma.sessaoUsuario.create({
+          data: {
+            usuarioId: usuario.id,
+            sessionTokenHash: hashIdentificadorSessao(sessaoId),
+            ipOrigem,
+            userAgent,
+            dispositivo: obterDispositivo(userAgent),
+            criadoEm: agora,
+            ultimoAcesso: agora,
+            expiraEm,
+          },
+        });
+
+        await prisma.tentativaLogin.create({ data: { email, usuarioId: usuario.id, sucesso: true, ipOrigem, userAgent, motivo: usuario.mfaAtivo ? 'LOGIN_OK_MFA' : 'LOGIN_OK' } }).catch(() => undefined);
 
         // Atualizar último acesso (não aguardar — fire and forget)
         prisma.usuario
@@ -161,6 +182,7 @@ export const authOptions: NextAuthOptions = {
           role: usuario.role,
           crm: usuario.crm,
           coren: usuario.coren,
+          sessaoId,
         };
       },
     }),
@@ -176,7 +198,31 @@ export const authOptions: NextAuthOptions = {
         token.nome = user.nome;
         token.crm = user.crm;
         token.coren = user.coren;
+        token.sessaoId = user.sessaoId;
       }
+
+      if (token.sessaoId) {
+        const sessao = await prisma.sessaoUsuario.findFirst({
+          where: {
+            sessionTokenHash: hashIdentificadorSessao(token.sessaoId),
+            usuarioId: token.id,
+            revogadoEm: null,
+            expiraEm: { gt: new Date() },
+            usuario: { ativo: true, deletedAt: null },
+          },
+          select: { id: true, ultimoAcesso: true },
+        });
+
+        if (!sessao) return null;
+
+        if (Date.now() - sessao.ultimoAcesso.getTime() >= 5 * 60 * 1000) {
+          await prisma.sessaoUsuario.update({
+            where: { id: sessao.id },
+            data: { ultimoAcesso: new Date() },
+          }).catch(() => undefined);
+        }
+      }
+
       return token;
     },
 
@@ -189,12 +235,26 @@ export const authOptions: NextAuthOptions = {
         role: token.role,
         crm: token.crm,
         coren: token.coren,
+        sessaoId: token.sessaoId,
       };
       return session;
     },
   },
 
   secret: nextAuthSecret,
+
+  events: {
+    async signOut({ token }) {
+      if (!token?.sessaoId) return;
+      await prisma.sessaoUsuario.updateMany({
+        where: {
+          sessionTokenHash: hashIdentificadorSessao(token.sessaoId),
+          revogadoEm: null,
+        },
+        data: { revogadoEm: new Date(), motivoRevocacao: 'LOGOUT' },
+      }).catch(() => undefined);
+    },
+  },
 
   // Log de erros de autenticação (sem expor detalhes ao cliente)
   debug: process.env.NODE_ENV === 'development',
