@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
-import { Activity, AlertTriangle, ClipboardCheck, KeyRound, LockKeyhole, ShieldCheck, FileSearch, Scale } from 'lucide-react'
+import { Activity, AlertTriangle, ClipboardCheck, KeyRound, LockKeyhole, ShieldCheck, FileSearch, Scale, Smartphone } from 'lucide-react'
 import { authOptions } from '@/lib/auth'
 import { obterIndicadoresGovernanca } from '@/lib/governanca-dashboard'
 
@@ -48,7 +48,7 @@ export default async function PaginaGovernanca() {
       </section>
 
 
-      <section className="grid gap-3 sm:grid-cols-2">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <a href="/auditoria" className="rounded-2xl border border-border bg-card p-5 hover:bg-muted/30 transition-colors">
           <div className="flex items-center gap-2"><FileSearch className="h-5 w-5 text-primary" /><h2 className="font-semibold">Trilha de auditoria</h2></div>
           <p className="mt-2 text-sm text-muted-foreground">Filtros por período, usuário, ação e entidade, com exportação CSV.</p>
@@ -56,6 +56,10 @@ export default async function PaginaGovernanca() {
         <a href="/governanca/lgpd" className="rounded-2xl border border-border bg-card p-5 hover:bg-muted/30 transition-colors">
           <div className="flex items-center gap-2"><Scale className="h-5 w-5 text-primary" /><h2 className="font-semibold">Solicitações LGPD</h2></div>
           <p className="mt-2 text-sm text-muted-foreground">Controle de protocolos, prazos, análise e conclusão das solicitações de titulares.</p>
+        </a>
+        <a href="/seguranca/mfa" className="rounded-2xl border border-border bg-card p-5 hover:bg-muted/30 transition-colors">
+          <div className="flex items-center gap-2"><Smartphone className="h-5 w-5 text-primary" /><h2 className="font-semibold">Autenticação MFA</h2></div>
+          <p className="mt-2 text-sm text-muted-foreground">Configure e valide autenticação em dois fatores para sua conta.</p>
         </a>
       </section>
 
