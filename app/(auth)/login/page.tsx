@@ -83,10 +83,12 @@ export default function PaginaLogin() {
           </div>
         </div>
 
-        {/* Rodapé esquerdo informativo */}
-        <div className="relative z-10 text-xs text-white/50 border-t border-white/10 pt-4 flex items-center justify-between">
-          <span>Ambiente Hospitalar Seguro • Criptografia de Ponta a Ponta</span>
-          <span>Versão 2.5</span>
+        {/* Rodapé esquerdo informativo com Logomarca Oficial */}
+        <div className="relative z-10 text-xs text-white/70 border-t border-white/10 pt-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <LogoPajo variant="light" width={130} />
+          </div>
+          <span className="text-[11px] text-white/50">Ambiente Hospitalar Seguro • AES-256</span>
         </div>
       </div>
 
