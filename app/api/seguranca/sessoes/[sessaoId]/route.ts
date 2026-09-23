@@ -26,7 +26,7 @@ export async function DELETE(
 
   await prisma.sessaoUsuario.update({
     where: { id: alvo.id },
-    data: { revogadoEm: new Date(), motivoRevocacao: 'REVOGADA_PELO_USUARIO' },
+    data: { revogadoEm: new Date(), motivoRevogacao: 'REVOGADA_PELO_USUARIO' },
   });
 
   return NextResponse.json({ sucesso: true, mensagem: 'Sessão revogada.' }, { headers: { 'Cache-Control': 'no-store' } });
