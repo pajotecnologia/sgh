@@ -1,9 +1,9 @@
 /**
  * Smoke test: login NextAuth (credentials) e chamadas HTTP por perfil.
- * Uso: servidor em BASE_URL (default http://localhost:3000) e PostgreSQL com seed.
+ * Uso: servidor em BASE_URL (default http://localhost:3002) e PostgreSQL com seed.
  *   node scripts/smoke-rbac.mjs
  */
-const BASE = process.env.BASE_URL ?? 'http://localhost:3000';
+const BASE = process.env.BASE_URL ?? 'http://localhost:3002';
 const TIMEOUT_MS = Number(process.env.SMOKE_TIMEOUT_MS ?? 45000);
 
 async function fetchTimeout(url, options = {}) {
