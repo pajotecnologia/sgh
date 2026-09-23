@@ -48,7 +48,18 @@ O sistema **não está “fechado” para produção hospitalar completa**: falt
 
 ---
 
-## 3. O que falta ou está incompleto (priorizado)
+## 3. Fase de segurança/LGPD concluída nesta rodada
+
+- Auditoria administrativa com filtros por período, usuário, ação, entidade e busca textual.
+- Exportação CSV da trilha de auditoria com controle por `ADMIN`/`DIRETOR_CLINICO`.
+- `LogAcessoPaciente` passou a ser alimentado pelo helper LGPD também nos acessos de prontuário e por paciente direto.
+- Rate limiting de credenciais (8 tentativas por IP/e-mail em 15 minutos) e registro de tentativas de login.
+- Rate limiting do endpoint público de configuração do painel.
+- Cadastro, consulta e mudança de status de solicitações de titulares LGPD, com protocolo e auditoria.
+- Migration Prisma para `SolicitacaoTitular` e índices de consulta da auditoria.
+- CI agora executa testes unitários antes de TypeScript/build.
+
+## 4. O que falta ou está incompleto (priorizado)
 
 ### Alta prioridade (dados e segurança)
 
@@ -71,7 +82,7 @@ O sistema **não está “fechado” para produção hospitalar completa**: falt
 
 ---
 
-## 4. Riscos e débito técnico conhecidos
+## 5. Riscos e débito técnico conhecidos
 
 - **Campo `resumoClinco`** no modelo `Encaminhamento` (typo histórico no Prisma): mantido por consistência com o banco; renomear exige migration + ajuste em toda a stack.
 - **Múltiplas instâncias `next dev`** — Podem causar “Failed to fetch” no cliente; operação deve usar **uma** porta/instância por projeto.
@@ -80,17 +91,17 @@ O sistema **não está “fechado” para produção hospitalar completa**: falt
 
 ---
 
-## 5. Próximos passos sugeridos (ordem prática)
+## 6. Próximos passos sugeridos (ordem prática)
 
 1. ~~**Exames — PDF**~~ — Upload por item + link público estático (em produção: bucket privado + URL assinada ou proxy autenticado).
 2. ~~**Relatório PDF útil**~~ — Atendimentos do dia em `/relatorios`; evoluir para filtros por setor e mais indicadores.
 3. Completar **manifest** com ícones e validar instalação em Android/Chrome.
-4. **Auditoria**: filtros por data, entidade, usuário; export CSV para compliance.
+4. ~~**Auditoria**: filtros por data, entidade, usuário; export CSV para compliance.~~ — Concluído nesta rodada.
 5. **Política fina de doses** — Se necessário: limite por `duracaoDias` / alerta quando exceder prescrição (regra de negócio clínica).
 
 ---
 
-## 6. Como validar rapidamente
+## 7. Como validar rapidamente
 
 ```bash
 npm run db:migrate   # se schema mudou noutra máquina
