@@ -7,6 +7,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import type { Role } from '@/types';
+import { verificarRateLimit, obterIpCliente } from '@/lib/rate-limit';
 
 declare module 'next-auth' {
   interface User {
@@ -77,7 +78,7 @@ export const authOptions: NextAuthOptions = {
         senha: { label: 'Senha', type: 'password' },
       },
 
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const senhaPlano =
           credentials?.senha ??
           (credentials as { password?: string } | undefined)?.password;
@@ -86,12 +87,20 @@ export const authOptions: NextAuthOptions = {
           throw new Error('E-mail e senha são obrigatórios.');
         }
 
+        const email = credentials.email.toLowerCase().trim();
+        const ipOrigem = obterIpCliente(req);
+        const limiteLogin = verificarRateLimit(`login:${ipOrigem}:${email}`, { limite: 8, janelaSegundos: 15 * 60 });
+        if (!limiteLogin.sucesso) {
+          await prisma.tentativaLogin.create({ data: { email, sucesso: false, ipOrigem, userAgent: req.headers?.['user-agent'] ?? null, motivo: 'RATE_LIMIT' } }).catch(() => undefined);
+          throw new Error('Muitas tentativas de login. Aguarde alguns minutos.');
+        }
+
         let usuario;
 
         try {
           usuario = await prisma.usuario.findFirst({
             where: {
-              email: credentials.email.toLowerCase().trim(),
+              email,
               ativo: true,
               deletedAt: null,
             },
@@ -104,15 +113,18 @@ export const authOptions: NextAuthOptions = {
         }
 
         if (!usuario) {
-          // Mensagem genérica para não revelar se o e-mail existe
+          await prisma.tentativaLogin.create({ data: { email, sucesso: false, ipOrigem, userAgent: req.headers?.['user-agent'] ?? null, motivo: 'USUARIO_NAO_ENCONTRADO' } }).catch(() => undefined);
           throw new Error('Credenciais inválidas.');
         }
 
         const senhaValida = await compare(senhaPlano, usuario.senhaHash);
 
         if (!senhaValida) {
+          await prisma.tentativaLogin.create({ data: { email, usuarioId: usuario.id, sucesso: false, ipOrigem, userAgent: req.headers?.['user-agent'] ?? null, motivo: 'SENHA_INVALIDA' } }).catch(() => undefined);
           throw new Error('Credenciais inválidas.');
         }
+
+        await prisma.tentativaLogin.create({ data: { email, usuarioId: usuario.id, sucesso: true, ipOrigem, userAgent: req.headers?.['user-agent'] ?? null, motivo: 'LOGIN_OK' } }).catch(() => undefined);
 
         // Atualizar último acesso (não aguardar — fire and forget)
         prisma.usuario
