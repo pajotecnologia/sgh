@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { readFile, stat } from 'fs/promises';
+import { readFile, stat, realpath } from 'fs/promises';
 import path from 'path';
 
 const MIME_TYPES: Record<string, string> = {
@@ -48,11 +48,19 @@ export async function GET(
 
     let fullPath = path.join(baseStorageDir, sanitizedPath);
 
+    const extensaoSolicitada = path.extname(pathSegments[pathSegments.length - 1] ?? '').toLowerCase();
+    const arquivoSensivel = !isImagem;
+
     let fileStat;
+    let origemPublica = false;
     try {
       fileStat = await stat(fullPath);
     } catch {
       // Fallback para public/uploads caso arquivo antigo exista lá
+      if (arquivoSensivel) {
+        return NextResponse.json({ sucesso: false, erro: 'Arquivo não encontrado.' }, { status: 404 });
+      }
+      origemPublica = true;
       baseStorageDir = path.join(process.cwd(), 'public', 'uploads');
       fullPath = path.join(baseStorageDir, sanitizedPath);
       try {
@@ -62,13 +70,19 @@ export async function GET(
       }
     }
 
+    const resolvedBase = path.resolve(baseStorageDir);
     const resolvedPath = path.resolve(fullPath);
-    if (!resolvedPath.startsWith(path.resolve(baseStorageDir)) && !resolvedPath.startsWith(path.resolve(process.cwd(), 'public', 'uploads'))) {
+    if (!resolvedPath.startsWith(`${resolvedBase}${path.sep}`) && resolvedPath !== resolvedBase) {
       return NextResponse.json({ sucesso: false, erro: 'Acesso negado.' }, { status: 403 });
     }
 
-    const fileBuffer = await readFile(resolvedPath);
-    const ext = path.extname(resolvedPath).toLowerCase();
+    const resolvedRealPath = await realpath(resolvedPath);
+    if (!resolvedRealPath.startsWith(`${resolvedBase}${path.sep}`)) {
+      return NextResponse.json({ sucesso: false, erro: 'Acesso negado.' }, { status: 403 });
+    }
+
+    const fileBuffer = await readFile(resolvedRealPath);
+    const ext = extensaoSolicitada || path.extname(resolvedRealPath).toLowerCase();
     const contentType = MIME_TYPES[ext] ?? 'application/octet-stream';
 
     return new NextResponse(fileBuffer, {
@@ -76,7 +90,7 @@ export async function GET(
       headers: {
         'Content-Type': contentType,
         'Content-Length': fileStat.size.toString(),
-        'Cache-Control': 'private, max-age=3600',
+        'Cache-Control': origemPublica ? 'public, max-age=3600' : 'private, no-store, max-age=0',
         'X-Content-Type-Options': 'nosniff',
       },
     });
