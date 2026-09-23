@@ -174,3 +174,21 @@ Rotas novas relevantes: `/enfermagem`, `/prontuario`, `/auditoria`, `/relatorios
 - CI recebeu job PostgreSQL isolado para smoke test RBAC.
 - O job prepara banco, gera Prisma, executa seed, gera build, sobe a aplicação e executa `npm run test:smoke`.
 - Falhas do smoke exibem o log da aplicação para diagnóstico.
+
+---
+
+## 8. Bloco de Evolução Hospitalar Enterprise (Fases 1 a 5)
+
+Documentação completa e guia detalhado gravados em: [**`docs/historico-melhorias.md`**](file:///docs/historico-melhorias.md)
+
+1. **Mapa Visual de Leitos & Ocupação (`/internamento/mapa-leitos`):** Grid visual por clínica/ala, cards temáticos, transferências atômicas de leito com auditoria e KPIs em tempo real.
+2. **Central de Tarefas & Pendências Clínicas (`/dashboard`):** Painel operacional inteligente com contadores por perfil (Médico, Enfermagem, Farmácia).
+3. **Exames Estruturados & Valores de Referência:** Avaliação quantitativa com flags (`NORMAL`, `ABAIXO`, `ACIMA`, `CRITICO ⚠️`) e integração na timeline do prontuário.
+4. **Assinatura Digital ICP-Brasil (PAdES) & Termos Eletrônicos:** TCLE, Hemoterapia, Internação e Recusa com assinatura eletrônica e validação pública.
+5. **Protocolos Clínicos Gerenciados & Segurança do Paciente:** Alertas de Sepse (qSOFA/SIRS), Código AVC, Dor Torácica/IAM, Escalas de Braden e Morse, SBAR e identificação por Pulseira com Barcode/QR Code.
+6. **Operação Avançada & NIR:** Núcleo Interno de Regulação, Checklist de Cirurgia Segura da OMS e Protocolo de Óbito (Declaração de Óbito - DO).
+7. **Faturamento & Acreditação:** Faturamento SUS (AIH/BPA), Padrão ANS TISS/TUSS e Indicadores ONA/JCI.
+8. **Interoperabilidade HL7 FHIR R4:** Mapeamento de `Patient`, `Observation` (LOINC/UCUM) e `Encounter`.
+9. **Nova Interface de Login:** Design moderno e fluido com a logomarca da **PAJO Tecnologia** no rodapé à esquerda e badge discreto de versão (`v2.5.0`).
+10. **Validação Automatizada:** 44 suítes / **252 testes unitários passando com 100% de sucesso**.
+
