@@ -1,5 +1,6 @@
 'use client'
 
+import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { Scale, Plus, RefreshCw } from 'lucide-react'
 
@@ -15,7 +16,7 @@ export default function PaginaLgpd() {
   const [carregando, setCarregando] = useState(true)
   const carregar = async () => { setCarregando(true); const r = await fetch('/api/lgpd/solicitacoes?'+new URLSearchParams(filtro ? { q: filtro } : {})); const j = await r.json(); setItens(j.dados ?? []); setCarregando(false) }
   useEffect(() => { carregar() }, [])
-  const criar = async (e: React.FormEvent) => { e.preventDefault(); const r = await fetch('/api/lgpd/solicitacoes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(novo) }); if (r.ok) { setNovo({ tipo: 'ACESSO_DADOS', solicitanteNome: '', solicitanteContato: '', descricao: '' }); await carregar() } }
+  const criar = async (e: FormEvent) => { e.preventDefault(); const r = await fetch('/api/lgpd/solicitacoes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(novo) }); if (r.ok) { setNovo({ tipo: 'ACESSO_DADOS', solicitanteNome: '', solicitanteContato: '', descricao: '' }); await carregar() } }
   const atualizar = async (id: string, value: string) => { await fetch('/api/lgpd/solicitacoes/'+id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: value }) }); await carregar() }
   return <div className="mx-auto max-w-7xl space-y-6">
     <header><p className="text-xs font-semibold uppercase tracking-wider text-primary">LGPD · Titular</p><h1 className="page-title mt-1 flex items-center gap-2"><Scale className="h-7 w-7 text-primary" />Solicitações de titulares</h1><p className="mt-1 text-sm text-muted-foreground">Protocolos internos para acompanhar solicitações de acesso, correção, eliminação e demais direitos.</p></header>
