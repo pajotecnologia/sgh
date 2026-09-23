@@ -5,12 +5,14 @@
 
 import { useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Bell, HelpCircle, Menu } from 'lucide-react';
+import { Bell, HelpCircle, Menu, Sparkles, BookOpen } from 'lucide-react';
 import type { UsuarioSessao } from '@/types';
 import { useDashboardNav } from '@/components/shared/dashboard-nav-context';
 import { SeletorTema } from '@/components/shared/SeletorTema';
 import { labelAbaInternacao, parseAbaInternacao } from '@/lib/internacao-abas';
 import { ModalManualSistema } from '@/components/shared/ModalManualSistema';
+import { ModalNovidadesVersao } from '@/components/shared/ModalNovidadesVersao';
+import Link from 'next/link';
 
 const TITULOS_ROTA: Record<string, string> = {
   '/recepcao': 'Recepção',
@@ -40,6 +42,7 @@ export function Header({ usuario }: HeaderProps) {
   const searchParams = useSearchParams();
   const { mobileOpen, setMobileOpen } = useDashboardNav();
   const [manualAberto, setManualAberto] = useState(false);
+  const [versaoAberta, setVersaoAberta] = useState(false);
 
   const abaEvolucoes = pathname.startsWith('/evolucoes')
     ? labelAbaInternacao(parseAbaInternacao(searchParams.get('aba')))
@@ -69,18 +72,29 @@ export function Header({ usuario }: HeaderProps) {
 
         {/* Ações do header */}
         <div className="flex items-center gap-2">
-          {/* Botão de Ajuda / Manual do Sistema */}
+          {/* Tag de Versão interativa */}
           <button
             type="button"
+            onClick={() => setVersaoAberta(true)}
+            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/60 hover:bg-muted border border-border/70 text-[10px] font-mono text-muted-foreground hover:text-foreground transition-all shadow-2xs select-none cursor-pointer"
+            title="Ver novidades da versão"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>v2.5.0</span>
+            <Sparkles className="h-3 w-3 text-amber-500 opacity-70" />
+          </button>
+
+          {/* Botão de Ajuda / Manual do Sistema */}
+          <Link
+            href="/ajuda"
             className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs font-medium"
             aria-label="Manual e Ajuda do Sistema"
             title="Manual e Ajuda do Sistema"
-            onClick={() => setManualAberto(true)}
             id="btn-ajuda-sistema"
           >
             <HelpCircle className="h-4.5 w-4.5 text-primary" />
-            <span className="hidden lg:inline">Ajuda</span>
-          </button>
+            <span className="hidden lg:inline">Manual</span>
+          </Link>
 
           <SeletorTema compacto />
 
@@ -116,6 +130,8 @@ export function Header({ usuario }: HeaderProps) {
 
       {/* Modal do Manual Completo do Sistema */}
       <ModalManualSistema open={manualAberto} onOpenChange={setManualAberto} />
+      {/* Modal de Novidades da Versão */}
+      <ModalNovidadesVersao open={versaoAberta} onOpenChange={setVersaoAberta} />
     </>
   );
 }

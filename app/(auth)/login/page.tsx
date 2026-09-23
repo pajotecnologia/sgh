@@ -4,6 +4,7 @@
 import type { Metadata } from 'next';
 import { FormularioLogin } from '@/components/auth/FormularioLogin';
 import { LogoPajo } from '@/components/shared/LogoPajo';
+import { BotaoVersaoLogin } from '@/components/auth/BotaoVersaoLogin';
 import {
   Activity,
   ShieldCheck,
@@ -91,13 +92,8 @@ export default function PaginaLogin() {
 
       {/* Painel direito (Formulário) — 5 colunas no desktop */}
       <div className="lg:col-span-5 flex flex-col justify-between p-6 sm:p-10 lg:p-12 bg-card relative">
-        {/* Tag de Controle de Versão — discreto no canto superior direito */}
-        <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 hover:bg-muted border border-border/60 text-[10px] font-mono text-muted-foreground transition-colors shadow-2xs select-none" title="Versão do Sistema SGH">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>v2.5.0</span>
-          <span className="text-muted-foreground/40">•</span>
-          <span className="text-[9px] text-muted-foreground/70">build 26.09</span>
-        </div>
+        {/* Tag de Controle de Versão & Link do Manual no canto superior direito */}
+        <BotaoVersaoLogin />
 
         {/* Topo Mobile (oculto no desktop) */}
         <div className="lg:hidden flex items-center justify-between pb-6 border-b border-border/60">

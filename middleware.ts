@@ -7,7 +7,10 @@ import { getToken } from 'next-auth/jwt';
 
 const PUBLIC_PATHS = [
   '/login',
+  '/ajuda',
+  '/manual',
   '/esqueci-senha',
+  '/recuperar-senha',
   '/redefinir-senha',
   '/acesso-negado',
   '/favicon.ico',
