@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { StatusAtendimento } from '@prisma/client';
-import { statusExigeLeito, statusFinaisInternacao, transicaoAtendimentoPermitida } from '@/lib/fluxo-atendimento';
+import { statusExigeLeito, statusFinaisInternacao, transicaoAtendimentoPermitida, usuarioPodeExecutarTransicao } from '@/lib/fluxo-atendimento';
+import { dispararEventoPusher, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher';
 
 const ROLES_STATUS = ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'];
 
@@ -32,6 +33,9 @@ export async function POST(
     if (!atendimento) return NextResponse.json({ sucesso: false, erro: 'Atendimento não encontrado.' }, { status: 404 });
     if (!transicaoAtendimentoPermitida(atendimento.status, status)) {
       return NextResponse.json({ sucesso: false, erro: `Transição não permitida: ${atendimento.status} → ${status}.` }, { status: 409 });
+    }
+    if (!usuarioPodeExecutarTransicao(sessao.usuario.role, atendimento.status, status)) {
+      return NextResponse.json({ sucesso: false, erro: 'Seu perfil não pode executar esta transição.' }, { status: 403 });
     }
     if (statusExigeLeito(status) && !atendimento.leitoId) {
       return NextResponse.json({ sucesso: false, erro: 'Informe um leito antes de colocar o paciente como internado.' }, { status: 409 });
@@ -80,6 +84,13 @@ export async function POST(
         },
       });
       return atualizado;
+    });
+
+    dispararEventoPusher(CANAIS_PUSHER.filaTriagem, EVENTOS_PUSHER.FILA_ATUALIZADA, {
+      atendimentoId,
+      statusAnterior: atendimento.status,
+      statusNovo: status,
+      timestamp: new Date().toISOString(),
     });
 
     return NextResponse.json({ sucesso: true, dados: atualizado });
