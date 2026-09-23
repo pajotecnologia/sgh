@@ -3,9 +3,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { configPainelFromDb, CONFIG_PAINEL_PADRAO } from '@/lib/painel-config'
+import { verificarRateLimit, obterIpCliente } from '@/lib/rate-limit'
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const limite = verificarRateLimit(`painel-config:${obterIpCliente(req)}`, { limite: 60, janelaSegundos: 60 })
+    if (!limite.sucesso) return NextResponse.json({ sucesso: false, erro: 'Muitas requisições.' }, { status: 429, headers: { 'Retry-After': String(limite.retryAfterSegundos), 'Cache-Control': 'no-store' } })
     const config = await prisma.configPainel.findFirst()
     const dados = config ? configPainelFromDb(config as unknown as Record<string, unknown>) : CONFIG_PAINEL_PADRAO
 
