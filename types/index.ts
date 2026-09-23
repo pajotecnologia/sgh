@@ -14,6 +14,8 @@ import type {
   UrgenciaExame,
   CategoriaExame,
   TipoEncaminhamento,
+  TipoLeitoHospitalar,
+  StatusLeitoHospitalar,
 } from '@prisma/client';
 
 // Re-exportar enums do Prisma para evitar importar @prisma/client diretamente nos componentes
@@ -28,6 +30,8 @@ export type {
   UrgenciaExame,
   CategoriaExame,
   TipoEncaminhamento,
+  TipoLeitoHospitalar,
+  StatusLeitoHospitalar,
 };
 
 // =============================================================================

@@ -77,7 +77,7 @@ export async function gerarRelatorioAtendimentos(
     include: {
       paciente: { select: { nomeExibicao: true } },
       medico: { select: { nome: true } },
-      triagem: { select: { prioridade: true, dataHoraTriagem: true } },
+      triagem: { select: { corClassificacao: true, createdAt: true } },
     },
     orderBy: { createdAt: 'desc' },
     take: 1000,
@@ -91,13 +91,13 @@ export async function gerarRelatorioAtendimentos(
 
   for (const at of atendimentos) {
     porStatus[at.status] = (porStatus[at.status] || 0) + 1;
-    const prio = at.triagem?.prioridade || 'SEM_TRIAGEM';
+    const prio = at.triagem?.corClassificacao || 'SEM_TRIAGEM';
     porPrioridade[prio] = (porPrioridade[prio] || 0) + 1;
     const setorNome = at.setor || 'Geral';
     porSetor[setorNome] = (porSetor[setorNome] || 0) + 1;
 
-    if (at.triagem?.dataHoraTriagem && at.createdAt) {
-      const diffMs = new Date(at.triagem.dataHoraTriagem).getTime() - new Date(at.createdAt).getTime();
+    if (at.triagem?.createdAt && at.createdAt) {
+      const diffMs = new Date(at.triagem.createdAt).getTime() - new Date(at.createdAt).getTime();
       if (diffMs > 0 && diffMs < 24 * 60 * 60 * 1000) {
         somaEsperaMs += diffMs;
         contagemEspera++;
@@ -120,7 +120,7 @@ export async function gerarRelatorioAtendimentos(
       pacienteNome: a.paciente.nomeExibicao,
       dataHora: a.createdAt.toISOString(),
       status: a.status,
-      prioridade: a.triagem?.prioridade || 'SEM_TRIAGEM',
+      prioridade: a.triagem?.corClassificacao || 'SEM_TRIAGEM',
       setor: a.setor || 'Geral',
       medicoNome: a.medico?.nome || 'Não atribuído',
     })),
@@ -204,7 +204,7 @@ export async function gerarRelatorioFarmaciaConsumo(
   const aplicacoes = await prisma.aplicacaoMedicamento.findMany({
     where: whereAplicacao,
     include: {
-      itemPrescricao: { select: { medicamento: true, via: true, dose: true } },
+      itemPrescricao: { select: { nomeMedicamento: true, via: true, dose: true } },
     },
     take: 2000,
   });
@@ -212,7 +212,7 @@ export async function gerarRelatorioFarmaciaConsumo(
   const agregador: Record<string, { nome: string; principioAtivo: string; total: number; vias: Set<string> }> = {};
 
   for (const app of aplicacoes) {
-    const medNome = app.itemPrescricao?.medicamento || 'Medicamento não especificado';
+    const medNome = app.itemPrescricao?.nomeMedicamento || 'Medicamento não especificado';
     if (!agregador[medNome]) {
       agregador[medNome] = {
         nome: medNome,

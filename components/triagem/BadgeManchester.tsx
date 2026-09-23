@@ -7,6 +7,7 @@ import type { CorTriagem } from '@/types';
 interface BadgeManchesterProps {
   cor: CorTriagem;
   size?: 'sm' | 'md' | 'lg';
+  tamanho?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
   className?: string;
 }
@@ -58,23 +59,25 @@ const SIZE_CLASSES = {
 
 export function BadgeManchester({
   cor,
-  size = 'md',
+  size,
+  tamanho,
   showLabel = true,
   className,
 }: BadgeManchesterProps) {
+  const finalSize = tamanho || size || 'md';
   const config = CONFIG[cor];
 
   return (
     <span
       className={cn(
         'inline-flex items-center rounded-full font-semibold border uppercase tracking-wide',
-        SIZE_CLASSES[size],
+        SIZE_CLASSES[finalSize],
         config.classes,
         className
       )}
       title={`${config.label} — ${config.tempo}`}
     >
-      <span className={cn('rounded-full shrink-0', size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2', config.dot)} />
+      <span className={cn('rounded-full shrink-0', finalSize === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2', config.dot)} />
       {showLabel && <span>{config.label}</span>}
     </span>
   );

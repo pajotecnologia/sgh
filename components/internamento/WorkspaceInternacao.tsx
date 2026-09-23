@@ -132,6 +132,7 @@ export function WorkspaceInternacao({
 
   const atendimento = dados.atendimento as {
     id: string
+    pacienteId?: string
     numeroAtendimento: string
     setor?: string | null
     updatedAt?: string
@@ -140,6 +141,7 @@ export function WorkspaceInternacao({
     leito?: { ala: string; quarto: string | null; codigo: string; tipo: string } | null
     medico?: { nome: string; crm: string | null } | null
     paciente: {
+      id?: string
       nomeExibicao: string
       nomeCriptografado?: string
       nomeCompleto?: string | null
@@ -222,9 +224,9 @@ export function WorkspaceInternacao({
           Voltar à lista
         </Link>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {atendimento?.pacienteId && (
+          {(atendimento?.pacienteId || atendimento?.paciente?.id) && (
             <Link
-              href={`/prontuario/paciente/${atendimento.pacienteId}`}
+              href={`/prontuario/paciente/${atendimento.pacienteId || atendimento.paciente.id}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-primary/40 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/15 transition-colors"

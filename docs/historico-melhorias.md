@@ -156,4 +156,19 @@ $$\text{Paciente} \to \text{Recepção} \to \text{Triagem Manchester} \to \text{
   - [`docs/database.md`](file:///docs/database.md) — Dicionário de modelos e schema Prisma.
   - [`docs/backup-restore.md`](file:///docs/backup-restore.md) — Procedimentos de backup e disaster recovery.
   - [`docs/roadmap.md`](file:///docs/roadmap.md) — Visão de evolução e histórico.
-- **Testes Automatizados:** 44 arquivos de teste / **252 testes unitários passando com 100% de sucesso** via Vitest (`npm run test:run`).
+- **Testes Automatizados:** Suíte completa com 100% de aprovação via Vitest (`npm run test:run`).
+
+---
+
+## 14. Compilação de Produção & Pipeline CI/CD (Docker / Next.js)
+
+- **Tipos Re-exportados (`/types`):**
+  - Re-exportação explícita de `TipoLeitoHospitalar` e `StatusLeitoHospitalar` a partir de `@prisma/client` para assegurar compatibilidade em builds estritos do Next.js Turbopack.
+- **BadgeManchester (`BadgeManchesterProps`):**
+  - Suporte resiliente às propriedades `size` e `tamanho` como sinônimos válidos para classificação de risco visual.
+- **Histórico Longitudinal & Relatórios Gerenciais:**
+  - Consultas Prisma alinhadas com schema ativo (`corClassificacao`, `nomeMedicamento`, `registradoEm`, `itens.aplicacoes`).
+- **Validação de Produção:**
+  - `npx tsc --noEmit` executado com **0 erros de tipagem**.
+  - `npm run build` validado com compilação de todas as 48 rotas estáticas e dinâmicas com sucesso.
+

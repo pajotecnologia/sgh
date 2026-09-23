@@ -123,7 +123,7 @@ function buscarDescricaoCid(codigo: string): string {
 export async function carregarHistoricoLongitudinal(
   pacienteId: string
 ): Promise<HistoricoLongitudinalPacienteDTO | null> {
-  const paciente = await prisma.paciente.findUnique({
+  const paciente = await prisma.paciente.findFirst({
     where: { id: pacienteId, deletedAt: null },
     include: {
       alergias: true,
@@ -142,7 +142,13 @@ export async function carregarHistoricoLongitudinal(
               anamnese: true,
               diagnosticos: true,
               prescricoes: {
-                include: { itens: true },
+                include: {
+                  itens: {
+                    include: {
+                      aplicacoes: true,
+                    },
+                  },
+                },
                 orderBy: { createdAt: 'desc' },
               },
               requisicoes: {
@@ -150,16 +156,10 @@ export async function carregarHistoricoLongitudinal(
                 orderBy: { createdAt: 'desc' },
               },
               evolucoes: {
-                orderBy: { createdAt: 'desc' },
+                orderBy: { registradoEm: 'desc' },
               },
               encaminhamentos: true,
             },
-          },
-          aplicacoesMed: {
-            include: {
-              itemPrescricao: { select: { medicamento: true, dose: true, via: true } },
-            },
-            orderBy: { aplicadoEm: 'desc' },
           },
           fichaInternacaoAlta: true,
         },
@@ -215,7 +215,7 @@ export async function carregarHistoricoLongitudinal(
       criadoEm: p.createdAt.toISOString(),
       itens: p.itens.map((i) => ({
         id: i.id,
-        medicamento: i.medicamento,
+        medicamento: i.nomeMedicamento,
         dose: i.dose,
         via: i.via,
         frequencia: i.frequencia,
@@ -224,13 +224,17 @@ export async function carregarHistoricoLongitudinal(
     }));
 
     // Aplicações
-    const aplicacoesMedicamentos = at.aplicacoesMed.map((app) => ({
-      id: app.id,
-      medicamento: app.itemPrescricao?.medicamento || 'Medicamento',
-      aplicadoEm: app.aplicadoEm.toISOString(),
-      dose: app.itemPrescricao?.dose || '-',
-      via: app.itemPrescricao?.via || '-',
-    }));
+    const aplicacoesMedicamentos = (at.prontuario?.prescricoes || []).flatMap((p) =>
+      p.itens.flatMap((item) =>
+        item.aplicacoes.map((app) => ({
+          id: app.id,
+          medicamento: item.nomeMedicamento || 'Medicamento',
+          aplicadoEm: app.aplicadoEm.toISOString(),
+          dose: item.dose || app.doseAplicada || '-',
+          via: item.via || app.via || '-',
+        }))
+      )
+    );
 
     // Exames
     const exames = (at.prontuario?.requisicoes || []).map((req) => ({
@@ -239,7 +243,7 @@ export async function carregarHistoricoLongitudinal(
       itens: req.itens.map((item) => ({
         id: item.id,
         nomeExame: item.nomeExame,
-        urgente: item.urgente,
+        urgente: req.urgencia === 'URGENTE' || req.urgencia === 'EMERGENCIAL',
         resultado: item.resultado,
         resultadoPdf: item.resultadoPdf,
       })),
@@ -248,18 +252,18 @@ export async function carregarHistoricoLongitudinal(
     // Evoluções
     const evolucoes = (at.prontuario?.evolucoes || []).map((evo) => ({
       id: evo.id,
-      criadoEm: evo.createdAt.toISOString(),
-      texto: evo.descricao,
+      criadoEm: evo.registradoEm.toISOString(),
+      texto: evo.conteudo,
     }));
 
     // Encaminhamentos
     const encaminhamentos = (at.prontuario?.encaminhamentos || []).map((enc) => ({
       id: enc.id,
       especialidade: enc.especialidade,
-      motivo: enc.motivo,
+      motivo: enc.resumoClinico || enc.justificativa || '',
     }));
 
-    const sv = at.triagem?.sinaisVitais[0];
+    const sv = at.triagem?.sinaisVitais;
 
     return {
       atendimentoId: at.id,
@@ -272,12 +276,12 @@ export async function carregarHistoricoLongitudinal(
       medicoCrm: at.medico?.crm || null,
       triagem: at.triagem
         ? {
-            prioridade: at.triagem.prioridade,
+            prioridade: at.triagem.corClassificacao,
             queixaPrincipal: at.triagem.queixaPrincipal,
-            discriminador: at.triagem.discriminador,
+            discriminador: at.triagem.categoriaQueixa || at.triagem.queixaPrincipal,
             sinaisVitais: sv
               ? {
-                  pressaoArterial: sv.pressaoArterial,
+                  pressaoArterial: sv.paSistolica && sv.paDiastolica ? `${sv.paSistolica}x${sv.paDiastolica} mmHg` : null,
                   frequenciaCardiaca: sv.frequenciaCardiaca,
                   temperatura: sv.temperatura ? Number(sv.temperatura) : null,
                   spo2: sv.spo2 ? Number(sv.spo2) : null,
@@ -302,9 +306,9 @@ export async function carregarHistoricoLongitudinal(
       encaminhamentos,
       alta: at.fichaInternacaoAlta
         ? {
-            dataAlta: at.fichaInternacaoAlta.dataAlta?.toISOString() || null,
-            motivoAlta: at.fichaInternacaoAlta.motivoAlta,
-            conduta: at.fichaInternacaoAlta.conduta,
+            dataAlta: at.fichaInternacaoAlta.updatedAt?.toISOString() || null,
+            motivoAlta: at.fichaInternacaoAlta.status,
+            conduta: null,
           }
         : null,
     };
