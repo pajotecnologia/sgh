@@ -244,6 +244,13 @@ export default async function PaginaDashboard({
             </a>
           )}
           <a
+            href="/dashboard/operacoes"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border hover:bg-muted/50 transition-colors text-center"
+          >
+            <Activity className="h-6 w-6 text-primary" />
+            <span className="text-xs font-medium">Centro de operações</span>
+          </a>
+          <a
             href="/painel"
             target="_blank"
             rel="noopener noreferrer"
