@@ -105,6 +105,16 @@ O sistema **não está “fechado” para produção hospitalar completa**: falt
 - Tela `/seguranca/mfa` para configuração e desativação mediante código atual.
 - Testes unitários das primitivas TOTP.
 
+
+## Fase 6 — Armazenamento privado e hardening de dependências
+
+- Arquivos clínicos em `/api/uploads/exames/*` agora exigem autenticação **e autorização no recurso persistido**: a URL só é servida quando o PDF está vinculado a um `ItemRequisicao` existente e a um atendimento ativo.
+- O proxy de arquivos deixou de tratar apenas a extensão como critério suficiente: o namespace `exames/` permanece privado mesmo se o arquivo tiver extensão de imagem.
+- Acesso a resultado de exame é registrado na auditoria LGPD com usuário, atendimento, paciente, IP, user-agent e entidade do recurso.
+- Upload de mídia institucional deixou de usar o nome original como identificador físico; novos arquivos recebem UUID + extensão para reduzir previsibilidade e colisões.
+- Foi adicionada política do Dependabot em `.github/dependabot.yml` para atualizações semanais de dependências npm e GitHub Actions, agrupando updates minor/patch.
+- Não foi aplicado `npm audit fix --force`: atualizações maiores/transitivas devem ser avaliadas individualmente para preservar compatibilidade com Next.js 16, React 19 e Prisma 7.
+
 ## 6. Riscos e débito técnico conhecidos
 
 - **Campo `resumoClinco`** no modelo `Encaminhamento` (typo histórico no Prisma): mantido por consistência com o banco; renomear exige migration + ajuste em toda a stack.
