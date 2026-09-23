@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { schemaEvolucao } from '@/lib/validations/atendimento';
 import { prontuarioPertenceAoAtendimento, prontuarioEstaEncerrado } from '@/lib/atendimento-prontuario';
+import { medicoPodeAcessarAtendimento } from '@/lib/rbac-clinico';
 
 const ROLES_ESCREVER = ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'] as const;
 const ROLES_LER = ROLES_ESCREVER;
