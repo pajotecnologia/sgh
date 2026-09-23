@@ -67,6 +67,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (atendimento.status !== 'AGUARDANDO_TRIAGEM') {
+      return NextResponse.json<ApiResponse<never>>(
+        { sucesso: false, erro: 'Este atendimento não está disponível para triagem.' },
+        { status: 409 }
+      );
+    }
+
     if (atendimento.triagem) {
       return NextResponse.json<ApiResponse<never>>(
         { sucesso: false, erro: 'Este atendimento já foi triado.' },
@@ -131,6 +138,20 @@ export async function POST(req: NextRequest) {
       await tx.atendimento.update({
         where: { id: atendimentoId },
         data: { status: 'AGUARDANDO_ATENDIMENTO' },
+      });
+
+      await tx.logAuditoria.create({
+        data: {
+          usuarioId: sessao.usuario.id,
+          acao: 'ATUALIZACAO',
+          entidade: 'Atendimento',
+          entidadeId: atendimentoId,
+          campo: 'status',
+          valorAnterior: atendimento.status,
+          valorNovo: 'AGUARDANDO_ATENDIMENTO',
+          ipOrigem: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? req.headers.get('x-real-ip'),
+          userAgent: req.headers.get('user-agent'),
+        },
       });
 
       // Registrar auditoria
