@@ -8,6 +8,7 @@ import { compare } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import type { Role } from '@/types';
 import { verificarRateLimit, obterIpCliente } from '@/lib/rate-limit';
+import { descriptografarSegredoTotp, verificarTotp } from '@/lib/totp';
 
 declare module 'next-auth' {
   interface User {
@@ -76,6 +77,7 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: 'E-mail', type: 'email' },
         senha: { label: 'Senha', type: 'password' },
+      mfaCode: { label: 'Código MFA', type: 'text' },
       },
 
       async authorize(credentials, req) {
@@ -88,6 +90,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         const email = credentials.email.toLowerCase().trim();
+        const mfaCode = typeof credentials.mfaCode === 'string' ? credentials.mfaCode.replace(/\D/g, '') : '';
         const ipOrigem = obterIpCliente(req);
         const limiteLogin = verificarRateLimit(`login:${ipOrigem}:${email}`, { limite: 8, janelaSegundos: 15 * 60 });
         if (!limiteLogin.sucesso) {
@@ -124,7 +127,21 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Credenciais inválidas.');
         }
 
-        await prisma.tentativaLogin.create({ data: { email, usuarioId: usuario.id, sucesso: true, ipOrigem, userAgent: req.headers?.['user-agent'] ?? null, motivo: 'LOGIN_OK' } }).catch(() => undefined);
+        if (usuario.mfaAtivo) {
+          if (!mfaCode || !usuario.mfaSecret) {
+            await prisma.eventoMfa.create({ data: { usuarioId: usuario.id, evento: 'MFA_CODIGO_AUSENTE', ipOrigem, userAgent: req.headers?.['user-agent'] ?? null } }).catch(() => undefined);
+            throw new Error('Código MFA obrigatório.');
+          }
+          let mfaValido = false;
+          try { mfaValido = verificarTotp(descriptografarSegredoTotp(usuario.mfaSecret), mfaCode); } catch { mfaValido = false; }
+          if (!mfaValido) {
+            await prisma.eventoMfa.create({ data: { usuarioId: usuario.id, evento: 'MFA_CODIGO_INVALIDO', ipOrigem, userAgent: req.headers?.['user-agent'] ?? null } }).catch(() => undefined);
+            throw new Error('Código MFA inválido.');
+          }
+          await prisma.eventoMfa.create({ data: { usuarioId: usuario.id, evento: 'MFA_VALIDADO', ipOrigem, userAgent: req.headers?.['user-agent'] ?? null } }).catch(() => undefined);
+        }
+
+        await prisma.tentativaLogin.create({ data: { email, usuarioId: usuario.id, sucesso: true, ipOrigem, userAgent: req.headers?.['user-agent'] ?? null, motivo: usuario.mfaAtivo ? 'LOGIN_OK_MFA' : 'LOGIN_OK' } }).catch(() => undefined);
 
         // Atualizar último acesso (não aguardar — fire and forget)
         prisma.usuario
