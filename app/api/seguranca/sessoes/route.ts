@@ -29,7 +29,7 @@ export async function GET() {
       ultimoAcesso: true,
       expiraEm: true,
       revogadoEm: true,
-      motivoRevocacao: true,
+      motivoRevogacao: true,
     },
   });
 
