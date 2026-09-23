@@ -33,7 +33,7 @@ export function normalizarCaminhoRelativo(caminho: string): string | null {
 }
 
 export function caminhoExamePrivadoValido(caminho: string): boolean {
-  return /^exames/[a-f0-9-]+\.pdf$/i.test(caminho)
+  return /^exames\/[a-f0-9-]+\.pdf$/i.test(caminho)
 }
 
 export async function autorizarArquivoClinico({
