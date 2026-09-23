@@ -37,6 +37,7 @@ model Usuario {
   evolucoes          EvolucaoMedica[]
   logsAuditoria            LogAuditoria[]
   logsAcessoPaciente       LogAcessoPaciente[]
+  solicitacoesTitular      SolicitacaoTitular[]
   sessoes                  SessaoUsuario[]
   tentativasLogin          TentativaLogin[]
   eventosMfa               EventoMfa[]
@@ -106,6 +107,31 @@ model EventoMfa {
   @@index([usuarioId, criadoEm])
   @@index([evento, criadoEm])
   @@map("eventos_mfa")
+}
+
+/// Solicitações do titular de dados para atendimento de direitos LGPD.
+model SolicitacaoTitular {
+  id             String                    @id @default(uuid())
+  protocolo      String                    @unique
+  tipo           TipoSolicitacaoTitular
+  status         StatusSolicitacaoTitular  @default(RECEBIDA)
+  pacienteId     String?
+  solicitanteNome String
+  solicitanteContato String?
+  descricao      String?
+  criadoEm       DateTime                  @default(now())
+  atualizadoEm   DateTime                  @updatedAt
+  prazoEm        DateTime?
+  concluidoEm    DateTime?
+  concluidoPorId String?
+  resposta       String?
+  paciente       Paciente?                 @relation(fields: [pacienteId], references: [id], onDelete: SetNull)
+  concluidoPor   Usuario?                  @relation(fields: [concluidoPorId], references: [id], onDelete: SetNull)
+
+  @@index([status, criadoEm])
+  @@index([pacienteId])
+  @@index([tipo, criadoEm])
+  @@map("solicitacoes_titular")
 }
 
 /// Token único (hash SHA-256) para fluxo «esqueci minha senha»
@@ -187,6 +213,7 @@ model Paciente {
   endereco              Endereco?
   medicamentosCont      MedicamentoContinuo[]
   logsAcesso              LogAcessoPaciente[]
+  solicitacoesTitular      SolicitacaoTitular[]
 
   @@index([cpfHash])
   @@index([nomeExibicao])
@@ -1708,6 +1735,25 @@ enum TurnoEvolucaoInternacao {
 enum StatusFichaEvolucaoTurno {
   RASCUNHO
   REGISTRADA
+}
+
+enum TipoSolicitacaoTitular {
+  CONFIRMACAO_DADOS
+  ACESSO_DADOS
+  CORRECAO_DADOS
+  ELIMINACAO_DADOS
+  PORTABILIDADE
+  REVOGACAO_CONSENTIMENTO
+  OUTRA
+}
+
+enum StatusSolicitacaoTitular {
+  RECEBIDA
+  EM_ANALISE
+  AGUARDANDO_COMPLEMENTO
+  CONCLUIDA
+  NEGADA
+  CANCELADA
 }
 
 /// Tipo de conteúdo de auditoria
