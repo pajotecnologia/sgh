@@ -30,7 +30,10 @@ export function usuarioPodeExecutarTransicao(
   if (role === 'ADMIN') return true
 
   if (role === 'ENFERMEIRO') {
-    return de === 'AGUARDANDO_TRIAGEM' && para === 'EM_TRIAGEM'
+    return (
+      (de === 'AGUARDANDO_TRIAGEM' && para === 'EM_TRIAGEM') ||
+      (de === 'AGUARDANDO_ATENDIMENTO' && para === 'EM_ATENDIMENTO')
+    )
   }
 
   if (role === 'MEDICO' || role === 'DIRETOR_CLINICO') {
