@@ -21,6 +21,7 @@ const schemaLogin = z.object({
   senha: z
     .string()
     .min(6, 'Senha deve ter pelo menos 6 caracteres.'),
+  mfaCode: z.string().regex(/^$|^\d{6}$/, 'O código MFA deve ter 6 dígitos.').default(''),
 })
 
 type LoginForm = z.infer<typeof schemaLogin>
@@ -62,11 +63,12 @@ function FormularioLoginInner() {
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({
     resolver: zodResolver(schemaLogin),
-    defaultValues: { email: '', senha: '' },
+    defaultValues: { email: '', senha: '', mfaCode: '' },
   })
 
   const emailRegister = register('email')
   const senhaValor = watch('senha') ?? ''
+  const mfaCodeValor = watch('mfaCode') ?? ''
 
   useEffect(() => {
     if (emailUrl) setValue('email', emailUrl, { shouldValidate: true })
@@ -93,6 +95,7 @@ function FormularioLoginInner() {
       const resultado = await signIn('credentials', {
         email: dados.email.toLowerCase().trim(),
         senha: dados.senha,
+        mfaCode: dados.mfaCode || '',
         redirect: false,
         callbackUrl: '/entrando',
       })
@@ -207,6 +210,24 @@ function FormularioLoginInner() {
             Esqueci minha senha
           </Link>
         </p>
+      </div>
+
+      <div className="form-field">
+        <label htmlFor="mfaCode" className="text-sm font-medium text-foreground">Código MFA (se ativado)</label>
+        <input
+          id="mfaCode"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          placeholder="000000"
+          disabled={isSubmitting}
+          value={mfaCodeValor}
+          onChange={(e) => setValue('mfaCode', e.target.value.replace(/\\D/g, '').slice(0, 6), { shouldValidate: true, shouldDirty: true })}
+          className="w-full px-3.5 py-2.5 rounded-lg border border-input bg-background text-sm outline-none transition-all focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          aria-describedby="mfa-help"
+        />
+        <p id="mfa-help" className="text-[11px] text-muted-foreground">Se sua conta usa autenticação em dois fatores, informe o código do aplicativo autenticador.</p>
+        {errors.mfaCode ? <p className="text-xs text-destructive">{errors.mfaCode.message}</p> : null}
       </div>
 
       <button
