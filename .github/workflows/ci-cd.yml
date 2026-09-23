@@ -84,16 +84,16 @@ jobs:
           npm run start > /tmp/sgh.log 2>&1 &
           echo $! > /tmp/sgh.pid
           for i in {1..60}; do
-            if curl -fsS http://127.0.0.1:3000/login >/dev/null; then
+            if curl -fsS http://127.0.0.1:3002/login >/dev/null; then
               break
             fi
             sleep 2
           done
-          curl -fsS http://127.0.0.1:3000/login >/dev/null
+          curl -fsS http://127.0.0.1:3002/login >/dev/null
 
       - name: Smoke RBAC
         env:
-          BASE_URL: http://127.0.0.1:3000
+          BASE_URL: http://127.0.0.1:3002
         run: npm run test:smoke
 
       - name: Logs da aplicação em caso de falha
