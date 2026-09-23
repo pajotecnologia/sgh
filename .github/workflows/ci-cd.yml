@@ -26,6 +26,9 @@ jobs:
       - name: Gerar Prisma Client
         run: npm run db:generate
 
+      - name: Testes unitários
+        run: npm run test:run
+
       - name: Checagem de Tipos (TypeScript)
         run: npx tsc --noEmit
 
