@@ -34,6 +34,7 @@ export async function GET(
     // Imagens de mídia institucional podem continuar públicas; conteúdo clínico
     // exige autenticação + autorização no recurso persistido.
     const isImagem = /\.(png|jpe?g|webp|gif|svg)$/i.test(pathSegments[pathSegments.length - 1] ?? '');
+    const caminhoClinico = pathSegments.join('/').toLowerCase().startsWith('exames/');
     const sessao = await getServerSession(authOptions);
 
     if (!sessao && !isImagem) {
@@ -45,7 +46,7 @@ export async function GET(
       return NextResponse.json({ sucesso: false, erro: 'Caminho inválido.' }, { status: 400 });
     }
 
-    if (!isImagem) {
+    if (!isImagem || caminhoClinico) {
       if (!sessao) {
         return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 });
       }
@@ -84,7 +85,7 @@ export async function GET(
     let fullPath = path.join(baseStorageDir, sanitizedPath);
 
     const extensaoSolicitada = path.extname(pathSegments[pathSegments.length - 1] ?? '').toLowerCase();
-    const arquivoSensivel = !isImagem;
+    const arquivoSensivel = !isImagem || caminhoClinico;
 
     let fileStat;
     let origemPublica = false;
