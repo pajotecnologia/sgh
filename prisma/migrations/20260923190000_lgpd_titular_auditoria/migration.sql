@@ -1,9 +1,17 @@
 -- LGPD: solicitações de titulares e índices de consulta de auditoria.
+DO $$ BEGIN
+  CREATE TYPE "TipoSolicitacaoTitular" AS ENUM ('CONFIRMACAO_DADOS','ACESSO_DADOS','CORRECAO_DADOS','ELIMINACAO_DADOS','PORTABILIDADE','REVOGACAO_CONSENTIMENTO','OUTRA');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "StatusSolicitacaoTitular" AS ENUM ('RECEBIDA','EM_ANALISE','AGUARDANDO_COMPLEMENTO','CONCLUIDA','NEGADA','CANCELADA');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 CREATE TABLE IF NOT EXISTS "solicitacoes_titular" (
   "id" TEXT NOT NULL,
   "protocolo" TEXT NOT NULL,
-  "tipo" TEXT NOT NULL,
-  "status" TEXT NOT NULL DEFAULT 'RECEBIDA',
+  "tipo" "TipoSolicitacaoTitular" NOT NULL,
+  "status" "StatusSolicitacaoTitular" NOT NULL DEFAULT 'RECEBIDA',
   "pacienteId" TEXT,
   "solicitanteNome" TEXT NOT NULL,
   "solicitanteContato" TEXT,
