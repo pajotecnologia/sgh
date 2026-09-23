@@ -14,6 +14,7 @@ export async function auditarLgpd({
   ipOrigem,
   userAgent,
   detalhes,
+  pacienteId,
 }: {
   usuarioId: string | null
   role: Role | null
