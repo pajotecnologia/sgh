@@ -7,6 +7,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import type { Role } from '@/types';
+import type { Session } from 'next-auth';
 import { verificarRateLimit, obterIpCliente } from '@/lib/rate-limit';
 import { descriptografarSegredoTotp, verificarTotp } from '@/lib/totp';
 import { criarIdentificadorSessao, hashIdentificadorSessao, DURACAO_SESSAO_MS, obterDispositivo } from '@/lib/sessoes';
@@ -95,7 +96,8 @@ export const authOptions: NextAuthOptions = {
 
         const email = credentials.email.toLowerCase().trim();
         const mfaCode = typeof credentials.mfaCode === 'string' ? credentials.mfaCode.replace(/\D/g, '') : '';
-        const ipOrigem = obterIpCliente(req);
+        const forwarded = req.headers?.['x-forwarded-for'];
+        const ipOrigem = typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : '127.0.0.1';
         const limiteLogin = verificarRateLimit(`login:${ipOrigem}:${email}`, { limite: 8, janelaSegundos: 15 * 60 });
         if (!limiteLogin.sucesso) {
           await prisma.tentativaLogin.create({ data: { email, sucesso: false, ipOrigem, userAgent: req.headers?.['user-agent'] ?? null, motivo: 'RATE_LIMIT' } }).catch(() => undefined);
@@ -214,7 +216,11 @@ export const authOptions: NextAuthOptions = {
           select: { id: true, ultimoAcesso: true },
         });
 
-        if (!sessao) return null;
+        if (!sessao) {
+          token.sessaoValida = false;
+          return token;
+        }
+        token.sessaoValida = true;
 
         if (Date.now() - sessao.ultimoAcesso.getTime() >= 5 * 60 * 1000) {
           await prisma.sessaoUsuario.update({
@@ -229,6 +235,9 @@ export const authOptions: NextAuthOptions = {
 
     // Enriquecer a sessão com dados do JWT
     async session({ session, token }) {
+      if (token.sessaoValida === false) {
+        return { ...session, usuario: undefined } as unknown as Session;
+      }
       session.usuario = {
         id: token.id,
         nome: token.nome,
@@ -252,7 +261,7 @@ export const authOptions: NextAuthOptions = {
           sessionTokenHash: hashIdentificadorSessao(token.sessaoId),
           revogadoEm: null,
         },
-        data: { revogadoEm: new Date(), motivoRevocacao: 'LOGOUT' },
+        data: { revogadoEm: new Date(), motivoRevogacao: 'LOGOUT' },
       }).catch(() => undefined);
     },
   },
