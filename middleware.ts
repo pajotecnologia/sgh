@@ -60,7 +60,27 @@ function hasValidOrigin(req: NextRequest): boolean {
 
   try {
     const parsedOrigin = new URL(origin);
-    return parsedOrigin.origin === req.nextUrl.origin;
+    const hostHeader = req.headers.get('x-forwarded-host') || req.headers.get('host');
+
+    // 1. Origem bate exatamente com nextUrl.origin
+    if (parsedOrigin.origin === req.nextUrl.origin) return true;
+
+    // 2. Host bate com o header Host ou X-Forwarded-Host
+    if (hostHeader) {
+      const cleanHost = hostHeader.split(',')[0].trim();
+      if (parsedOrigin.host === cleanHost) return true;
+    }
+
+    // 3. Desenvolvimento local / intranet (localhost ou 127.0.0.1)
+    const reqHost = req.nextUrl.hostname;
+    if (
+      (parsedOrigin.hostname === 'localhost' || parsedOrigin.hostname === '127.0.0.1') &&
+      (reqHost === 'localhost' || reqHost === '127.0.0.1')
+    ) {
+      return parsedOrigin.port === req.nextUrl.port;
+    }
+
+    return false;
   } catch {
     return true;
   }

@@ -129,9 +129,15 @@ function FormularioLoginInner() {
       })
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
-      toast.error('Erro na autenticação', {
-        description: msg || 'Verifique se o servidor está ativo na porta 3002.',
-      })
+      if (msg.includes('URL') || msg.includes('Invalid') || msg.includes('undefined')) {
+        toast.error('Credenciais inválidas ou erro de conexão', {
+          description: 'Verifique se o usuário/senha estão corretos e se o servidor está ativo na porta 3002.',
+        })
+      } else {
+        toast.error('Erro na autenticação', {
+          description: msg || 'Verifique se o servidor está ativo na porta 3002.',
+        })
+      }
     }
   }
 
