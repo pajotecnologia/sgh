@@ -142,20 +142,26 @@ export async function GET(
       paciente: enriquecerPacienteComNomeCompleto(atendimento.paciente),
     };
 
-    await auditarLgpd({
-      usuarioId: sessao.usuario.id,
-      role: sessao.usuario.role,
-      atendimentoId,
-      acao: 'VISUALIZACAO',
-      entidade: 'ProntuarioMedico',
-      entidadeId: prontuario.id,
-      ipOrigem: req.headers.get('x-forwarded-for') ?? null,
-      userAgent: req.headers.get('user-agent') ?? null,
-    });
+    try {
+      await auditarLgpd({
+        usuarioId: sessao.usuario.id,
+        role: sessao.usuario.role,
+        atendimentoId,
+        acao: 'VISUALIZACAO',
+        entidade: 'ProntuarioMedico',
+        entidadeId: prontuario.id,
+        ipOrigem: req.headers.get('x-forwarded-for') ?? null,
+        userAgent: req.headers.get('user-agent') ?? null,
+      });
+    } catch (e) {
+      console.warn('[auditoria-lgpd] falha no registro de auditoria do prontuario:', e);
+    }
 
     return NextResponse.json({ sucesso: true, dados: { atendimento: atendimentoResposta, prontuario } });
   } catch (erro) {
     console.error('[GET /api/atendimento/prontuario]', erro);
-    return NextResponse.json({ sucesso: false, erro: 'Erro interno.' }, { status: 500 });
+    const msg = erro instanceof Error ? erro.message : 'Erro interno ao carregar prontuário.';
+    return NextResponse.json({ sucesso: false, erro: msg }, { status: 500 });
   }
 }
+
