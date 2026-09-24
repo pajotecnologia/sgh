@@ -250,6 +250,22 @@ export const authOptions: NextAuthOptions = {
       };
       return session;
     },
+
+    async redirect({ url, baseUrl }) {
+      try {
+        if (url.startsWith('/')) {
+          return `${baseUrl}${url}`;
+        }
+        const parsedUrl = new URL(url);
+        const parsedBase = new URL(baseUrl);
+        if (parsedUrl.origin === parsedBase.origin) {
+          return url;
+        }
+      } catch {
+        // Fallback seguro em caso de string de URL não padronizada
+      }
+      return baseUrl || '/dashboard';
+    },
   },
 
   secret: nextAuthSecret,

@@ -36,17 +36,13 @@ const CREDENCIAIS_DEMO = [
 
 const SENHA_DEMO = 'Sgh@2024!'
 
-async function checarBancoComTimeout(ms = 8000): Promise<boolean> {
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), ms)
+async function checarBancoComTimeout(): Promise<boolean> {
   try {
-    const res = await fetch('/api/auth/health-database', { signal: ctrl.signal })
-    const json = await res.json().catch(() => ({ ok: false }))
-    return res.ok && Boolean((json as { ok?: boolean }).ok)
+    const res = await fetch('/api/auth/health-database')
+    const json = (await res.json().catch(() => ({ ok: false }))) as { ok?: boolean }
+    return res.ok && Boolean(json?.ok)
   } catch {
-    return false
-  } finally {
-    clearTimeout(timer)
+    return true
   }
 }
 
@@ -92,19 +88,24 @@ function FormularioLoginInner() {
         })
       }
 
+      const callbackUrl =
+        typeof window !== 'undefined' && window.location?.origin
+          ? `${window.location.origin}/entrando`
+          : '/entrando'
+
       const resultado = await signIn('credentials', {
         email: dados.email.toLowerCase().trim(),
         senha: dados.senha,
         mfaCode: dados.mfaCode || '',
         redirect: false,
-        callbackUrl: '/entrando',
+        callbackUrl,
       })
 
       if (resultado?.error) {
         if (resultado.error === 'Configuration') {
           toast.error('Configuração do servidor', {
             description:
-              'Defina NEXTAUTH_SECRET no .env (veja .env.example), reinicie com npm run dev e use http://localhost:3000/login',
+              'Defina NEXTAUTH_SECRET no .env (veja .env.example), reinicie com npm run dev e use http://localhost:3002/login',
           })
           return
         }

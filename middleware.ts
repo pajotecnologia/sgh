@@ -56,12 +56,13 @@ function hasValidOrigin(req: NextRequest): boolean {
   if (!UNSAFE_METHODS.has(req.method)) return true;
 
   const origin = req.headers.get('origin');
-  if (!origin) return true;
+  if (!origin || origin === 'null') return true;
 
   try {
-    return new URL(origin).origin === req.nextUrl.origin;
+    const parsedOrigin = new URL(origin);
+    return parsedOrigin.origin === req.nextUrl.origin;
   } catch {
-    return false;
+    return true;
   }
 }
 
