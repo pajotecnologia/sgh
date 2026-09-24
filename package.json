@@ -31,6 +31,7 @@
     "db:push": "node scripts/run-prisma.mjs db push",
     "db:studio": "node scripts/run-prisma.mjs studio",
     "db:seed": "node scripts/run-tsx.mjs prisma/seed.ts",
+    "db:clean": "node scripts/limpar-dados-demo.mjs",
     "db:constraints": "node scripts/run-prisma.mjs db execute --file prisma/migrations/20260528204500_farmacia_constraints/migration.sql && node scripts/run-prisma.mjs db execute --file prisma/migrations/20260615120000_farmacia_lotes_movimentacao/migration.sql",
     "db:seed:sql": "node scripts/run-tsx.mjs scripts/generate-seed-sql.ts",
     "db:bootstrap": "node scripts/init-sgh-database.mjs",
