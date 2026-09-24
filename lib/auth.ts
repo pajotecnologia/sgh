@@ -209,29 +209,27 @@ export const authOptions: NextAuthOptions = {
         token.sessaoValida = true;
       }
 
-      if (token.sessaoId && !user) {
-        const sessao = await prisma.sessaoUsuario.findFirst({
-          where: {
-            sessionTokenHash: hashIdentificadorSessao(token.sessaoId),
-            usuarioId: token.id,
-            revogadoEm: null,
-            expiraEm: { gt: new Date() },
-            usuario: { ativo: true, deletedAt: null },
-          },
-          select: { id: true, ultimoAcesso: true },
-        }).catch(() => null);
+      if (token.sessaoId && !user && token.id) {
+        try {
+          const sessao = await prisma.sessaoUsuario.findFirst({
+            where: {
+              sessionTokenHash: hashIdentificadorSessao(token.sessaoId),
+              usuarioId: token.id,
+              revogadoEm: null,
+              expiraEm: { gt: new Date() },
+              usuario: { ativo: true, deletedAt: null },
+            },
+            select: { id: true, ultimoAcesso: true },
+          }).catch(() => null);
 
-        if (!sessao) {
-          token.sessaoValida = false;
-          return token;
-        }
-        token.sessaoValida = true;
-
-        if (Date.now() - sessao.ultimoAcesso.getTime() >= 5 * 60 * 1000) {
-          await prisma.sessaoUsuario.update({
-            where: { id: sessao.id },
-            data: { ultimoAcesso: new Date() },
-          }).catch(() => undefined);
+          if (sessao && Date.now() - sessao.ultimoAcesso.getTime() >= 5 * 60 * 1000) {
+            await prisma.sessaoUsuario.update({
+              where: { id: sessao.id },
+              data: { ultimoAcesso: new Date() },
+            }).catch(() => undefined);
+          }
+        } catch {
+          // Falha transitória de consulta de sessão não bloqueia usuário válido
         }
       }
 
@@ -243,15 +241,17 @@ export const authOptions: NextAuthOptions = {
       if (token.sessaoValida === false) {
         return { ...session, usuario: undefined } as unknown as Session;
       }
-      session.usuario = {
-        id: token.id,
-        nome: token.nome,
-        email: token.email!,
-        role: token.role,
-        crm: token.crm,
-        coren: token.coren,
-        sessaoId: token.sessaoId,
-      };
+      if (token.id && token.email && token.role) {
+        session.usuario = {
+          id: token.id,
+          nome: token.nome,
+          email: token.email,
+          role: token.role,
+          crm: token.crm,
+          coren: token.coren,
+          sessaoId: token.sessaoId,
+        };
+      }
       return session;
     },
 
