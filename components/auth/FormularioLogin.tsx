@@ -95,8 +95,8 @@ function FormularioLoginInner() {
 
       const resultado = await signIn('credentials', {
         email: dados.email.toLowerCase().trim(),
-        senha: dados.senha,
-        mfaCode: dados.mfaCode || '',
+        senha: dados.senha.trim(),
+        mfaCode: dados.mfaCode?.trim() || '',
         redirect: false,
         callbackUrl,
       })
@@ -110,9 +110,13 @@ function FormularioLoginInner() {
           return
         }
 
-        toast.error('Credenciais inválidas', {
-          description:
-            'Use admin@hospital.com / Sgh@2024! (após npm run db:seed). Clique em Entrar — não use só a URL com senha.',
+        const msgErro =
+          resultado.error === 'CredentialsSignin'
+            ? 'E-mail ou senha incorretos. Utilize admin@hospital.com / Sgh@2024! (ou clique nos botões de acesso rápido).'
+            : decodeURIComponent(resultado.error)
+
+        toast.error('Não foi possível entrar', {
+          description: msgErro,
         })
         return
       }

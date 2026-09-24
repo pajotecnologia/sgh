@@ -99,7 +99,8 @@ export const authOptions: NextAuthOptions = {
         const mfaCode = typeof credentials.mfaCode === 'string' ? credentials.mfaCode.replace(/\D/g, '') : '';
         const forwarded = req.headers?.['x-forwarded-for'];
         const ipOrigem = typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : '127.0.0.1';
-        const limiteLogin = verificarRateLimit(`login:${ipOrigem}:${email}`, { limite: 8, janelaSegundos: 15 * 60 });
+        const limiteTentativas = process.env.NODE_ENV === 'production' ? 20 : 100;
+        const limiteLogin = verificarRateLimit(`login:${ipOrigem}:${email}`, { limite: limiteTentativas, janelaSegundos: 15 * 60 });
         if (!limiteLogin.sucesso) {
           await prisma.tentativaLogin.create({ data: { email, sucesso: false, ipOrigem, userAgent: req.headers?.['user-agent'] ?? null, motivo: 'RATE_LIMIT' } }).catch(() => undefined);
           throw new Error('Muitas tentativas de login. Aguarde alguns minutos.');
@@ -127,7 +128,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Credenciais inválidas.');
         }
 
-        const senhaValida = await compare(senhaPlano, usuario.senhaHash);
+        const senhaValida = await compare(senhaPlano.trim(), usuario.senhaHash);
 
         if (!senhaValida) {
           await prisma.tentativaLogin.create({ data: { email, usuarioId: usuario.id, sucesso: false, ipOrigem, userAgent: req.headers?.['user-agent'] ?? null, motivo: 'SENHA_INVALIDA' } }).catch(() => undefined);
@@ -164,6 +165,8 @@ export const authOptions: NextAuthOptions = {
             ultimoAcesso: agora,
             expiraEm,
           },
+        }).catch((err) => {
+          console.warn('[auth] Aviso ao persistir sessaoUsuario:', err);
         });
 
         await prisma.tentativaLogin.create({ data: { email, usuarioId: usuario.id, sucesso: true, ipOrigem, userAgent, motivo: usuario.mfaAtivo ? 'LOGIN_OK_MFA' : 'LOGIN_OK' } }).catch(() => undefined);
@@ -203,9 +206,10 @@ export const authOptions: NextAuthOptions = {
         token.crm = user.crm;
         token.coren = user.coren;
         token.sessaoId = user.sessaoId;
+        token.sessaoValida = true;
       }
 
-      if (token.sessaoId) {
+      if (token.sessaoId && !user) {
         const sessao = await prisma.sessaoUsuario.findFirst({
           where: {
             sessionTokenHash: hashIdentificadorSessao(token.sessaoId),
@@ -215,7 +219,7 @@ export const authOptions: NextAuthOptions = {
             usuario: { ativo: true, deletedAt: null },
           },
           select: { id: true, ultimoAcesso: true },
-        });
+        }).catch(() => null);
 
         if (!sessao) {
           token.sessaoValida = false;
