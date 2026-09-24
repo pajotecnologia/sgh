@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import { VERSAO_SGH, BUILD_SGH, NOME_VERSAO } from '@/lib/versao'
 import {
   Sparkles,
   BedDouble,
@@ -105,11 +106,11 @@ export function ModalNovidadesVersao({ open, onOpenChange }: ModalNovidadesVersa
                 <h3 className="text-lg font-bold text-foreground">Novidades & Atualizações</h3>
                 <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center gap-1">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  v2.5.0
+                  {VERSAO_SGH}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Build 26.09 • Plataforma Hospitalar Integrada SGH
+                {BUILD_SGH} • {NOME_VERSAO}
               </p>
             </div>
           </div>

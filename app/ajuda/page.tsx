@@ -29,6 +29,7 @@ import {
   Printer,
 } from 'lucide-react'
 import { LogoPajo } from '@/components/shared/LogoPajo'
+import { VERSAO_SGH, VERSAO_NUMERO, COPYRIGHT_SGH } from '@/lib/versao'
 
 interface CapituloManual {
   id: string
@@ -454,7 +455,7 @@ export default function PaginaAjudaManual() {
               Manual do Usuário & Central de Ajuda
             </span>
             <span className="hidden md:inline-flex px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-primary/10 text-primary border border-primary/20">
-              v2.5.0
+              {VERSAO_SGH}
             </span>
           </div>
         </div>
@@ -724,7 +725,7 @@ export default function PaginaAjudaManual() {
             SGH — Sistema de Gestão Hospitalar & Prontuário Eletrônico • Manual Oficial
           </span>
           <span className="font-mono text-[11px]">
-            PAJO Tecnologia • Versão 2.5.0
+            {COPYRIGHT_SGH} • Versão {VERSAO_NUMERO}
           </span>
         </div>
       </footer>

@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { BookOpen, Sparkles } from 'lucide-react'
 import { ModalNovidadesVersao } from '@/components/shared/ModalNovidadesVersao'
+import { VERSAO_SGH, BUILD_SGH } from '@/lib/versao'
 
 export function BotaoVersaoLogin() {
   const [modalAberto, setModalAberto] = useState(false)
@@ -29,9 +30,9 @@ export function BotaoVersaoLogin() {
           title="Clique para ver as notas de atualização da versão"
         >
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-semibold text-foreground">v2.5.0</span>
+          <span className="font-semibold text-foreground">{VERSAO_SGH}</span>
           <span className="text-muted-foreground/40">•</span>
-          <span className="text-[9px] text-muted-foreground/80">build 26.09</span>
+          <span className="text-[9px] text-muted-foreground/80">{BUILD_SGH}</span>
           <Sparkles className="h-3 w-3 text-amber-500 opacity-60 group-hover:opacity-100 transition-opacity ml-0.5" />
         </button>
       </div>

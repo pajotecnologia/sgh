@@ -12,6 +12,7 @@ import { SeletorTema } from '@/components/shared/SeletorTema';
 import { labelAbaInternacao, parseAbaInternacao } from '@/lib/internacao-abas';
 import { ModalManualSistema } from '@/components/shared/ModalManualSistema';
 import { ModalNovidadesVersao } from '@/components/shared/ModalNovidadesVersao';
+import { VERSAO_SGH } from '@/lib/versao';
 import Link from 'next/link';
 
 const TITULOS_ROTA: Record<string, string> = {
@@ -80,7 +81,7 @@ export function Header({ usuario }: HeaderProps) {
             title="Ver novidades da versão"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>v2.5.0</span>
+            <span>{VERSAO_SGH}</span>
             <Sparkles className="h-3 w-3 text-amber-500 opacity-70" />
           </button>
 

@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { FormularioLogin } from '@/components/auth/FormularioLogin';
 import { LogoPajo } from '@/components/shared/LogoPajo';
 import { BotaoVersaoLogin } from '@/components/auth/BotaoVersaoLogin';
+import { VERSAO_SGH } from '@/lib/versao';
 import {
   Activity,
   ShieldCheck,
@@ -132,7 +133,7 @@ export default function PaginaLogin() {
           <div className="text-[11px] text-muted-foreground text-left sm:text-right flex items-center gap-2">
             <span>Sessão segura com expiração automática</span>
             <span className="text-muted-foreground/40">•</span>
-            <span className="font-mono text-[10px] text-muted-foreground/80">v2.5.0</span>
+            <span className="font-mono text-[10px] text-muted-foreground/80">{VERSAO_SGH}</span>
           </div>
         </div>
       </div>
