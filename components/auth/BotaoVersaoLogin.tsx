@@ -12,6 +12,16 @@ export function BotaoVersaoLogin() {
   return (
     <>
       <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+        {/* Link direto para a Landing Page / Apresentação */}
+        <Link
+          href="/"
+          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-card/80 hover:bg-card border border-border/80 text-xs font-semibold text-foreground hover:text-primary transition-colors shadow-2xs group"
+          title="Página Inicial & Apresentação dos Recursos"
+        >
+          <Sparkles className="h-3.5 w-3.5 text-primary group-hover:scale-110 transition-transform" />
+          <span>Início</span>
+        </Link>
+
         {/* Link direto para a Central de Ajuda / Manual */}
         <Link
           href="/ajuda"

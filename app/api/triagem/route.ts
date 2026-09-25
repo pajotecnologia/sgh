@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (atendimento.status !== 'AGUARDANDO_TRIAGEM') {
+    if (atendimento.status !== 'AGUARDANDO_TRIAGEM' && atendimento.status !== 'EM_TRIAGEM') {
       return NextResponse.json<ApiResponse<never>>(
         { sucesso: false, erro: 'Este atendimento não está disponível para triagem.' },
         { status: 409 }
