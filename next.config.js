@@ -43,16 +43,6 @@ const nextConfig = {
     ];
   },
 
-  // Redirecionamento da raiz para o painel de login
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/login',
-        permanent: false,
-      },
-    ];
-  },
 };
 
 module.exports = nextConfig;
