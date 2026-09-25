@@ -15,10 +15,10 @@ export function LogoPajo({
 }: LogoPajoProps) {
   const filterClass =
     variant === 'light'
-      ? 'brightness-0 invert'
+      ? 'invert mix-blend-screen'
       : variant === 'dark'
-      ? ''
-      : 'dark:brightness-0 dark:invert'
+      ? 'mix-blend-multiply'
+      : 'mix-blend-multiply dark:invert dark:mix-blend-screen'
 
   return (
     <div
