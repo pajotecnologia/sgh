@@ -1,9 +1,12 @@
 {
   "name": "sgh",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "private": true,
   "scripts": {
     "predev": "node scripts/run-prisma.mjs generate",
+    "prebuild": "node scripts/atualizar-versao.mjs",
+    "version:bump": "node scripts/atualizar-versao.mjs --bump",
+    "version:minor": "node scripts/atualizar-versao.mjs --minor",
     "clean:next": "node scripts/clean-next.mjs",
     "db:compose:up": "docker compose up -d db",
     "db:compose:down": "docker compose down",
@@ -12,7 +15,7 @@
     "dev:only": "node ./node_modules/next/dist/bin/next dev --webpack -p 3002",
     "stack": "npm run db:bootstrap && npm run dev",
     "dev:turbo": "node ./node_modules/next/dist/bin/next dev -p 3002",
-    "build": "node ./node_modules/next/dist/bin/next build",
+    "build": "node scripts/atualizar-versao.mjs && node ./node_modules/next/dist/bin/next build",
     "build:release": "node ./node_modules/next/dist/bin/next build && node scripts/package-release.mjs",
     "build:instalador": "node ./node_modules/next/dist/bin/next build && node scripts/package-release.mjs && npm run db:update:sql && node scripts/package-instalador.mjs",
     "db:schema:sql": "node ./node_modules/prisma/build/index.js migrate diff --from-empty --to-schema prisma/schema.prisma --script -o database/sgh_schema_completo.sql",
