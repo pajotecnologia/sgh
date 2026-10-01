@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Building2, MapPin, Upload, Image as ImageIcon, Loader2, Plus, Trash2, Tag, Volume2, Palette, Settings2, Mail, Pencil, LayoutPanelLeft, Video, Sparkles } from 'lucide-react';
+import { Building2, MapPin, Upload, Image as ImageIcon, Loader2, Plus, Trash2, Tag, Volume2, Palette, Settings2, Mail, Pencil, LayoutPanelLeft, Video, Sparkles, ShieldCheck, KeyRound } from 'lucide-react';
 import { textoCadastroMaiusculo } from '@/lib/cadastro-maiusculo';
 import { cn } from '@/lib/utils';
 import type { MidiaPainelRotativa, ConfigPainelExibicao } from '@/lib/painel-config';
@@ -20,6 +20,7 @@ interface Instituicao {
   cep: string;
   logomarcaUrl: string;
   buscaAutomaticaCatalogo?: boolean;
+  mfaHabilitado?: boolean;
 }
 
 interface Origem {
@@ -39,11 +40,11 @@ const ROTULOS_PROCEDENCIA_FICHA: { value: ProcedenciaFichaVal; label: string }[]
 
 export function ConfiguracoesClient() {
   const [abaAtiva, setAbaAtiva] = useState<
-    'INSTITUICAO' | 'ORIGENS' | 'USUARIOS' | 'PAINEL' | 'SMTP'
+    'INSTITUICAO' | 'ORIGENS' | 'USUARIOS' | 'PAINEL' | 'SMTP' | 'SEGURANCA'
   >('INSTITUICAO');
   
   const [instituicao, setInstituicao] = useState<Instituicao>({
-    nomeMunicipio: '', nomeInstituicao: '', cnes: '', codigoIbgeMunicipio: '', endereco: '', bairro: '', cidade: '', estado: '', cep: '', logomarcaUrl: '', buscaAutomaticaCatalogo: true
+    nomeMunicipio: '', nomeInstituicao: '', cnes: '', codigoIbgeMunicipio: '', endereco: '', bairro: '', cidade: '', estado: '', cep: '', logomarcaUrl: '', buscaAutomaticaCatalogo: true, mfaHabilitado: true
   });
 
   const [carregandoInst, setCarregandoInst] = useState(true);
@@ -135,6 +136,7 @@ export function ConfiguracoesClient() {
           cep: d.cep ?? '',
           logomarcaUrl: d.logomarcaUrl ?? '',
           buscaAutomaticaCatalogo: d.buscaAutomaticaCatalogo !== false,
+          mfaHabilitado: d.mfaHabilitado !== false,
         });
       }
       if (jsonOrigens.sucesso) setOrigens(jsonOrigens.dados);
@@ -629,6 +631,15 @@ export function ConfiguracoesClient() {
           )}
         >
           <Mail className="h-4 w-4" /> E-mail (SMTP)
+        </button>
+        <button
+          onClick={() => setAbaAtiva('SEGURANCA')}
+          className={cn(
+            "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-left",
+            abaAtiva === 'SEGURANCA' ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted text-foreground"
+          )}
+        >
+          <ShieldCheck className="h-4 w-4" /> Segurança & 2FA
         </button>
       </div>
 
@@ -1261,6 +1272,69 @@ export function ConfiguracoesClient() {
                   >
                     {salvandoSmtp ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                     Salvar SMTP
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* ABA: SEGURANCA & 2FA */}
+        {abaAtiva === 'SEGURANCA' && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" /> Parâmetros de Segurança e 2FA
+            </h2>
+            <hr />
+            {carregandoInst ? (
+              <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+            ) : (
+              <form onSubmit={salvarInstituicao} className="space-y-6">
+                <div className="rounded-xl border border-border bg-muted/20 p-5 space-y-4">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-primary/10 rounded-xl text-primary shrink-0">
+                      <KeyRound className="h-6 w-6" />
+                    </div>
+                    <div className="space-y-1 flex-1">
+                      <h3 className="text-base font-bold text-foreground">
+                        Autenticação em Dois Fatores (2FA / MFA)
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Controle se os usuários do hospital têm permissão para cadastrar e utilizar autenticação por aplicativo (Google Authenticator, Microsoft Authenticator, Authy).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-border/60">
+                    <label className="flex items-start gap-3 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={instituicao.mfaHabilitado !== false}
+                        onChange={(e) => setInstituicao({ ...instituicao, mfaHabilitado: e.target.checked })}
+                        className="mt-1 h-5 w-5 rounded border-border text-primary focus:ring-primary/20"
+                      />
+                      <div className="text-sm">
+                        <span className="font-semibold text-foreground block">
+                          Habilitar opção de 2FA (MFA) para os usuários do sistema
+                        </span>
+                        <span className="text-xs text-muted-foreground block mt-0.5">
+                          {instituicao.mfaHabilitado !== false
+                            ? '✅ Ativo: Cada usuário poderá acessar o menu "Meu Cadastro / Perfil" e configurar o seu 2FA individualmente.'
+                            : '❌ Desativado: Os usuários não poderão ativar ou exigir 2FA no login.'}
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={salvandoInst}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-70 shadow-sm"
+                  >
+                    {salvandoInst ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Salvar Parâmetros de Segurança
                   </button>
                 </div>
               </form>

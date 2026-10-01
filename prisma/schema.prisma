@@ -1125,6 +1125,8 @@ model Instituicao {
   logomarcaUrl        String?
   /// Habilita busca/autopreenchimento automático de medicamentos e materiais nas telas de cadastro
   buscaAutomaticaCatalogo Boolean @default(true)
+  /// Flag global que permite que os usuários da instituição ativem autenticação em dois fatores (2FA / MFA)
+  mfaHabilitado       Boolean  @default(true)
   updatedAt           DateTime @updatedAt
 
   @@map("instituicoes")

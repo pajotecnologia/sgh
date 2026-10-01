@@ -35,7 +35,7 @@ import {
   Tags,
   Calendar,
   Navigation,
-  KeyRound,
+  UserCircle,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import type { Role, UsuarioSessao } from '@/types';
@@ -172,9 +172,9 @@ const ITENS_NAVEGACAO: ItemNav[] = [
     icon: ShieldCheck,
   },
   {
-    label: 'Autenticação 2FA (MFA)',
-    href: '/seguranca/mfa',
-    icon: KeyRound,
+    label: 'Meu Perfil',
+    href: '/perfil',
+    icon: UserCircle,
   },
   {
     label: 'Painel de Chamada',

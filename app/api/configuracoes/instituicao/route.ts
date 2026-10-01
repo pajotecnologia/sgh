@@ -42,6 +42,7 @@ export async function PUT(req: Request) {
           cep: dados.cep,
           logomarcaUrl: dados.logomarcaUrl,
           buscaAutomaticaCatalogo: typeof dados.buscaAutomaticaCatalogo === 'boolean' ? dados.buscaAutomaticaCatalogo : true,
+          mfaHabilitado: typeof dados.mfaHabilitado === 'boolean' ? dados.mfaHabilitado : true,
         },
       });
     } else {
@@ -58,6 +59,7 @@ export async function PUT(req: Request) {
           cep: dados.cep,
           logomarcaUrl: dados.logomarcaUrl,
           buscaAutomaticaCatalogo: typeof dados.buscaAutomaticaCatalogo === 'boolean' ? dados.buscaAutomaticaCatalogo : true,
+          mfaHabilitado: typeof dados.mfaHabilitado === 'boolean' ? dados.mfaHabilitado : true,
         },
       });
     }

@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react'
 import { ShieldCheck, KeyRound, Copy, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 export default function PaginaMfa() {
   const [dados, setDados] = useState<{ secret: string; otpauthUrl: string } | null>(null)
   const [codigo, setCodigo] = useState('')
   const [ativo, setAtivo] = useState<boolean | null>(null)
+  const [mfaHabilitadoInstituicao, setMfaHabilitadoInstituicao] = useState<boolean>(true)
   const [carregando, setCarregando] = useState(false)
   const [verificandoInicial, setVerificandoInicial] = useState(true)
 
@@ -18,6 +20,7 @@ export default function PaginaMfa() {
         const j = await r.json()
         if (r.ok && j.sucesso) {
           setAtivo(Boolean(j.ativo))
+          setMfaHabilitadoInstituicao(j.mfaHabilitadoInstituicao !== false)
         }
       } catch (err) {
         console.error('Erro ao verificar status MFA:', err)
@@ -108,11 +111,23 @@ export default function PaginaMfa() {
         </p>
       </header>
 
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-6">
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-xs space-y-6">
         {verificandoInicial ? (
           <div className="flex items-center justify-center py-10 gap-3 text-muted-foreground text-sm">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
             Verificando status de segurança...
+          </div>
+        ) : !mfaHabilitadoInstituicao ? (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+            <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">
+                Autenticação 2FA desativada pela administração
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                A opção de autenticação em dois fatores está desabilitada no menu Configurações do sistema.
+              </p>
+            </div>
           </div>
         ) : ativo === true ? (
           <div className="space-y-5">

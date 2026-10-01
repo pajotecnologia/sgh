@@ -110,8 +110,12 @@ export function Header({ usuario }: HeaderProps) {
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
           </button>
 
-          {/* Avatar do usuário */}
-          <div className="flex items-center gap-2.5 pl-2 border-l border-border">
+          {/* Avatar do usuário (link para Meu Perfil / 2FA) */}
+          <Link
+            href="/perfil"
+            className="flex items-center gap-2.5 pl-2 border-l border-border hover:opacity-80 transition-opacity"
+            title="Meu Cadastro & Segurança"
+          >
             <div className="text-right hidden sm:block">
               <p className="text-xs font-semibold text-foreground leading-tight">
                 {usuario.nome.split(' ')[0]}
@@ -125,7 +129,7 @@ export function Header({ usuario }: HeaderProps) {
                 {usuario.nome.charAt(0).toUpperCase()}
               </span>
             </div>
-          </div>
+          </Link>
         </div>
       </header>
 
