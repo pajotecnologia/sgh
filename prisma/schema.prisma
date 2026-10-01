@@ -1172,6 +1172,18 @@ model ConfigSmtp {
   @@map("config_smtp")
 }
 
+/// Armazenamento persistente de uploads no banco de dados (resiliente a reinicializações e novos deploys em containers Docker/Coolify)
+model UploadSistema {
+  id           String   @id @default(uuid())
+  nomeArquivo  String   @unique
+  mimeType     String
+  dadosBase64  String   @db.Text
+  tamanhoBytes Int
+  createdAt    DateTime @default(now())
+
+  @@map("tb_uploads_sistema")
+}
+
 /// Origem do paciente (Demanda espontânea, SAMU, Transferência)
 model OrigemPaciente {
   id                String        @id @default(uuid())

@@ -520,14 +520,25 @@ export function ConfiguracoesClient() {
     const file = e.target.files?.[0];
     if (!file) return;
     setFazendoUpload(true);
+
+    // Ler como Data URL para persistência permanente e exibição instantânea
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setInstituicao(prev => ({ ...prev, logomarcaUrl: dataUrl }));
+      }
+    };
+    reader.readAsDataURL(file);
+
     const formData = new FormData();
     formData.append('file', file);
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const json = await res.json();
       if (json.sucesso) {
-        setInstituicao(prev => ({ ...prev, logomarcaUrl: json.url }));
-        toast.success('Logo enviada!');
+        setInstituicao(prev => ({ ...prev, logomarcaUrl: json.dataUrl || json.url }));
+        toast.success('Logomarca enviada com sucesso!');
       } else {
         toast.error(json.erro || 'Erro no upload.');
       }

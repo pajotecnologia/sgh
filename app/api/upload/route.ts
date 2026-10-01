@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
@@ -44,6 +45,8 @@ export async function POST(req: Request) {
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
+    const base64Data = buffer.toString('base64')
+    const mimeType = file.type || (tipo === 'video' ? 'video/mp4' : 'image/png')
 
     const uploadDir = process.env.UPLOAD_DIR
       ? join(process.env.UPLOAD_DIR)
@@ -59,10 +62,42 @@ export async function POST(req: Request) {
     const fileName = `${Date.now()}-${safeName}`
     const filePath = join(uploadDir, fileName)
 
-    await writeFile(filePath, buffer)
+    // 1. Salvar no disco local (cache de alta performance)
+    try {
+      await writeFile(filePath, buffer)
+    } catch (diskErr) {
+      console.warn('[upload] Aviso: erro ao salvar em disco local:', diskErr)
+    }
+
+    // 2. Salvar no banco de dados (persistência definitiva entre reinicializações de container Docker/Coolify)
+    try {
+      await prisma.uploadSistema.upsert({
+        where: { nomeArquivo: fileName },
+        update: {
+          mimeType,
+          dadosBase64: base64Data,
+          tamanhoBytes: buffer.length,
+        },
+        create: {
+          nomeArquivo: fileName,
+          mimeType,
+          dadosBase64: base64Data,
+          tamanhoBytes: buffer.length,
+        },
+      })
+    } catch (dbErr) {
+      console.warn('[upload] Aviso: erro ao persistir arquivo no banco:', dbErr)
+    }
+
+    const dataUrl = `data:${mimeType};base64,${base64Data}`
 
     return NextResponse.json(
-      { sucesso: true, url: `/api/uploads/${fileName}`, tipo },
+      {
+        sucesso: true,
+        url: `/api/uploads/${fileName}`,
+        dataUrl,
+        tipo,
+      },
       { status: 201 }
     )
   } catch (error) {
