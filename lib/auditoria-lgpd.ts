@@ -27,39 +27,43 @@ export async function auditarLgpd({
   detalhes?: Record<string, unknown> | null
   pacienteId?: string | null
 }) {
-  await prisma.tbAuditoriaLog.create({
-    data: {
-      usuarioId,
-      role,
-      atendimentoId,
-      acao,
-      entidade,
-      entidadeId: entidadeId ?? null,
-      ipOrigem: ipOrigem ?? null,
-      userAgent: userAgent ?? null,
-      detalhes: (detalhes ?? undefined) as any,
-    },
-  })
-
-  // Log dedicado a acessos a dados sensíveis do paciente. Quando o contexto
-  // vem de um atendimento, resolve o paciente pelo próprio vínculo para evitar
-  // duplicação de lógica nos endpoints clínicos.
-  const pacienteId = pacienteIdInformado ?? (atendimentoId
-    ? (await prisma.atendimento.findUnique({ where: { id: atendimentoId }, select: { pacienteId: true } }))?.pacienteId ?? null
-    : null)
-
-  if (pacienteId) {
-    await prisma.logAcessoPaciente.create({
+  try {
+    await prisma.tbAuditoriaLog.create({
       data: {
         usuarioId,
-        pacienteId,
+        role,
         atendimentoId,
         acao,
-        modulo: entidade,
-        motivo: typeof detalhes?.motivo === 'string' ? detalhes.motivo : null,
+        entidade,
+        entidadeId: entidadeId ?? null,
         ipOrigem: ipOrigem ?? null,
         userAgent: userAgent ?? null,
+        detalhes: (detalhes ?? undefined) as any,
       },
-    })
+    });
+
+    // Log dedicado a acessos a dados sensíveis do paciente. Quando o contexto
+    // vem de um atendimento, resolve o paciente pelo próprio vínculo para evitar
+    // duplicação de lógica nos endpoints clínicos.
+    const pacienteId = pacienteIdInformado ?? (atendimentoId
+      ? (await prisma.atendimento.findUnique({ where: { id: atendimentoId }, select: { pacienteId: true } }))?.pacienteId ?? null
+      : null);
+
+    if (pacienteId) {
+      await prisma.logAcessoPaciente.create({
+        data: {
+          usuarioId,
+          pacienteId,
+          atendimentoId,
+          acao,
+          modulo: entidade,
+          motivo: typeof detalhes?.motivo === 'string' ? detalhes.motivo : null,
+          ipOrigem: ipOrigem ?? null,
+          userAgent: userAgent ?? null,
+        },
+      });
+    }
+  } catch (err) {
+    console.warn('[auditarLgpd] Aviso: não foi possível registrar auditoria:', err);
   }
 }

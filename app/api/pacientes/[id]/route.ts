@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { schemaCriarPaciente } from '@/lib/validations/paciente';
 import { criptografar, descriptografarSeguro, encryptionKeyConfigurada, mensagemErroEncryptionKey } from '@/lib/encryption';
 import { auditarLgpd } from '@/lib/auditoria-lgpd';
+import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao';
 import type { ApiResponse } from '@/types';
 
 export async function GET(
@@ -30,14 +31,17 @@ export async function GET(
     }
 
     let cpfLimpo = '';
-    const nomeCompleto =
-      descriptografarSeguro(paciente.nomeCriptografado) ?? paciente.nomeExibicao;
+    const nomeCompleto = obterNomeCompletoPaciente(
+      paciente.nomeExibicao,
+      paciente.nomeCriptografado
+    );
     cpfLimpo = descriptografarSeguro(paciente.cpfCriptografado) ?? '';
 
     const pacienteDecrypted = {
       ...paciente,
       cpfCriptografado: cpfLimpo,
       nomeExibicao: nomeCompleto,
+      nomeCompleto,
       rgCriptografado: descriptografarSeguro(paciente.rgCriptografado) ?? '',
       telefoneCriptografado: descriptografarSeguro(paciente.telefoneCriptografado) ?? '',
     };
@@ -56,6 +60,7 @@ export async function GET(
 
     return NextResponse.json({ sucesso: true, dados: pacienteDecrypted });
   } catch (e) {
+    console.error('[GET /api/pacientes/[id]] Erro:', e);
     return NextResponse.json({ sucesso: false, erro: 'Erro ao buscar paciente' }, { status: 500 });
   }
 }
