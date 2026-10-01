@@ -34,6 +34,7 @@
     "db:clean": "node scripts/limpar-dados-demo.mjs",
     "db:constraints": "node scripts/run-prisma.mjs db execute --file prisma/migrations/20260528204500_farmacia_constraints/migration.sql && node scripts/run-prisma.mjs db execute --file prisma/migrations/20260615120000_farmacia_lotes_movimentacao/migration.sql",
     "db:seed:sql": "node scripts/run-tsx.mjs scripts/generate-seed-sql.ts",
+    "db:sync:nomes": "node scripts/atualizar-nomes-completos-pacientes.mjs",
     "db:bootstrap": "node scripts/init-sgh-database.mjs",
     "smoke:rbac": "node scripts/smoke-rbac.mjs",
     "deploy:prod": "bash scripts/deploy-producao.sh",

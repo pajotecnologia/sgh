@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { schemaCriarPaciente, schemaBuscaCpf } from '@/lib/validations/paciente';
 import { criptografar, hashCpf, encryptionKeyConfigurada, mensagemErroEncryptionKey } from '@/lib/encryption';
+import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao';
 import { gerarNumeroAtendimento } from '@/lib/attendance';
 import type { ApiResponse, PaginacaoParams } from '@/types';
 
@@ -50,6 +51,7 @@ export async function GET(req: NextRequest) {
         select: {
           id: true,
           nomeExibicao: true,
+          nomeCriptografado: true,
           dataNascimento: true,
           sexoBiologico: true,
           tipoSanguineo: true,
@@ -66,8 +68,15 @@ export async function GET(req: NextRequest) {
         );
       }
 
-      return NextResponse.json<ApiResponse<typeof paciente>>(
-        { sucesso: true, dados: paciente },
+      const nomeCompleto = obterNomeCompletoPaciente(paciente.nomeExibicao, paciente.nomeCriptografado);
+      const dadosEnriquecidos = {
+        ...paciente,
+        nomeExibicao: nomeCompleto,
+        nomeCompleto,
+      };
+
+      return NextResponse.json<ApiResponse<typeof dadosEnriquecidos>>(
+        { sucesso: true, dados: dadosEnriquecidos },
         { status: 200 }
       );
     }
@@ -84,6 +93,7 @@ export async function GET(req: NextRequest) {
         select: {
           id: true,
           nomeExibicao: true,
+          nomeCriptografado: true,
           dataNascimento: true,
           sexoBiologico: true,
           tipoSanguineo: true,
@@ -91,7 +101,7 @@ export async function GET(req: NextRequest) {
           createdAt: true,
           _count: { select: { atendimentos: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { nomeExibicao: 'asc' },
         skip: (pagina - 1) * limite,
         take: limite,
       }),
@@ -105,9 +115,18 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
+    const dados = pacientes.map((p) => {
+      const nomeCompleto = obterNomeCompletoPaciente(p.nomeExibicao, p.nomeCriptografado);
+      return {
+        ...p,
+        nomeExibicao: nomeCompleto,
+        nomeCompleto,
+      };
+    });
+
     return NextResponse.json({
       sucesso: true,
-      dados: pacientes,
+      dados,
       total,
       pagina,
       limite,
@@ -212,13 +231,8 @@ export async function POST(req: NextRequest) {
       ? criptografar(dadosPessoais.telefone)
       : undefined;
 
-    // Nome de exibição: primeiro nome + inicial do último sobrenome
-    // Ex: "Maria Aparecida Santos" → "Maria S."
-    const partesNome = dadosPessoais.nome.trim().split(/\s+/);
-    const nomeExibicao =
-      partesNome.length > 1
-        ? `${partesNome[0]} ${partesNome[partesNome.length - 1].charAt(0)}.`
-        : partesNome[0];
+    // Nome de exibição: Nome completo do paciente
+    const nomeExibicao = dadosPessoais.nome.trim();
 
     // Criar paciente e registros relacionados em uma transação
     const pacienteCriado = await prisma.$transaction(async (tx) => {

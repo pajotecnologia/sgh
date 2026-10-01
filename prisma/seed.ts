@@ -18,11 +18,7 @@ const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
 function nomeExibicaoDe(nomeCompleto: string): string {
-  const partes = nomeCompleto.trim().split(/\s+/)
-  if (partes.length > 1) {
-    return `${partes[0]} ${partes[partes.length - 1].charAt(0)}.`
-  }
-  return partes[0]
+  return nomeCompleto.trim();
 }
 
 function horasAtras(h: number): Date {

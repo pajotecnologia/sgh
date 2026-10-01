@@ -99,10 +99,8 @@ export async function PUT(
     const rgCriptografado = dadosPessoais.rg ? criptografar(dadosPessoais.rg) : undefined;
     const telefoneCriptografado = dadosPessoais.telefone ? criptografar(dadosPessoais.telefone) : undefined;
 
-    const partesNome = dadosPessoais.nome.trim().split(/\s+/);
-    const nomeExibicao = partesNome.length > 1
-        ? `${partesNome[0]} ${partesNome[partesNome.length - 1].charAt(0)}.`
-        : partesNome[0];
+    // Nome de exibição: Nome completo do paciente
+    const nomeExibicao = dadosPessoais.nome.trim();
 
     const atualizado = await prisma.$transaction(async (tx) => {
       const p = await tx.paciente.update({

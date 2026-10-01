@@ -61,9 +61,7 @@ function uid(prefix8: string, n: number): string {
 }
 
 function nomeExibicao(nome: string): string {
-  const partes = nome.trim().split(/\s+/)
-  if (partes.length > 1) return `${partes[0]} ${partes[partes.length - 1].charAt(0)}.`
-  return partes[0]
+  return nome.trim();
 }
 
 function horasAtras(h: number): string {

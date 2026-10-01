@@ -89,6 +89,12 @@ Copie de .env.example ou gere:
 
   if (await pingDb()) {
     console.log('[db] Conexão com PostgreSQL OK.');
+    try {
+      const { atualizarNomesCompletosPacientes } = await import('./atualizar-nomes-completos-pacientes.mjs');
+      await atualizarNomesCompletosPacientes();
+    } catch {
+      /* ignore */
+    }
     process.exit(0);
   }
 
@@ -99,6 +105,12 @@ Copie de .env.example ou gere:
         await sleep(SLEEP_MS);
         if (await pingDb()) {
           console.log('[db] Conexão com PostgreSQL OK (via Docker Compose).');
+          try {
+            const { atualizarNomesCompletosPacientes } = await import('./atualizar-nomes-completos-pacientes.mjs');
+            await atualizarNomesCompletosPacientes();
+          } catch {
+            /* ignore */
+          }
           process.exit(0);
         }
       }
