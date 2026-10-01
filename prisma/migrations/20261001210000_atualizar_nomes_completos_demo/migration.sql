@@ -1,0 +1,26 @@
+-- Atualização definitiva de nome completo para todos os pacientes demo e cadastrados
+UPDATE pacientes SET "nomeExibicao" = 'Maria Aparecida Santos' WHERE id = '0c000000-0000-4000-8000-000000000001' OR "nomeExibicao" = 'Maria S.';
+UPDATE pacientes SET "nomeExibicao" = 'João Carlos Oliveira' WHERE id = '0c000000-0000-4000-8000-000000000002' OR "nomeExibicao" = 'João O.';
+UPDATE pacientes SET "nomeExibicao" = 'Ana Beatriz Ferreira Lima' WHERE id = '0c000000-0000-4000-8000-000000000003' OR "nomeExibicao" = 'Ana L.';
+UPDATE pacientes SET "nomeExibicao" = 'Pedro Henrique Souza' WHERE id = '0c000000-0000-4000-8000-000000000004' OR "nomeExibicao" = 'Pedro S.';
+UPDATE pacientes SET "nomeExibicao" = 'Lucia Helena Costa' WHERE id = '0c000000-0000-4000-8000-000000000005' OR "nomeExibicao" = 'Lucia C.';
+UPDATE pacientes SET "nomeExibicao" = 'Roberto Almeida Pereira' WHERE id = '0c000000-0000-4000-8000-000000000006' OR "nomeExibicao" = 'Roberto P.';
+UPDATE pacientes SET "nomeExibicao" = 'Fernanda Rodrigues Martins' WHERE id = '0c000000-0000-4000-8000-000000000007' OR "nomeExibicao" = 'Fernanda M.';
+UPDATE pacientes SET "nomeExibicao" = 'Marcos Antônio Ribeiro' WHERE id = '0c000000-0000-4000-8000-000000000008' OR "nomeExibicao" = 'Marcos R.';
+UPDATE pacientes SET "nomeExibicao" = 'Juliana Cristina Nunes' WHERE id = '0c000000-0000-4000-8000-000000000009' OR "nomeExibicao" = 'Juliana N.';
+UPDATE pacientes SET "nomeExibicao" = 'Antonio José Barbosa' WHERE id = '0c000000-0000-4000-8000-000000000010' OR "nomeExibicao" = 'Antonio B.';
+UPDATE pacientes SET "nomeExibicao" = 'Camila Duarte Silveira' WHERE id = '0c000000-0000-4000-8000-000000000011' OR "nomeExibicao" = 'Camila S.';
+UPDATE pacientes SET "nomeExibicao" = 'Ricardo Mendes Gomes' WHERE id = '0c000000-0000-4000-8000-000000000012' OR "nomeExibicao" = 'Ricardo G.';
+UPDATE pacientes SET "nomeExibicao" = 'Patricia Alves Carvalho' WHERE id = '0c000000-0000-4000-8000-000000000013' OR "nomeExibicao" = 'Patricia C.';
+UPDATE pacientes SET "nomeExibicao" = 'Eduardo Pinto Rocha' WHERE id = '0c000000-0000-4000-8000-000000000014' OR "nomeExibicao" = 'Eduardo R.';
+UPDATE pacientes SET "nomeExibicao" = 'Silvia Regina Teixeira' WHERE id = '0c000000-0000-4000-8000-000000000015' OR "nomeExibicao" = 'Silvia T.';
+UPDATE pacientes SET "nomeExibicao" = 'Felipe Augusto Moura' WHERE id = '0c000000-0000-4000-8000-000000000016' OR "nomeExibicao" = 'Felipe M.';
+UPDATE pacientes SET "nomeExibicao" = 'Renata Oliveira Cavalcanti' WHERE id = '0c000000-0000-4000-8000-000000000017' OR "nomeExibicao" = 'Renata C.';
+UPDATE pacientes SET "nomeExibicao" = 'Geraldo Francisco Dias' WHERE id = '0c000000-0000-4000-8000-000000000018' OR "nomeExibicao" = 'Geraldo D.';
+UPDATE pacientes SET "nomeExibicao" = 'Vanessa Lima Cardoso' WHERE id = '0c000000-0000-4000-8000-000000000019' OR "nomeExibicao" = 'Vanessa C.';
+UPDATE pacientes SET "nomeExibicao" = 'Paulo Sergio Monteiro' WHERE id = '0c000000-0000-4000-8000-000000000020' OR "nomeExibicao" = 'Paulo M.';
+UPDATE pacientes SET "nomeExibicao" = 'Amanda Cristina Freitas' WHERE id = '0c000000-0000-4000-8000-000000000021' OR "nomeExibicao" = 'Amanda F.';
+UPDATE pacientes SET "nomeExibicao" = 'Sérgio Luiz Azevedo' WHERE id = '0c000000-0000-4000-8000-000000000022' OR "nomeExibicao" = 'Sérgio A.';
+UPDATE pacientes SET "nomeExibicao" = 'Helena Moura Vasconcelos' WHERE id = '0c000000-0000-4000-8000-000000000023' OR "nomeExibicao" = 'Helena V.';
+UPDATE pacientes SET "nomeExibicao" = 'Bruno Henrique Lopes' WHERE id = '0c000000-0000-4000-8000-000000000024' OR "nomeExibicao" = 'Bruno L.';
+UPDATE pacientes SET "nomeExibicao" = 'Carla Beatriz Mendonça' WHERE id = '0c000000-0000-4000-8000-000000000025' OR "nomeExibicao" = 'Carla M.';
