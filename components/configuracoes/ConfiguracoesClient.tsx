@@ -583,10 +583,10 @@ export function ConfiguracoesClient() {
   const inputClass = "w-full px-3.5 py-2.5 rounded-lg border border-input bg-background text-sm outline-none transition-all focus:ring-2 focus:ring-primary/30 focus:border-primary";
 
   return (
-    <div className="bg-card border border-border rounded-xl shadow-sm flex flex-col lg:flex-row w-full min-h-[min(640px,calc(100vh-10rem))] lg:max-h-[calc(100vh-9rem)]">
+    <div className="bg-card border border-border rounded-xl shadow-xs flex flex-col lg:flex-row w-full overflow-hidden">
       
       {/* Menu lateral */}
-      <div className="w-full lg:w-60 xl:w-64 shrink-0 border-b lg:border-b-0 lg:border-r border-border bg-muted/20 p-3 sm:p-4 space-y-1.5 lg:overflow-y-auto lg:max-h-[inherit] scrollbar-visible">
+      <div className="w-full lg:w-60 xl:w-64 shrink-0 border-b lg:border-b-0 lg:border-r border-border bg-muted/20 p-3 sm:p-4 space-y-1.5">
         <button
           onClick={() => setAbaAtiva('INSTITUICAO')}
           className={cn(
@@ -643,9 +643,8 @@ export function ConfiguracoesClient() {
         </button>
       </div>
 
-      {/* Conteúdo — rolagem dedicada com barra visível */}
-      <div className="flex-1 min-h-0 min-w-0 flex flex-col">
-        <div className="flex-1 min-h-[320px] overflow-y-auto overflow-x-hidden p-5 sm:p-6 lg:p-8 scrollbar-visible">
+      {/* Conteúdo da aba ativa */}
+      <div className="flex-1 min-w-0 p-5 sm:p-6 lg:p-8">
         
         {/* ABA: INSTITUICAO */}
         {abaAtiva === 'INSTITUICAO' && (
@@ -1342,7 +1341,6 @@ export function ConfiguracoesClient() {
           </div>
         )}
 
-        </div>
       </div>
     </div>
   );
