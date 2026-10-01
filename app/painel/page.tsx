@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao';
 import { PainelChamada } from '@/components/painel/PainelChamada';
 import { configPainelFromDb, CONFIG_PAINEL_PADRAO } from '@/lib/painel-config';
+import { buscarProximosChamados } from '@/lib/painel-proximos';
 
 // Rota dinâmica sob demanda (SSR para TVs e terminais do painel)
 export const dynamic = 'force-dynamic';
@@ -42,6 +43,9 @@ export default async function PaginaPainel({
     chamadoEm: c.chamadoEm.toISOString(),
     setorPainel: c.setorPainel,
   }));
+
+  const proximosIniciais = await buscarProximosChamados(setor, 5);
+
   const instituicao = await prisma.instituicao.findFirst();
   const configRow = await prisma.configPainel.findFirst();
   const configPainel = configRow
@@ -51,6 +55,7 @@ export default async function PaginaPainel({
   return (
     <PainelChamada
       historicoInicial={historicoInicial}
+      proximosIniciais={proximosIniciais}
       setor={setor}
       instituicao={instituicao}
       configInicial={configPainel}

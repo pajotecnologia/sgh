@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Monitor, Smartphone, Tablet, ShieldCheck, LogOut, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
+import { Monitor, Smartphone, Tablet, ShieldCheck, LogOut, RefreshCw, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 
 type Sessao = {
@@ -23,7 +24,11 @@ function IconeDispositivo({ texto }: { texto: string | null }) {
 }
 
 function formatarData(valor: string) {
-  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(valor));
+  try {
+    return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(valor));
+  } catch {
+    return valor;
+  }
 }
 
 export default function SessoesSegurancaPage() {
@@ -35,9 +40,15 @@ export default function SessoesSegurancaPage() {
     setCarregando(true);
     try {
       const resposta = await fetch('/api/seguranca/sessoes', { cache: 'no-store' });
-      const dados = await resposta.json();
+      const texto = await resposta.text();
+      let dados: { sucesso?: boolean; dados?: Sessao[]; erro?: string } = {};
+      try {
+        dados = JSON.parse(texto);
+      } catch {
+        throw new Error('Falha ao comunicar com o servidor de autenticação.');
+      }
       if (!resposta.ok || !dados.sucesso) throw new Error(dados.erro ?? 'Falha ao carregar sessões.');
-      setSessoes(dados.dados);
+      setSessoes(dados.dados ?? []);
     } catch (erro) {
       toast.error(erro instanceof Error ? erro.message : 'Falha ao carregar sessões.');
     } finally {
@@ -53,7 +64,9 @@ export default function SessoesSegurancaPage() {
     setProcessando(id);
     try {
       const resposta = await fetch(`/api/seguranca/sessoes/${id}`, { method: 'DELETE' });
-      const dados = await resposta.json();
+      const texto = await resposta.text();
+      let dados: { sucesso?: boolean; erro?: string } = {};
+      try { dados = JSON.parse(texto); } catch {}
       if (!resposta.ok || !dados.sucesso) throw new Error(dados.erro ?? 'Não foi possível revogar a sessão.');
       toast.success('Sessão revogada.');
       await carregar();
@@ -68,9 +81,11 @@ export default function SessoesSegurancaPage() {
     setProcessando('outras');
     try {
       const resposta = await fetch('/api/seguranca/sessoes/revogar-outras', { method: 'POST' });
-      const dados = await resposta.json();
+      const texto = await resposta.text();
+      let dados: { sucesso?: boolean; revogadas?: number; erro?: string } = {};
+      try { dados = JSON.parse(texto); } catch {}
       if (!resposta.ok || !dados.sucesso) throw new Error(dados.erro ?? 'Não foi possível revogar as sessões.');
-      toast.success(`${dados.revogadas} sessão(ões) revogada(s).`);
+      toast.success(`${dados.revogadas ?? 0} sessão(ões) revogada(s).`);
       await carregar();
     } catch (erro) {
       toast.error(erro instanceof Error ? erro.message : 'Falha ao revogar sessões.');
@@ -82,7 +97,7 @@ export default function SessoesSegurancaPage() {
   const outras = sessoes.filter((sessao) => !sessao.atual);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">Segurança da conta</p>
@@ -91,15 +106,24 @@ export default function SessoesSegurancaPage() {
             Consulte onde sua conta está autenticada e encerre acessos que você não reconhece.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void carregar()}
-          disabled={carregando}
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${carregando ? 'animate-spin' : ''}`} />
-          Atualizar
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/seguranca/mfa"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 px-3 py-2 text-sm font-medium transition-colors"
+          >
+            <KeyRound className="h-4 w-4" />
+            Configurar 2FA (MFA)
+          </Link>
+          <button
+            type="button"
+            onClick={() => void carregar()}
+            disabled={carregando}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${carregando ? 'animate-spin' : ''}`} />
+            Atualizar
+          </button>
+        </div>
       </div>
 
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
@@ -128,7 +152,7 @@ export default function SessoesSegurancaPage() {
                       <h2 className="font-semibold">Este dispositivo</h2>
                       <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">Sessão atual</span>
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{sessao.dispositivo ?? 'Dispositivo desconhecido'}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{sessao.dispositivo ?? 'Dispositivo atual'}</p>
                     <p className="mt-1 text-xs text-muted-foreground">IP {sessao.ipOrigem ?? 'não identificado'} · Último acesso {formatarData(sessao.ultimoAcesso)}</p>
                   </div>
                 </div>

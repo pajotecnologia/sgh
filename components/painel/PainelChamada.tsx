@@ -1,17 +1,18 @@
 'use client';
 // components/painel/PainelChamada.tsx
-// Painel de chamada em tela cheia — escuta eventos Pusher e exibe com animação
+// Painel de chamada em tela cheia — escuta eventos Pusher e exibe com animação, chamada principal e lista dos próximos pacientes
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getPusherCliente, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher';
 import { cn } from '@/lib/utils';
-import { Activity, Volume2, VolumeX, Wifi, WifiOff } from 'lucide-react';
+import { Activity, Volume2, VolumeX, Wifi, WifiOff, Users, Clock, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { CorTriagem } from '@/types';
 import type { ConfigPainelExibicao } from '@/lib/painel-config';
 import { CONFIG_PAINEL_PADRAO, deveExibirMidiaRotativa } from '@/lib/painel-config';
 import { PainelMidiaRotativa } from '@/components/painel/PainelMidiaRotativa';
+import type { ProximoChamadoItem } from '@/lib/painel-proximos';
 
 interface ChamadaItem {
   id: string;
@@ -25,18 +26,19 @@ interface ChamadaItem {
 
 interface PainelChamadaProps {
   historicoInicial: ChamadaItem[];
+  proximosIniciais?: ProximoChamadoItem[];
   setor: string;
   instituicao?: any;
   configInicial?: ConfigPainelExibicao;
 }
 
-const COR_CONFIG: Record<string, { borda: string; bg: string; texto: string; label: string }> = {
-  VERMELHO: { borda: 'border-l-red-500', bg: 'bg-red-950/30', texto: 'text-red-400', label: 'EMERGÊNCIA' },
-  LARANJA: { borda: 'border-l-orange-500', bg: 'bg-orange-950/20', texto: 'text-orange-400', label: 'MUITO URGENTE' },
-  AMARELO: { borda: 'border-l-yellow-400', bg: 'bg-yellow-950/20', texto: 'text-yellow-400', label: 'URGENTE' },
-  VERDE: { borda: 'border-l-green-500', bg: 'bg-green-950/20', texto: 'text-green-400', label: 'POUCO URGENTE' },
-  AZUL: { borda: 'border-l-blue-500', bg: 'bg-blue-950/20', texto: 'text-blue-400', label: 'NÃO URGENTE' },
-  CINZA: { borda: 'border-l-gray-500', bg: 'bg-gray-900/30', texto: 'text-gray-400', label: 'OBSERVAÇÃO' },
+const COR_CONFIG: Record<string, { borda: string; bg: string; badgeBg: string; texto: string; label: string }> = {
+  VERMELHO: { borda: 'border-l-red-500', bg: 'bg-red-950/30', badgeBg: 'bg-red-500/20 text-red-300 border-red-500/40', texto: 'text-red-400', label: 'EMERGÊNCIA' },
+  LARANJA: { borda: 'border-l-orange-500', bg: 'bg-orange-950/20', badgeBg: 'bg-orange-500/20 text-orange-300 border-orange-500/40', texto: 'text-orange-400', label: 'MUITO URGENTE' },
+  AMARELO: { borda: 'border-l-yellow-400', bg: 'bg-yellow-950/20', badgeBg: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40', texto: 'text-yellow-400', label: 'URGENTE' },
+  VERDE: { borda: 'border-l-green-500', bg: 'bg-green-950/20', badgeBg: 'bg-green-500/20 text-green-300 border-green-500/40', texto: 'text-green-400', label: 'POUCO URGENTE' },
+  AZUL: { borda: 'border-l-blue-500', bg: 'bg-blue-950/20', badgeBg: 'bg-blue-500/20 text-blue-300 border-blue-500/40', texto: 'text-blue-400', label: 'NÃO URGENTE' },
+  CINZA: { borda: 'border-l-gray-500', bg: 'bg-gray-900/30', badgeBg: 'bg-gray-500/20 text-gray-300 border-gray-500/40', texto: 'text-gray-400', label: 'OBSERVAÇÃO' },
 };
 
 /** Beep curto sem arquivo estático (navegadores bloqueiam autoplay até haver gesto do usuário). */
@@ -53,18 +55,22 @@ function tocarBeepNotificacao(ctx: AudioContext) {
   osc.stop(ctx.currentTime + 0.4);
 }
 
-export function PainelChamada({ historicoInicial, setor, instituicao, configInicial }: PainelChamadaProps) {
+export function PainelChamada({
+  historicoInicial,
+  proximosIniciais = [],
+  setor,
+  instituicao,
+  configInicial,
+}: PainelChamadaProps) {
   const [configPainel, setConfigPainel] = useState<ConfigPainelExibicao>(configInicial ?? CONFIG_PAINEL_PADRAO);
-  const [chamadaAtual, setChamadaAtual] = useState<ChamadaItem | null>(
-    historicoInicial[0] ?? null
-  );
+  const [chamadaAtual, setChamadaAtual] = useState<ChamadaItem | null>(historicoInicial[0] ?? null);
   const [historico, setHistorico] = useState<ChamadaItem[]>(historicoInicial);
+  const [proximos, setProximos] = useState<ProximoChamadoItem[]>(proximosIniciais);
   const [animando, setAnimando] = useState(false);
   const [somAtivo, setSomAtivo] = useState(true);
   const [conectado, setConectado] = useState(false);
   const [montado, setMontado] = useState(false);
   const [agora, setAgora] = useState<Date | null>(null);
-  /** Necessário na maioria dos navegadores para `AudioContext`, `<audio>.play()` e, em alguns casos, TTS. */
   const [gestoAudioOk, setGestoAudioOk] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -90,7 +96,7 @@ export function PainelChamada({ historicoInicial, setor, instituicao, configInic
     return () => clearInterval(timer);
   }, []);
 
-  // Atualizar config do painel (layout dividido / imagens) periodicamente
+  // Atualizar config do painel periodicamente
   useEffect(() => {
     const carregarConfig = async () => {
       try {
@@ -106,7 +112,26 @@ export function PainelChamada({ historicoInicial, setor, instituicao, configInic
     return () => clearInterval(timer);
   }, []);
 
-  // Vozes TTS costumam chegar assíncronas no Chrome; força carregamento
+  // Atualizar lista dos próximos a serem chamados periodicamente
+  const carregarProximos = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/painel/proximos?setor=${encodeURIComponent(setor)}&limite=5`);
+      const json = await res.json();
+      if (json.sucesso && Array.isArray(json.dados)) {
+        setProximos(json.dados);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [setor]);
+
+  useEffect(() => {
+    void carregarProximos();
+    const timer = setInterval(carregarProximos, 4000);
+    return () => clearInterval(timer);
+  }, [carregarProximos]);
+
+  // Vozes TTS
   useEffect(() => {
     if (!montado || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     const warm = () => window.speechSynthesis.getVoices();
@@ -154,7 +179,7 @@ export function PainelChamada({ historicoInicial, setor, instituicao, configInic
         el.currentTime = 0;
         el.volume = 1;
       } catch {
-        /* arquivo pode não existir ou autoplay bloqueado */
+        /* ignore */
       }
     }
   }, [obterOuCriarAudioContext]);
@@ -211,11 +236,12 @@ export function PainelChamada({ historicoInicial, setor, instituicao, configInic
         setAnimando(true);
         tocarSomChamada();
         falarChamada(nova.nomePaciente, nova.salaDestino);
+        void carregarProximos();
       });
     });
-  }, [falarChamada, tocarSomChamada]);
+  }, [falarChamada, tocarSomChamada, carregarProximos]);
 
-  // Conectar ao Pusher (inscrição estável — não depende de cada nova chamada)
+  // Conectar ao Pusher
   useEffect(() => {
     const pollingHistorico = setInterval(async () => {
       if (conectadoRef.current) return;
@@ -294,8 +320,9 @@ export function PainelChamada({ historicoInicial, setor, instituicao, configInic
   ) : null;
 
   const areaChamadas = (
-    <div className="flex flex-col min-h-0 h-full">
-      <div className="flex-1 flex flex-col items-center justify-center px-6 lg:px-10 relative overflow-hidden min-h-0">
+    <div className="flex flex-col min-h-0 h-full justify-between">
+      {/* 1. Área Principal: Chamada Atual */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 relative overflow-hidden min-h-0 py-4">
         {corCfg && (
           <div className={cn('absolute inset-0 transition-all duration-700', corCfg.bg)} />
         )}
@@ -304,36 +331,37 @@ export function PainelChamada({ historicoInicial, setor, instituicao, configInic
           <div
             className={cn(
               'relative z-10 text-center w-full max-w-4xl',
-              'border-l-[10px] pl-6 lg:pl-8 py-6',
+              'border-l-[8px] pl-5 sm:pl-7 py-3 sm:py-4',
               animando ? 'animate-fade-in-up' : 'opacity-0',
               corCfg?.borda ?? 'border-l-slate-600'
             )}
           >
             {corCfg && (
-              <p className={cn('text-xs lg:text-sm font-bold uppercase tracking-[0.25em] mb-3', corCfg.texto)}>
+              <p className={cn('text-xs sm:text-sm font-bold uppercase tracking-[0.2em] mb-2', corCfg.texto)}>
                 ◉ {corCfg.label}
               </p>
             )}
 
+            {/* Nome do paciente - tamanho ajustado e equilibrado */}
             <h1
-              className="font-extrabold text-white text-balance leading-none mb-4 tracking-tight"
-              style={{ fontSize: exibirMidia ? 'clamp(2rem, 5vw, 4.5rem)' : 'clamp(3.5rem, 9vw, 7.5rem)' }}
+              className="font-extrabold text-white text-balance leading-tight mb-2 tracking-tight"
+              style={{ fontSize: exibirMidia ? 'clamp(1.6rem, 3.2vw, 3rem)' : 'clamp(2.2rem, 5vw, 4.2rem)' }}
             >
               {chamadaAtual.nomePaciente}
             </h1>
 
             <p
-              className="font-mono text-slate-400 mb-6"
-              style={{ fontSize: exibirMidia ? 'clamp(1rem, 2vw, 1.5rem)' : 'clamp(1.25rem, 2.5vw, 2rem)' }}
+              className="font-mono text-slate-400 mb-4"
+              style={{ fontSize: exibirMidia ? 'clamp(0.9rem, 1.6vw, 1.25rem)' : 'clamp(1.1rem, 2vw, 1.6rem)' }}
             >
-              Atendimento: {chamadaAtual.numeroAtendimento}
+              Atendimento: <span className="text-slate-200 font-semibold">{chamadaAtual.numeroAtendimento}</span>
             </p>
 
-            <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 px-6 py-3 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
-              <span className="text-slate-300 text-xs uppercase tracking-widest">Dirija-se a</span>
+            <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 px-5 sm:px-7 py-2.5 sm:py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg shadow-black/20">
+              <span className="text-slate-300 text-xs sm:text-sm uppercase tracking-widest font-medium">Dirija-se a</span>
               <span
                 className="font-black text-white"
-                style={{ fontSize: exibirMidia ? 'clamp(1.25rem, 3vw, 2.25rem)' : 'clamp(1.5rem, 4vw, 3rem)' }}
+                style={{ fontSize: exibirMidia ? 'clamp(1.2rem, 2.4vw, 1.85rem)' : 'clamp(1.5rem, 3.2vw, 2.5rem)' }}
               >
                 {chamadaAtual.salaDestino}
               </span>
@@ -341,32 +369,97 @@ export function PainelChamada({ historicoInicial, setor, instituicao, configInic
           </div>
         ) : (
           <div className="text-center text-slate-500 relative z-10">
-            <Activity className="h-12 w-12 lg:h-16 lg:w-16 mx-auto mb-4 opacity-20" />
-            <p className="text-xl lg:text-2xl font-medium">Aguardando chamadas...</p>
-            <p className="text-sm mt-2 opacity-60">O sistema atualizará automaticamente</p>
+            <Activity className="h-10 w-10 lg:h-14 lg:w-14 mx-auto mb-3 opacity-20" />
+            <p className="text-lg lg:text-xl font-medium">Aguardando chamadas...</p>
+            <p className="text-xs mt-1 opacity-60">O sistema atualizará automaticamente</p>
           </div>
         )}
       </div>
 
+      {/* 2. Seção: Próximos 5 a serem chamados (Fila de Espera) */}
+      <div className="shrink-0 px-4 sm:px-6 lg:px-8 py-3 bg-slate-900/80 border-t border-white/10 backdrop-blur-sm">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-xs sm:text-sm font-bold text-slate-200 uppercase tracking-wider">
+              Próximos a serem chamados
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-white/10 text-[11px] font-semibold text-slate-300">
+              {proximos.length} na fila
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400 hidden sm:inline-flex items-center gap-1">
+            Ordem de prioridade e chegada <ArrowRight className="h-3 w-3" />
+          </span>
+        </div>
+
+        {proximos.length === 0 ? (
+          <div className="py-2.5 text-center text-xs text-slate-500 bg-slate-950/40 rounded-xl border border-white/5">
+            Nenhum paciente aguardando chamada neste momento.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+            {proximos.slice(0, 5).map((p, idx) => {
+              const cfg = p.corTriagem ? COR_CONFIG[p.corTriagem] : null;
+              return (
+                <div
+                  key={p.id}
+                  className="flex flex-col justify-between p-2.5 rounded-xl bg-slate-800/70 border border-white/10 hover:border-white/20 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-1 mb-1.5">
+                    <span className="text-[10px] font-bold text-sky-400 bg-sky-950/60 px-1.5 py-0.5 rounded">
+                      #{idx + 1}º
+                    </span>
+                    {cfg ? (
+                      <span className={cn('text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border', cfg.badgeBg)}>
+                        {cfg.label.split(' ')[0]}
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-medium text-slate-400 bg-slate-700/50 px-1.5 py-0.5 rounded">
+                        {p.etapa}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs sm:text-sm font-bold text-white truncate" title={p.nomePaciente}>
+                    {p.nomePaciente}
+                  </p>
+
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+                    <span className="font-mono truncate">{p.numeroAtendimento}</span>
+                    <span className="shrink-0 text-slate-500">{p.tempoEsperaMinutos}min</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 3. Seção: Chamadas Anteriores (Histórico Recente) */}
       {historico.length > 1 && (
-        <div className="shrink-0 border-t border-white/10 bg-slate-900/70 px-6 lg:px-8 py-3">
-          <p className="text-xs text-slate-500 uppercase tracking-widest mb-2">Chamadas anteriores</p>
-          <div className={cn('grid gap-2', exibirMidia ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 md:grid-cols-4')}>
+        <div className="shrink-0 border-t border-white/10 bg-slate-950/90 px-4 sm:px-6 lg:px-8 py-2">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
+              Últimas chamadas realizadas
+            </span>
+          </div>
+          <div className={cn('grid gap-2', exibirMidia ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 md:grid-cols-4')}>
             {historico.slice(1, 5).map((c, idx) => {
               const cfg = c.corTriagem ? COR_CONFIG[c.corTriagem] : null;
-              const opacidade = [0.8, 0.6, 0.5, 0.4][idx] ?? 0.35;
+              const opacidade = [0.85, 0.65, 0.5, 0.4][idx] ?? 0.35;
               return (
                 <div
                   key={c.id}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/60 border border-white/5"
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-white/5"
                   style={{ opacity: opacidade }}
                 >
                   {cfg && (
                     <div className={cn('w-1 self-stretch rounded-full shrink-0', cfg.borda.replace('border-l-', 'bg-'))} />
                   )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{c.nomePaciente}</p>
-                    <p className="text-xs text-slate-400 truncate">{c.salaDestino}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-slate-200 truncate">{c.nomePaciente}</p>
+                    <p className="text-[10px] text-slate-400 truncate">{c.salaDestino}</p>
                   </div>
                 </div>
               );
@@ -378,17 +471,17 @@ export function PainelChamada({ historicoInicial, setor, instituicao, configInic
   );
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden relative">
+    <div className="h-screen flex flex-col overflow-hidden relative bg-slate-950 text-white">
       {/* Áudio opcional em /public/sons/chamada-painel.mp3 — se faltar, usa beep sintético após gesto */}
       {montado && <audio ref={audioRef} src="/sons/chamada-painel.mp3" preload="auto" />}
 
       {!gestoAudioOk && (
         <button
           type="button"
-          className="absolute inset-0 z-[60] flex flex-col items-center justify-center gap-4 bg-slate-950/85 text-center px-8 cursor-pointer border-0"
+          className="absolute inset-0 z-[60] flex flex-col items-center justify-center gap-4 bg-slate-950/85 text-center px-8 cursor-pointer border-0 backdrop-blur-sm"
           onClick={() => void liberarAudioUsuario()}
         >
-          <Volume2 className="h-14 w-14 text-sky-400" />
+          <Volume2 className="h-14 w-14 text-sky-400 animate-pulse" />
           <p className="text-2xl font-bold text-white max-w-lg">
             Toque na tela para ativar som e voz
           </p>
@@ -400,11 +493,11 @@ export function PainelChamada({ historicoInicial, setor, instituicao, configInic
       )}
 
       {/* Barra de topo */}
-      <div className="flex items-center justify-between px-8 py-4 border-b border-white/10 bg-slate-900/50 shrink-0">
+      <div className="flex items-center justify-between px-6 sm:px-8 py-3.5 border-b border-white/10 bg-slate-900/60 shrink-0">
         {/* Logo */}
         <div className="flex items-center gap-3">
           {instituicao?.logomarcaUrl ? (
-            <img src={instituicao.logomarcaUrl} alt="Logo" className="h-10 object-contain rounded bg-white/10 p-1" />
+            <img src={instituicao.logomarcaUrl} alt="Logo" className="h-9 object-contain rounded bg-white/10 p-1" />
           ) : (
             <div className="p-1.5 bg-primary rounded-lg">
               <Activity className="h-5 w-5 text-white" />
@@ -414,10 +507,10 @@ export function PainelChamada({ historicoInicial, setor, instituicao, configInic
             <p className="text-xs text-slate-400 uppercase tracking-widest leading-none">
               {instituicao?.nomeInstituicao ?? 'SGH'}
             </p>
-            <p className="text-sm font-bold text-white leading-none">Painel de Chamada</p>
+            <p className="text-sm font-bold text-white leading-none mt-1">Painel de Chamada</p>
           </div>
           {setor !== 'GERAL' && (
-            <span className="px-2 py-0.5 bg-white/10 rounded-full text-xs text-slate-300 ml-2">
+            <span className="px-2.5 py-0.5 bg-primary/20 text-primary border border-primary/30 rounded-full text-xs font-semibold ml-2">
               {setor}
             </span>
           )}
@@ -428,12 +521,12 @@ export function PainelChamada({ historicoInicial, setor, instituicao, configInic
           <p className="text-2xl font-mono font-bold text-white tabular-nums" suppressHydrationWarning>
             {agora ? format(agora, 'HH:mm:ss') : '--:--:--'}
           </p>
-          <p className="text-xs text-slate-400 capitalize" suppressHydrationWarning>
+          <p className="text-xs text-slate-400 capitalize hidden sm:inline-block" suppressHydrationWarning>
             {agora ? format(agora, "EEEE, dd 'de' MMMM", { locale: ptBR }) : ''}
           </p>
 
           {/* Status de conexão */}
-          <div className={cn('flex items-center gap-1.5 px-2 py-1 rounded-full text-xs', conectado ? 'bg-green-900/40 text-green-400' : 'bg-red-900/40 text-red-400')}>
+          <div className={cn('flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium', conectado ? 'bg-green-900/40 text-green-400 border border-green-500/20' : 'bg-red-900/40 text-red-400 border border-red-500/20')}>
             {conectado ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
             {conectado ? 'Online' : 'Offline'}
           </div>
@@ -452,7 +545,7 @@ export function PainelChamada({ historicoInicial, setor, instituicao, configInic
             <button
               type="button"
               onClick={() => void liberarAudioUsuario()}
-              className="px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-semibold hover:bg-sky-700"
+              className="px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-semibold hover:bg-sky-700 shadow"
             >
               Ativar áudio
             </button>
@@ -473,8 +566,8 @@ export function PainelChamada({ historicoInicial, setor, instituicao, configInic
         ) : null}
       </div>
 
-      {/* Footer Desenvolvedor */}
-      <div className="shrink-0 bg-slate-950 py-1 text-center">
+      {/* Footer */}
+      <div className="shrink-0 bg-slate-950 py-1 text-center border-t border-white/5">
         <p className="text-[10px] text-slate-500 font-medium">
           Desenvolvimento por PAJO Tecnologia - pajotecnologia.com.br
         </p>

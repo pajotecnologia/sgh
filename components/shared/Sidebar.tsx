@@ -35,6 +35,7 @@ import {
   Tags,
   Calendar,
   Navigation,
+  KeyRound,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import type { Role, UsuarioSessao } from '@/types';
@@ -169,6 +170,11 @@ const ITENS_NAVEGACAO: ItemNav[] = [
     label: 'Sessões e dispositivos',
     href: '/seguranca/sessoes',
     icon: ShieldCheck,
+  },
+  {
+    label: 'Autenticação 2FA (MFA)',
+    href: '/seguranca/mfa',
+    icon: KeyRound,
   },
   {
     label: 'Painel de Chamada',
@@ -446,7 +452,10 @@ export function Sidebar({ usuario }: SidebarProps) {
           </button>
 
           <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={async () => {
+              await signOut({ redirect: false });
+              window.location.href = '/login';
+            }}
             className={cn(
               'flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors',
               collapsed && 'md:justify-center md:px-0'

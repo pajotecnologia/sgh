@@ -5,6 +5,14 @@ import { prisma } from '@/lib/prisma'
 import { criarUriTotp, descriptografarSegredoTotp, gerarSegredoTotp, criptografarSegredoTotp, verificarTotp } from '@/lib/totp'
 import { obterIpCliente } from '@/lib/rate-limit'
 
+export async function GET() {
+  const sessao = await getServerSession(authOptions)
+  if (!sessao) return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 })
+  const usuario = await prisma.usuario.findUnique({ where: { id: sessao.usuario.id }, select: { id: true, email: true, mfaAtivo: true } })
+  if (!usuario) return NextResponse.json({ sucesso: false, erro: 'Usuário não encontrado.' }, { status: 404 })
+  return NextResponse.json({ sucesso: true, ativo: Boolean(usuario.mfaAtivo) })
+}
+
 export async function POST(req: NextRequest) {
   const sessao = await getServerSession(authOptions)
   if (!sessao) return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 })
