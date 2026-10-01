@@ -157,7 +157,7 @@ export async function GET(
       return NextResponse.json({ sucesso: false, erro: 'Arquivo não encontrado.' }, { status: 404 });
     }
 
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         'Content-Type': contentType,

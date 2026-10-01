@@ -12,6 +12,7 @@ import { SeletorTema } from '@/components/shared/SeletorTema';
 import { ModalManualSistema } from '@/components/shared/ModalManualSistema';
 import { ModalNovidadesVersao } from '@/components/shared/ModalNovidadesVersao';
 import { VERSAO_SGH, BUILD_SGH } from '@/lib/versao';
+import { labelAbaInternacao, parseAbaInternacao } from '@/lib/internacao-abas';
 import Link from 'next/link';
 
 const TITULOS_ROTA: Record<string, string> = {
