@@ -9,10 +9,9 @@ import { Bell, HelpCircle, Menu, Sparkles, BookOpen } from 'lucide-react';
 import type { UsuarioSessao } from '@/types';
 import { useDashboardNav } from '@/components/shared/dashboard-nav-context';
 import { SeletorTema } from '@/components/shared/SeletorTema';
-import { labelAbaInternacao, parseAbaInternacao } from '@/lib/internacao-abas';
 import { ModalManualSistema } from '@/components/shared/ModalManualSistema';
 import { ModalNovidadesVersao } from '@/components/shared/ModalNovidadesVersao';
-import { VERSAO_SGH } from '@/lib/versao';
+import { VERSAO_SGH, BUILD_SGH } from '@/lib/versao';
 import Link from 'next/link';
 
 const TITULOS_ROTA: Record<string, string> = {
@@ -77,12 +76,14 @@ export function Header({ usuario }: HeaderProps) {
           <button
             type="button"
             onClick={() => setVersaoAberta(true)}
-            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/60 hover:bg-muted border border-border/70 text-[10px] font-mono text-muted-foreground hover:text-foreground transition-all shadow-2xs select-none cursor-pointer"
-            title="Ver novidades da versão"
+            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/60 hover:bg-muted border border-border/70 text-[10px] font-mono text-muted-foreground hover:text-foreground transition-all shadow-2xs select-none cursor-pointer group"
+            title="Ver notas da versão e novidades"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{VERSAO_SGH}</span>
-            <Sparkles className="h-3 w-3 text-amber-500 opacity-70" />
+            <span className="font-semibold text-foreground">{VERSAO_SGH}</span>
+            <span className="text-muted-foreground/40">•</span>
+            <span className="text-[9px] text-muted-foreground/80">{BUILD_SGH}</span>
+            <Sparkles className="h-3 w-3 text-amber-500 opacity-60 group-hover:opacity-100 transition-opacity ml-0.5" />
           </button>
 
           {/* Botão de Ajuda / Manual do Sistema */}

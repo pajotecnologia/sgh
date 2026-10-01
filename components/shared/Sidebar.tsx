@@ -41,6 +41,7 @@ import { signOut } from 'next-auth/react';
 import type { Role, UsuarioSessao } from '@/types';
 import { cn } from '@/lib/utils';
 import { useDashboardNav } from '@/components/shared/dashboard-nav-context';
+import { VERSAO_SGH } from '@/lib/versao';
 
 interface SubItemNav {
   label: string;
@@ -466,6 +467,14 @@ export function Sidebar({ usuario }: SidebarProps) {
             <LogOut className="h-4 w-4 shrink-0" />
             <span className={cn(collapsed && 'md:sr-only')}>Sair do sistema</span>
           </button>
+
+          {!collapsed && (
+            <div className="pt-2 text-center">
+              <span className="font-mono text-[10px] text-slate-500">
+                SGH {VERSAO_SGH}
+              </span>
+            </div>
+          )}
         </div>
       </aside>
     </>
