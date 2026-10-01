@@ -54,23 +54,27 @@ export async function buscarProximosChamados(
 
     const agora = Date.now();
 
-    const itens = atendimentos.map((a) => {
-      const corTriagem = a.triagem?.corClassificacao ?? null;
-      const entrada = a.triagem?.entradaTriagem ?? a.createdAt;
-      const tempoEsperaMinutos = Math.max(0, Math.floor((agora - new Date(entrada).getTime()) / 60000));
-      const etapa: 'TRIAGEM' | 'CONSULTÓRIO' = a.status === 'AGUARDANDO_TRIAGEM' ? 'TRIAGEM' : 'CONSULTÓRIO';
+    const itens = (atendimentos || [])
+      .filter((a) => Boolean(a && a.paciente))
+      .map((a) => {
+        const corTriagem = a.triagem?.corClassificacao ?? null;
+        const entrada = a.triagem?.entradaTriagem ?? a.createdAt;
+        const tempoEsperaMinutos = entrada
+          ? Math.max(0, Math.floor((agora - new Date(entrada).getTime()) / 60000))
+          : 0;
+        const etapa: 'TRIAGEM' | 'CONSULTÓRIO' = a.status === 'AGUARDANDO_TRIAGEM' ? 'TRIAGEM' : 'CONSULTÓRIO';
 
-      return {
-        id: a.id,
-        numeroAtendimento: a.numeroAtendimento,
-        nomePaciente: nomeCompletoParaExibicao(a.paciente.nomeExibicao, a.paciente.nomeCriptografado),
-        corTriagem,
-        status: a.status,
-        etapa,
-        tempoEsperaMinutos,
-        createdAt: a.createdAt,
-      };
-    });
+        return {
+          id: a.id,
+          numeroAtendimento: a.numeroAtendimento ?? '---',
+          nomePaciente: nomeCompletoParaExibicao(a.paciente?.nomeExibicao, a.paciente?.nomeCriptografado),
+          corTriagem,
+          status: a.status,
+          etapa,
+          tempoEsperaMinutos,
+          createdAt: a.createdAt,
+        };
+      });
 
     // Ordenação: Protocolo de Manchester (gravidade) e ordem de chegada
     itens.sort((a, b) => {

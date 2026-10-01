@@ -26,15 +26,17 @@ export async function GET(req: NextRequest) {
       take: limite,
     });
 
-    const dados = chamadas.map((c) => ({
-      id: c.id,
-      nomePaciente: c.atendimento.paciente.nomeExibicao,
-      numeroAtendimento: c.atendimento.numeroAtendimento,
-      salaDestino: c.salaDestino,
-      corTriagem: c.atendimento.triagem?.corClassificacao ?? null,
-      chamadoEm: c.chamadoEm.toISOString(),
-      setorPainel: c.setorPainel,
-    }));
+    const dados = (chamadas || [])
+      .filter((c) => Boolean(c && c.atendimento && c.atendimento.paciente))
+      .map((c) => ({
+        id: c.id,
+        nomePaciente: c.atendimento.paciente.nomeExibicao || 'Paciente',
+        numeroAtendimento: c.atendimento.numeroAtendimento ?? '---',
+        salaDestino: c.salaDestino ?? 'Consultório',
+        corTriagem: c.atendimento.triagem?.corClassificacao ?? null,
+        chamadoEm: c.chamadoEm ? new Date(c.chamadoEm).toISOString() : new Date().toISOString(),
+        setorPainel: c.setorPainel ?? setor,
+      }));
 
     return NextResponse.json(
       { sucesso: true, dados },
