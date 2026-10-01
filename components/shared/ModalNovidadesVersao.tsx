@@ -26,6 +26,27 @@ interface ModalNovidadesVersaoProps {
 
 const NOVIDADES = [
   {
+    icone: ShieldCheck,
+    cor: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20',
+    titulo: 'Autenticação 2FA (MFA) & Gestão de Segurança',
+    descricao:
+      'Controle institucional para obrigatoriedade de 2FA e ativação individual com QR Code / Authenticator no perfil do usuário.',
+  },
+  {
+    icone: Clock,
+    cor: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
+    titulo: 'Painel TV com Fila de Espera em Tempo Real',
+    descricao:
+      'Exibição animada com os próximos 5 pacientes na fila (Manchester), suporte a voz TTS, chamadas prioritárias e reconexão automática.',
+  },
+  {
+    icone: CheckCircle2,
+    cor: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
+    titulo: 'Nome Completo e Busca Avançada de Pacientes',
+    descricao:
+      'Pesquisa ágil por qualquer parte do nome do paciente em toda a plataforma hospitalar (recepção, triagem, internação e relatórios).',
+  },
+  {
     icone: BedDouble,
     cor: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
     titulo: 'Mapa Visual de Leitos & Ocupação Hospitalar',
