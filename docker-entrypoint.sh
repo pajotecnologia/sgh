@@ -3,8 +3,9 @@ set -e
 
 # Executa migrações automáticas do banco se DATABASE_URL estiver presente
 if [ -n "$DATABASE_URL" ] && [ "$DATABASE_URL" != "postgresql://dummy:dummy@localhost:5432/dummy" ]; then
-  echo "=> SGH: Aplicando migrações do banco de dados PostgreSQL..."
+  echo "=> SGH: Aplicando migrações e sincronização de schema PostgreSQL..."
   npx prisma migrate deploy 2>/dev/null || echo "=> SGH: Migrações verificadas/puladas."
+  node scripts/sync-schema-vps.mjs 2>/dev/null || true
   echo "=> SGH: Sincronizando nomes completos de pacientes..."
   node scripts/atualizar-nomes-completos-pacientes.mjs 2>/dev/null || echo "=> SGH: Sincronização de nomes concluída."
 fi
