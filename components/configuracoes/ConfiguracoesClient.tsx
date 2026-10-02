@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { Building2, MapPin, Upload, Image as ImageIcon, Loader2, Plus, Trash2, Tag, Volume2, Palette, Settings2, Mail, Pencil, LayoutPanelLeft, Video, Sparkles, ShieldCheck, KeyRound } from 'lucide-react';
 import { textoCadastroMaiusculo } from '@/lib/cadastro-maiusculo';
@@ -39,6 +39,9 @@ const ROTULOS_PROCEDENCIA_FICHA: { value: ProcedenciaFichaVal; label: string }[]
 ];
 
 export function ConfiguracoesClient() {
+  const inputLogoRef = useRef<HTMLInputElement>(null);
+  const inputMidiaPainelRef = useRef<HTMLInputElement>(null);
+
   const [abaAtiva, setAbaAtiva] = useState<
     'INSTITUICAO' | 'ORIGENS' | 'USUARIOS' | 'PAINEL' | 'SMTP' | 'SEGURANCA'
   >('INSTITUICAO');
@@ -678,16 +681,41 @@ export function ConfiguracoesClient() {
                 <div className="flex flex-col sm:flex-row gap-6 items-start">
                   <div className="shrink-0">
                     <div className="w-32 h-32 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center bg-muted/50 relative overflow-hidden group">
-                      {instituicao.logomarcaUrl ? <img src={instituicao.logomarcaUrl} alt="Logo" className="absolute inset-0 w-full h-full object-contain p-2" /> : <ImageIcon className="h-8 w-8 text-muted-foreground/50 mb-2" />}
-                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                      {instituicao.logomarcaUrl ? (
+                        <img src={instituicao.logomarcaUrl} alt="Logo" className="absolute inset-0 w-full h-full object-contain p-2" />
+                      ) : (
+                        <ImageIcon className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => inputLogoRef.current?.click()}
+                        disabled={fazendoUpload}
+                        className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-0"
+                      >
                         <Upload className="h-6 w-6 text-white mb-1" />
-                        <span className="text-[10px] text-white font-medium">Trocar Logo</span>
-                        <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleUpload} disabled={fazendoUpload} />
-                      </div>
-                      {fazendoUpload && <div className="absolute inset-0 bg-background/80 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
+                        <span className="text-[10px] text-white font-semibold">Trocar Logo</span>
+                      </button>
+                      <input
+                        ref={inputLogoRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        tabIndex={-1}
+                        aria-hidden="true"
+                        onChange={handleUpload}
+                        disabled={fazendoUpload}
+                      />
+                      {fazendoUpload && (
+                        <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div><h3 className="font-medium">Logomarca</h3><p className="text-xs text-muted-foreground mb-3">Recomendado: imagem PNG transparente, máx 2MB.</p></div>
+                  <div>
+                    <h3 className="font-medium">Logomarca</h3>
+                    <p className="text-xs text-muted-foreground mb-3">Recomendado: imagem PNG transparente, máx 2MB.</p>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-1"><label className="text-sm font-medium">Município (Prefeitura)</label><input value={instituicao.nomeMunicipio} onChange={e => setInstituicao({ ...instituicao, nomeMunicipio: textoCadastroMaiusculo(e.target.value) })} className={inputClass} required /></div>
@@ -858,15 +886,24 @@ export function ConfiguracoesClient() {
         {/* ABA: PAINEL */}
         {abaAtiva === 'PAINEL' && (
           <div className="space-y-6 w-full min-w-0 max-w-full">
-            <div>
-              <h2 className="text-lg font-bold flex items-center gap-2 text-foreground">
-                <Settings2 className="h-5 w-5 text-primary" /> Configurações do Painel de Chamada
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Personalize a voz, cores, velocidade e comportamento da TV de espera.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/80">
+              <div>
+                <h2 className="text-lg font-bold flex items-center gap-2 text-foreground">
+                  <Settings2 className="h-5 w-5 text-primary" /> Painel de Chamadas TV
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Personalize a síntese de voz, cores e mídias rotativas na sala de espera.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={salvarPainel}
+                disabled={salvandoPainel}
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-bold text-xs rounded-xl hover:bg-primary/90 transition-all shadow-md shadow-primary/20 shrink-0 cursor-pointer"
+              >
+                {salvandoPainel ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar Alterações'}
+              </button>
             </div>
-            <hr className="border-border/60" />
 
             {carregandoPainel ? (
               <div className="flex justify-center p-12">
@@ -874,409 +911,417 @@ export function ConfiguracoesClient() {
               </div>
             ) : (
               <form onSubmit={salvarPainel} noValidate className="space-y-6 w-full min-w-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full min-w-0">
-                  {/* Seção de Voz */}
-                  <div className="space-y-4 p-4 sm:p-5 bg-muted/20 rounded-xl border border-border/80 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-xs flex items-center gap-2 text-foreground">
-                        <Volume2 className="h-4 w-4 text-primary" /> Síntese de Voz
-                      </h3>
-                      <label className="relative inline-flex items-center cursor-pointer select-none">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full min-w-0">
+                  
+                  {/* Coluna 1: Voz & Cores (5 cols) */}
+                  <div className="lg:col-span-5 space-y-5">
+                    {/* Seção de Voz */}
+                    <div className="space-y-4 p-4 sm:p-5 bg-muted/20 rounded-xl border border-border/80">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-xs flex items-center gap-2 text-foreground">
+                          <Volume2 className="h-4 w-4 text-primary" /> Síntese de Voz
+                        </h3>
+                        <label className="relative inline-flex items-center cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={configPainel.vozAtiva}
+                            onChange={(e) => setConfigPainel({ ...configPainel, vozAtiva: e.target.checked })}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary" />
+                        </label>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold block text-foreground">Tipo de Voz</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setConfigPainel({ ...configPainel, tipoVoz: 'feminina' })}
+                            className={cn(
+                              'py-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer',
+                              configPainel.tipoVoz === 'feminina'
+                                ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                                : 'bg-card hover:bg-muted text-foreground'
+                            )}
+                          >
+                            Feminina
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfigPainel({ ...configPainel, tipoVoz: 'masculina' })}
+                            className={cn(
+                              'py-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer',
+                              configPainel.tipoVoz === 'masculina'
+                                ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                                : 'bg-card hover:bg-muted text-foreground'
+                            )}
+                          >
+                            Masculina
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center text-xs">
+                          <label className="font-semibold text-foreground">Velocidade da Voz</label>
+                          <span className="text-muted-foreground font-mono">{configPainel.velocidadeVoz}x</span>
+                        </div>
                         <input
-                          type="checkbox"
-                          checked={configPainel.vozAtiva}
-                          onChange={(e) => setConfigPainel({ ...configPainel, vozAtiva: e.target.checked })}
-                          className="sr-only peer"
+                          type="range"
+                          min="0.5"
+                          max="1.5"
+                          step="0.1"
+                          value={configPainel.velocidadeVoz}
+                          onChange={(e) => setConfigPainel({ ...configPainel, velocidadeVoz: parseFloat(e.target.value) })}
+                          className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                         />
-                        <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary" />
-                      </label>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold block text-foreground">Tipo de Voz</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setConfigPainel({ ...configPainel, tipoVoz: 'feminina' })}
-                          className={cn(
-                            'py-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer',
-                            configPainel.tipoVoz === 'feminina'
-                              ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                              : 'bg-card hover:bg-muted text-foreground'
-                          )}
-                        >
-                          Feminina
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfigPainel({ ...configPainel, tipoVoz: 'masculina' })}
-                          className={cn(
-                            'py-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer',
-                            configPainel.tipoVoz === 'masculina'
-                              ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                              : 'bg-card hover:bg-muted text-foreground'
-                          )}
-                        >
-                          Masculina
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center text-xs">
-                        <label className="font-semibold text-foreground">Velocidade da Voz</label>
-                        <span className="text-muted-foreground font-mono">{configPainel.velocidadeVoz}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.5"
-                        max="1.5"
-                        step="0.1"
-                        value={configPainel.velocidadeVoz}
-                        onChange={(e) => setConfigPainel({ ...configPainel, velocidadeVoz: parseFloat(e.target.value) })}
-                        className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                      />
-                      <div className="flex justify-between text-[10px] text-muted-foreground">
-                        <span>Lenta</span>
-                        <span>Normal</span>
-                        <span>Rápida</span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={testarVoz}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-all font-bold text-xs cursor-pointer"
-                    >
-                      <Volume2 className="h-4 w-4" /> TESTAR VOZ AGORA
-                    </button>
-                  </div>
-
-                  {/* Seção de Cores & Preview */}
-                  <div className="space-y-4 p-4 sm:p-5 bg-muted/20 rounded-xl border border-border/80 min-w-0">
-                    <h3 className="font-bold text-xs flex items-center gap-2 text-foreground">
-                      <Palette className="h-4 w-4 text-primary" /> Cores do Painel
-                    </h3>
-                    <div className="grid grid-cols-1 gap-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="text-xs font-semibold text-foreground">Cor de Destaque</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-mono text-muted-foreground">{configPainel.corPrimaria}</span>
-                          <input
-                            type="color"
-                            value={configPainel.corPrimaria}
-                            onChange={(e) => setConfigPainel({ ...configPainel, corPrimaria: e.target.value })}
-                            className="w-8 h-8 rounded-md cursor-pointer border border-border bg-transparent shrink-0"
-                          />
+                        <div className="flex justify-between text-[10px] text-muted-foreground">
+                          <span>Lenta</span>
+                          <span>Normal</span>
+                          <span>Rápida</span>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="text-xs font-semibold text-foreground">Cor de Fundo</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-mono text-muted-foreground">{configPainel.corSecundaria}</span>
-                          <input
-                            type="color"
-                            value={configPainel.corSecundaria}
-                            onChange={(e) => setConfigPainel({ ...configPainel, corSecundaria: e.target.value })}
-                            className="w-8 h-8 rounded-md cursor-pointer border border-border bg-transparent shrink-0"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="text-xs font-semibold text-foreground">Cor do Texto</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-mono text-muted-foreground">{configPainel.corTexto}</span>
-                          <input
-                            type="color"
-                            value={configPainel.corTexto}
-                            onChange={(e) => setConfigPainel({ ...configPainel, corTexto: e.target.value })}
-                            className="w-8 h-8 rounded-md cursor-pointer border border-border bg-transparent shrink-0"
-                          />
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Preview do Painel */}
-                    <div
-                      className="mt-3 p-3.5 rounded-xl border border-border space-y-2 shadow-xs min-w-0 max-w-full overflow-hidden"
-                      style={{ backgroundColor: configPainel.corSecundaria }}
-                    >
-                      <div
-                        className="h-7 rounded-md flex items-center justify-center px-3 text-[11px] font-black tracking-wide shadow-xs"
-                        style={{ backgroundColor: configPainel.corPrimaria, color: '#fff' }}
-                      >
-                        PREVIEW DO CHAMADO
-                      </div>
-                      <div
-                        className="text-base sm:text-lg font-black text-center py-1 truncate"
-                        style={{ color: configPainel.corTexto }}
-                      >
-                        MÁRCIO SILVA
-                      </div>
-                      <div
-                        className="text-[10px] text-center uppercase font-bold tracking-wider"
-                        style={{ color: configPainel.corTexto, opacity: 0.8 }}
-                      >
-                        Consultório 04
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tela dividida + imagens rotativas */}
-                <div className="space-y-4 p-5 bg-muted/20 rounded-xl border border-border">
-                  <div className="flex items-center justify-between gap-4 flex-wrap">
-                    <h3 className="font-bold flex items-center gap-2">
-                      <LayoutPanelLeft className="h-4 w-4" /> Tela dividida (TV)
-                    </h3>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={configPainel.layoutDividido}
-                        onChange={(e) => setConfigPainel({ ...configPainel, layoutDividido: e.target.checked })}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary" />
-                    </label>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {configPainel.layoutDividido
-                      ? 'Com esta opção ativa, o painel divide a tela: imagens e vídeos rotativos de um lado e chamadas do outro. Adicione ao menos uma mídia abaixo.'
-                      : 'Desativado: o painel exibe somente as chamadas em tela cheia, como hoje. Ative para habilitar upload de imagens/vídeos e layout dividido na TV.'}
-                  </p>
-
-                  {configPainel.layoutDividido ? (
-                    <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium block">Posição das imagens</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setConfigPainel({ ...configPainel, posicaoMidia: 'esquerda' })}
-                          className={cn(
-                            'py-2 rounded-lg border text-sm font-medium transition-all',
-                            configPainel.posicaoMidia === 'esquerda'
-                              ? 'bg-primary text-white border-primary'
-                              : 'bg-card hover:bg-muted'
-                          )}
-                        >
-                          Esquerda
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfigPainel({ ...configPainel, posicaoMidia: 'direita' })}
-                          className={cn(
-                            'py-2 rounded-lg border text-sm font-medium transition-all',
-                            configPainel.posicaoMidia === 'direita'
-                              ? 'bg-primary text-white border-primary'
-                              : 'bg-card hover:bg-muted'
-                          )}
-                        >
-                          Direita
-                        </button>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium block">
-                        Intervalo entre imagens ({configPainel.intervaloRotacaoSegundos}s)
-                      </label>
-                      <p className="text-xs text-muted-foreground">
-                        Aplica-se às imagens. Vídeos avançam automaticamente ao terminar a reprodução.
-                      </p>
-                      <input
-                        type="range"
-                        min={3}
-                        max={60}
-                        step={1}
-                        value={configPainel.intervaloRotacaoSegundos}
-                        onChange={(e) =>
-                          setConfigPainel({
-                            ...configPainel,
-                            intervaloRotacaoSegundos: parseInt(e.target.value, 10),
-                          })
-                        }
-                        className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3 flex-wrap pt-2 border-t border-border">
-                    <div>
-                      <p className="text-sm font-medium">Mídias rotativas</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Envie imagens ou vídeos pelo botão abaixo. URL é opcional, apenas para vídeo externo.
-                      </p>
-                    </div>
-                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg cursor-pointer hover:bg-primary/90 shrink-0">
-                      {uploadMidiaPainel ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          {progressoUploadMidia
-                            ? `${progressoUploadMidia.atual}/${progressoUploadMidia.total}`
-                            : 'Enviando...'}
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-4 w-4" />
-                          Adicionar mídias
-                        </>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
-                        multiple
-                        className="sr-only"
-                        onChange={handleUploadMidiaPainel}
-                        disabled={uploadMidiaPainel}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="rounded-lg border border-border bg-muted/10 p-4 space-y-3">
-                    <p className="text-sm font-medium">Ou URL do vídeo</p>
-                    <p className="text-xs text-muted-foreground">
-                      Link direto hospedado (ex.: https://servidor.com/campanha.mp4). YouTube/Vimeo não são suportados — use arquivo MP4/WebM acessível por URL.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        type="text"
-                        inputMode="url"
-                        autoComplete="off"
-                        value={urlVideoPainel}
-                        onChange={(e) => setUrlVideoPainel(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            adicionarVideoPorUrl()
-                          }
-                        }}
-                        className={inputClass}
-                        placeholder="https://exemplo.com/video.mp4"
-                        aria-label="URL do vídeo"
-                      />
                       <button
                         type="button"
-                        onClick={adicionarVideoPorUrl}
-                        disabled={!urlVideoPainel.trim()}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-primary text-primary font-semibold text-sm hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        onClick={testarVoz}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-all font-bold text-xs cursor-pointer"
                       >
-                        <Video className="h-4 w-4" />
-                        Adicionar URL
+                        <Volume2 className="h-4 w-4" /> TESTAR VOZ AGORA
                       </button>
+                    </div>
+
+                    {/* Seção de Cores & Preview */}
+                    <div className="space-y-4 p-4 sm:p-5 bg-muted/20 rounded-xl border border-border/80">
+                      <h3 className="font-bold text-xs flex items-center gap-2 text-foreground">
+                        <Palette className="h-4 w-4 text-primary" /> Cores do Painel
+                      </h3>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <label className="text-xs font-semibold text-foreground">Cor de Destaque</label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-mono text-muted-foreground">{configPainel.corPrimaria}</span>
+                            <input
+                              type="color"
+                              value={configPainel.corPrimaria}
+                              onChange={(e) => setConfigPainel({ ...configPainel, corPrimaria: e.target.value })}
+                              className="w-8 h-8 rounded-md cursor-pointer border border-border bg-transparent shrink-0"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <label className="text-xs font-semibold text-foreground">Cor de Fundo</label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-mono text-muted-foreground">{configPainel.corSecundaria}</span>
+                            <input
+                              type="color"
+                              value={configPainel.corSecundaria}
+                              onChange={(e) => setConfigPainel({ ...configPainel, corSecundaria: e.target.value })}
+                              className="w-8 h-8 rounded-md cursor-pointer border border-border bg-transparent shrink-0"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <label className="text-xs font-semibold text-foreground">Cor do Texto</label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-mono text-muted-foreground">{configPainel.corTexto}</span>
+                            <input
+                              type="color"
+                              value={configPainel.corTexto}
+                              onChange={(e) => setConfigPainel({ ...configPainel, corTexto: e.target.value })}
+                              className="w-8 h-8 rounded-md cursor-pointer border border-border bg-transparent shrink-0"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Preview do Painel */}
+                      <div
+                        className="mt-3 p-3.5 rounded-xl border border-border space-y-2 shadow-xs min-w-0 max-w-full overflow-hidden"
+                        style={{ backgroundColor: configPainel.corSecundaria }}
+                      >
+                        <div
+                          className="h-7 rounded-md flex items-center justify-center px-3 text-[11px] font-black tracking-wide shadow-xs"
+                          style={{ backgroundColor: configPainel.corPrimaria, color: '#fff' }}
+                        >
+                          PREVIEW DO CHAMADO
+                        </div>
+                        <div
+                          className="text-base sm:text-lg font-black text-center py-1 truncate"
+                          style={{ color: configPainel.corTexto }}
+                        >
+                          MÁRCIO SILVA
+                        </div>
+                        <div
+                          className="text-[10px] text-center uppercase font-bold tracking-wider"
+                          style={{ color: configPainel.corTexto, opacity: 0.8 }}
+                        >
+                          Consultório 04
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {configPainel.imagensRotativas.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">
-                      Nenhuma mídia cadastrada. Enquanto não houver imagens ou vídeos, o painel continuará em tela cheia.
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {configPainel.imagensRotativas.map((midia, idx) => {
-                        const tipo = inferirTipoMidiaPainel(midia.url, midia.tipo)
-                        return (
-                        <div
-                          key={midia.id}
-                          className="flex flex-col sm:flex-row gap-4 p-3 border border-border rounded-lg bg-card"
-                        >
-                          <div className="relative w-full sm:w-36 h-24 shrink-0 rounded-lg overflow-hidden bg-muted border border-border">
-                            {tipo === 'video' ? (
-                              <video
-                                src={midia.url}
-                                muted
-                                playsInline
-                                className="w-full h-full object-cover"
-                                aria-label={midia.titulo || `Vídeo ${idx + 1}`}
+                  {/* Coluna 2: Mídias Rotativas & Tela Dividida (7 cols) */}
+                  <div className="lg:col-span-7 space-y-5">
+                    <div className="space-y-4 p-4 sm:p-5 bg-muted/20 rounded-xl border border-border/80">
+                      <div className="flex items-center justify-between gap-4 flex-wrap">
+                        <h3 className="font-bold text-xs flex items-center gap-2 text-foreground">
+                          <LayoutPanelLeft className="h-4 w-4 text-primary" /> Tela Dividida (TV)
+                        </h3>
+                        <label className="relative inline-flex items-center cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={configPainel.layoutDividido}
+                            onChange={(e) => setConfigPainel({ ...configPainel, layoutDividido: e.target.checked })}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary" />
+                        </label>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {configPainel.layoutDividido
+                          ? 'Com esta opção ativa, o painel divide a tela: imagens e vídeos rotativos de um lado e chamadas do outro.'
+                          : 'Desativado: o painel exibe somente as chamadas em tela cheia. Ative para habilitar upload de imagens/vídeos e exibição rotativa.'}
+                      </p>
+
+                      {configPainel.layoutDividido ? (
+                        <>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border/60">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold block text-foreground">Posição das Imagens</label>
+                              <div className="grid grid-cols-2 gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setConfigPainel({ ...configPainel, posicaoMidia: 'esquerda' })}
+                                  className={cn(
+                                    'py-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer',
+                                    configPainel.posicaoMidia === 'esquerda'
+                                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                                      : 'bg-card hover:bg-muted text-foreground'
+                                  )}
+                                >
+                                  Esquerda
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfigPainel({ ...configPainel, posicaoMidia: 'direita' })}
+                                  className={cn(
+                                    'py-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer',
+                                    configPainel.posicaoMidia === 'direita'
+                                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                                      : 'bg-card hover:bg-muted text-foreground'
+                                  )}
+                                >
+                                  Direita
+                                </button>
+                              </div>
+                            </div>
+                            <div className="space-y-1.5">
+                              <div className="flex justify-between items-center text-xs">
+                                <label className="font-semibold text-foreground">Intervalo entre Fotos</label>
+                                <span className="font-mono text-muted-foreground">{configPainel.intervaloRotacaoSegundos}s</span>
+                              </div>
+                              <input
+                                type="range"
+                                min={3}
+                                max={60}
+                                step={1}
+                                value={configPainel.intervaloRotacaoSegundos}
+                                onChange={(e) =>
+                                  setConfigPainel({
+                                    ...configPainel,
+                                    intervaloRotacaoSegundos: parseInt(e.target.value, 10),
+                                  })
+                                }
+                                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                               />
-                            ) : (
-                              <img
-                                src={midia.url}
-                                alt={midia.titulo || `Imagem ${idx + 1}`}
-                                className="w-full h-full object-cover"
-                              />
-                            )}
-                            <span
-                              className={cn(
-                                'absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase',
-                                tipo === 'video' ? 'bg-violet-600 text-white' : 'bg-sky-600 text-white'
-                              )}
+                              <p className="text-[10px] text-muted-foreground">Vídeos avançam ao terminar o tempo.</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-3 flex-wrap pt-3 border-t border-border/60">
+                            <div>
+                              <p className="text-xs font-bold text-foreground">Mídias Rotativas</p>
+                              <p className="text-[11px] text-muted-foreground">
+                                Adicione fotos ou vídeos salvos na base do sistema.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => inputMidiaPainelRef.current?.click()}
+                              disabled={uploadMidiaPainel}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-bold rounded-lg hover:bg-primary/90 transition-all shadow-xs cursor-pointer shrink-0"
                             >
-                              {tipo === 'video' ? (
+                              {uploadMidiaPainel ? (
                                 <>
-                                  <Video className="h-3 w-3" />
-                                  Vídeo
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  {progressoUploadMidia
+                                    ? `${progressoUploadMidia.atual}/${progressoUploadMidia.total}`
+                                    : 'Enviando...'}
                                 </>
                               ) : (
                                 <>
-                                  <ImageIcon className="h-3 w-3" />
-                                  Imagem
+                                  <Upload className="h-3.5 w-3.5" />
+                                  Adicionar Mídias
                                 </>
                               )}
-                            </span>
-                          </div>
-                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            </button>
                             <input
-                              type="text"
-                              value={midia.titulo ?? ''}
-                              onChange={(e) => atualizarImagemPainel(midia.id, { titulo: e.target.value })}
-                              className={inputClass}
-                              placeholder="Título (opcional)"
-                            />
-                            <input
-                              type="text"
-                              value={midia.legenda ?? ''}
-                              onChange={(e) => atualizarImagemPainel(midia.id, { legenda: e.target.value })}
-                              className={inputClass}
-                              placeholder="Legenda (opcional)"
+                              ref={inputMidiaPainelRef}
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+                              multiple
+                              className="hidden"
+                              tabIndex={-1}
+                              aria-hidden="true"
+                              onChange={handleUploadMidiaPainel}
+                              disabled={uploadMidiaPainel}
                             />
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => removerImagemPainel(midia.id)}
-                            className="self-start sm:self-center p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                            aria-label={`Remover mídia ${idx + 1}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )})}
-                    </div>
-                  )}
 
-                  {/* Preview layout dividido */}
-                  <div className="mt-2 rounded-lg border border-border overflow-hidden">
-                    <div className="grid grid-cols-2 h-28 text-[10px]">
-                      {configPainel.posicaoMidia === 'esquerda' ? (
-                        <>
-                          <div className="bg-slate-800 flex items-center justify-center text-slate-300 font-bold">
-                            IMAGENS
+                          {/* Campo URL do Vídeo */}
+                          <div className="rounded-lg border border-border/80 bg-background/50 p-3.5 space-y-2.5">
+                            <p className="text-xs font-semibold text-foreground">Ou Vídeo por Link Direto (MP4/WebM)</p>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <input
+                                type="text"
+                                inputMode="url"
+                                autoComplete="off"
+                                value={urlVideoPainel}
+                                onChange={(e) => setUrlVideoPainel(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    adicionarVideoPorUrl();
+                                  }
+                                }}
+                                className={cn(inputClass, 'text-xs')}
+                                placeholder="https://exemplo.com/campanha.mp4"
+                                aria-label="URL do vídeo"
+                              />
+                              <button
+                                type="button"
+                                onClick={adicionarVideoPorUrl}
+                                disabled={!urlVideoPainel.trim()}
+                                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-primary text-primary font-bold text-xs hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+                              >
+                                <Video className="h-3.5 w-3.5" />
+                                Adicionar
+                              </button>
+                            </div>
                           </div>
-                          <div className="bg-slate-900 flex flex-col items-center justify-center text-white p-2">
-                            <span className="font-black">PACIENTE</span>
-                            <span className="opacity-60 mt-1">Sala 02</span>
+
+                          {/* Lista de Mídias Cadastradas */}
+                          {configPainel.imagensRotativas.length === 0 ? (
+                            <p className="text-xs text-muted-foreground text-center py-5 border border-dashed border-border rounded-lg">
+                              Nenhuma mídia adicionada. Envie imagens pelo botão acima.
+                            </p>
+                          ) : (
+                            <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                              {configPainel.imagensRotativas.map((midia, idx) => {
+                                const tipo = inferirTipoMidiaPainel(midia.url, midia.tipo);
+                                return (
+                                  <div
+                                    key={midia.id}
+                                    className="flex items-center gap-3 p-2.5 border border-border rounded-lg bg-card shadow-xs"
+                                  >
+                                    <div className="relative w-20 h-14 shrink-0 rounded-md overflow-hidden bg-muted border border-border">
+                                      {tipo === 'video' ? (
+                                        <video
+                                          src={midia.url}
+                                          muted
+                                          playsInline
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <img
+                                          src={midia.url}
+                                          alt={midia.titulo || `Mídia ${idx + 1}`}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      )}
+                                      <span
+                                        className={cn(
+                                          'absolute bottom-0.5 left-0.5 inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8px] font-bold uppercase',
+                                          tipo === 'video' ? 'bg-violet-600 text-white' : 'bg-sky-600 text-white'
+                                        )}
+                                      >
+                                        {tipo === 'video' ? 'Vídeo' : 'Foto'}
+                                      </span>
+                                    </div>
+                                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      <input
+                                        type="text"
+                                        value={midia.titulo ?? ''}
+                                        onChange={(e) => atualizarImagemPainel(midia.id, { titulo: e.target.value })}
+                                        className={cn(inputClass, 'py-1.5 text-xs')}
+                                        placeholder="Título (opcional)"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={midia.legenda ?? ''}
+                                        onChange={(e) => atualizarImagemPainel(midia.id, { legenda: e.target.value })}
+                                        className={cn(inputClass, 'py-1.5 text-xs')}
+                                        placeholder="Legenda (opcional)"
+                                      />
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => removerImagemPainel(midia.id)}
+                                      className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer shrink-0"
+                                      aria-label={`Remover mídia ${idx + 1}`}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* Preview da Divisão de Tela */}
+                          <div className="rounded-lg border border-border overflow-hidden">
+                            <div className="grid grid-cols-2 h-16 text-[10px]">
+                              {configPainel.posicaoMidia === 'esquerda' ? (
+                                <>
+                                  <div className="bg-slate-800 flex items-center justify-center text-slate-300 font-bold">
+                                    MÍDIAS ROTATIVAS
+                                  </div>
+                                  <div className="bg-slate-900 flex flex-col items-center justify-center text-white p-1">
+                                    <span className="font-black">CHAMADA TV</span>
+                                    <span className="opacity-60 text-[9px]">Consultório</span>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="bg-slate-900 flex flex-col items-center justify-center text-white p-1">
+                                    <span className="font-black">CHAMADA TV</span>
+                                    <span className="opacity-60 text-[9px]">Consultório</span>
+                                  </div>
+                                  <div className="bg-slate-800 flex items-center justify-center text-slate-300 font-bold">
+                                    MÍDIAS ROTATIVAS
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </>
-                      ) : (
-                        <>
-                          <div className="bg-slate-900 flex flex-col items-center justify-center text-white p-2">
-                            <span className="font-black">PACIENTE</span>
-                            <span className="opacity-60 mt-1">Sala 02</span>
-                          </div>
-                          <div className="bg-slate-800 flex items-center justify-center text-slate-300 font-bold">
-                            IMAGENS
-                          </div>
-                        </>
-                      )}
+                      ) : null}
                     </div>
                   </div>
-                    </>
-                  ) : null}
+
                 </div>
 
+                {/* Rodapé com botão Salvar */}
                 <div className="flex justify-end pt-4 border-t border-border">
-                  <button type="submit" disabled={salvandoPainel} className="flex items-center gap-2 px-8 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
-                    {salvandoPainel ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar Personalização'}
+                  <button
+                    type="submit"
+                    disabled={salvandoPainel}
+                    className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-primary text-primary-foreground font-bold text-xs rounded-xl hover:bg-primary/90 transition-all shadow-md shadow-primary/20 cursor-pointer"
+                  >
+                    {salvandoPainel ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar Personalização do Painel'}
                   </button>
                 </div>
               </form>
