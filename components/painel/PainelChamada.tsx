@@ -569,7 +569,7 @@ export function PainelChamada({
       {/* Footer */}
       <div className="shrink-0 bg-slate-950 py-1 text-center border-t border-white/5">
         <p className="text-[10px] text-slate-500 font-medium">
-          Desenvolvimento por PAJO Tecnologia - pajotecnologia.com.br
+          Desenvolvimento por PAJO Tecnologia - pajotech.com.br
         </p>
       </div>
     </div>
