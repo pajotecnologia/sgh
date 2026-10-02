@@ -595,17 +595,16 @@ export function ConfiguracoesClient() {
   const inputClass = "w-full px-3.5 py-2.5 rounded-lg border border-input bg-background text-sm outline-none transition-all focus:ring-2 focus:ring-primary/30 focus:border-primary";
 
   return (
-    <div className="bg-card border border-border rounded-xl shadow-xs flex flex-col lg:flex-row w-full max-w-full min-w-0 overflow-hidden">
+    <div className="bg-card border border-border rounded-xl shadow-xs flex flex-col w-full max-w-full min-w-0 overflow-hidden">
       
-      {/* Menu lateral / abas superiores */}
-      <div className="w-full lg:w-60 xl:w-64 shrink-0 border-b lg:border-b-0 lg:border-r border-border bg-muted/20 p-2 sm:p-3 lg:p-4">
-        {/* Mobile/Tablet: scroll horizontal suave */}
-        <div className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-x-visible pb-1 lg:pb-0 scrollbar-none">
+      {/* Abas superiores modernas com navegação horizontal fixa e responsiva */}
+      <div className="w-full border-b border-border bg-muted/30 p-2 sm:p-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <button
             type="button"
             onClick={() => setAbaAtiva('INSTITUICAO')}
             className={cn(
-              "flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap lg:whitespace-normal transition-all text-left shrink-0 lg:w-full cursor-pointer",
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
               abaAtiva === 'INSTITUICAO' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
             )}
           >
@@ -615,7 +614,7 @@ export function ConfiguracoesClient() {
             type="button"
             onClick={() => setAbaAtiva('ORIGENS')}
             className={cn(
-              "flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap lg:whitespace-normal transition-all text-left shrink-0 lg:w-full cursor-pointer",
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
               abaAtiva === 'ORIGENS' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
             )}
           >
@@ -625,7 +624,7 @@ export function ConfiguracoesClient() {
             type="button"
             onClick={() => setAbaAtiva('USUARIOS')}
             className={cn(
-              "flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap lg:whitespace-normal transition-all text-left shrink-0 lg:w-full cursor-pointer",
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
               abaAtiva === 'USUARIOS' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
             )}
           >
@@ -635,7 +634,7 @@ export function ConfiguracoesClient() {
             type="button"
             onClick={() => setAbaAtiva('PAINEL')}
             className={cn(
-              "flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap lg:whitespace-normal transition-all text-left shrink-0 lg:w-full cursor-pointer",
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
               abaAtiva === 'PAINEL' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
             )}
           >
@@ -645,7 +644,7 @@ export function ConfiguracoesClient() {
             type="button"
             onClick={() => setAbaAtiva('SMTP')}
             className={cn(
-              "flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap lg:whitespace-normal transition-all text-left shrink-0 lg:w-full cursor-pointer",
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
               abaAtiva === 'SMTP' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
             )}
           >
@@ -655,7 +654,7 @@ export function ConfiguracoesClient() {
             type="button"
             onClick={() => setAbaAtiva('SEGURANCA')}
             className={cn(
-              "flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap lg:whitespace-normal transition-all text-left shrink-0 lg:w-full cursor-pointer",
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
               abaAtiva === 'SEGURANCA' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
             )}
           >
@@ -665,7 +664,7 @@ export function ConfiguracoesClient() {
       </div>
 
       {/* Conteúdo da aba ativa */}
-      <div className="flex-1 min-w-0 p-4 sm:p-5 lg:p-7 max-w-full overflow-hidden">
+      <div className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-full overflow-hidden">
         
         {/* ABA: INSTITUICAO */}
         {abaAtiva === 'INSTITUICAO' && (
