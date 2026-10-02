@@ -119,9 +119,14 @@ export function PainelChamada({
       const json = await res.json();
       if (json.sucesso && Array.isArray(json.dados)) {
         setProximos(json.dados);
+        if (!conectadoRef.current) {
+          setConectado(true);
+        }
       }
     } catch {
-      /* ignore */
+      if (!conectadoRef.current) {
+        setConectado(false);
+      }
     }
   }, [setor]);
 
@@ -241,44 +246,53 @@ export function PainelChamada({
     });
   }, [falarChamada, tocarSomChamada, carregarProximos]);
 
-  // Conectar ao Pusher
+  // Conectar ao Pusher ou Polling inteligente
   useEffect(() => {
+    let pusherAtivo = false;
+    const pusher = getPusherCliente();
+
     const pollingHistorico = setInterval(async () => {
-      if (conectadoRef.current) return;
       try {
         const res = await fetch(
           `/api/painel/historico?setor=${encodeURIComponent(setor)}&limite=5`
         );
         const json = await res.json();
-        if (!json.sucesso || !Array.isArray(json.dados) || json.dados.length === 0) return;
-        const maisRecente = json.dados[0] as ChamadaItem;
-        const atualId = chamadaIdRef.current;
-        if (!atualId || maisRecente.id !== atualId) {
-          exibirChamada(maisRecente);
+        if (json.sucesso) {
+          if (!pusherAtivo) {
+            setConectado(true);
+          }
+          if (Array.isArray(json.dados) && json.dados.length > 0) {
+            const maisRecente = json.dados[0] as ChamadaItem;
+            const atualId = chamadaIdRef.current;
+            if (!atualId || maisRecente.id !== atualId) {
+              exibirChamada(maisRecente);
+            }
+          }
         }
       } catch {
-        /* rede indisponível */
+        if (!pusherAtivo) {
+          setConectado(false);
+        }
       }
     }, 2000);
 
-    const pusher = getPusherCliente();
     if (!pusher) {
-      conectadoRef.current = false;
-      setConectado(false);
+      void carregarProximos();
       return () => clearInterval(pollingHistorico);
     }
 
     const onConnected = () => {
+      pusherAtivo = true;
       conectadoRef.current = true;
       setConectado(true);
     };
     const onDisconnected = () => {
+      pusherAtivo = false;
       conectadoRef.current = false;
-      setConectado(false);
     };
     const onError = () => {
+      pusherAtivo = false;
       conectadoRef.current = false;
-      setConectado(false);
     };
 
     pusher.connection.bind('connected', onConnected);
@@ -286,6 +300,7 @@ export function PainelChamada({
     pusher.connection.bind('error', onError);
 
     if (pusher.connection.state === 'connected') {
+      pusherAtivo = true;
       conectadoRef.current = true;
       setConectado(true);
     }
@@ -305,7 +320,7 @@ export function PainelChamada({
       pusher.connection.unbind('disconnected', onDisconnected);
       pusher.connection.unbind('error', onError);
     };
-  }, [setor, exibirChamada]);
+  }, [setor, exibirChamada, carregarProximos]);
 
   const corCfg = chamadaAtual?.corTriagem ? COR_CONFIG[chamadaAtual.corTriagem] : null;
   const exibirMidia = deveExibirMidiaRotativa(configPainel);
@@ -522,7 +537,7 @@ export function PainelChamada({
             {agora ? format(agora, 'HH:mm:ss') : '--:--:--'}
           </p>
           <p className="text-xs text-slate-400 capitalize hidden sm:inline-block" suppressHydrationWarning>
-            {agora ? format(agora, "EEEE, dd 'de' MMMM", { locale: ptBR }) : ''}
+            {agora ? format(agora, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : ''}
           </p>
 
           {/* Status de conexão */}
