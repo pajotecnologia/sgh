@@ -14,11 +14,11 @@ export default async function ConfiguracoesPage() {
   if (sessao.usuario.role !== 'ADMIN') redirect('/acesso-negado');
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto space-y-5 sm:space-y-6">
+    <div className="w-full max-w-[1400px] min-w-0 mx-auto space-y-5 sm:space-y-6 overflow-x-hidden">
       <div>
         <h1 className="page-title tracking-tight">Configurações do Sistema</h1>
-        <p className="text-sm text-muted-foreground">
-          Gerencie os dados da instituição, logomarca e parâmetros globais.
+        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+          Gerencie os dados da instituição, logomarca, painel de chamada e parâmetros globais.
         </p>
       </div>
 

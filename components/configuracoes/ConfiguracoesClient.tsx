@@ -594,68 +594,77 @@ export function ConfiguracoesClient() {
   const inputClass = "w-full px-3.5 py-2.5 rounded-lg border border-input bg-background text-sm outline-none transition-all focus:ring-2 focus:ring-primary/30 focus:border-primary";
 
   return (
-    <div className="bg-card border border-border rounded-xl shadow-xs flex flex-col lg:flex-row w-full overflow-hidden">
+    <div className="bg-card border border-border rounded-xl shadow-xs flex flex-col lg:flex-row w-full max-w-full min-w-0 overflow-hidden">
       
-      {/* Menu lateral */}
-      <div className="w-full lg:w-60 xl:w-64 shrink-0 border-b lg:border-b-0 lg:border-r border-border bg-muted/20 p-3 sm:p-4 space-y-1.5">
-        <button
-          onClick={() => setAbaAtiva('INSTITUICAO')}
-          className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-left",
-            abaAtiva === 'INSTITUICAO' ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted text-foreground"
-          )}
-        >
-          <Building2 className="h-4 w-4" /> Instituição
-        </button>
-        <button
-          onClick={() => setAbaAtiva('ORIGENS')}
-          className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-left",
-            abaAtiva === 'ORIGENS' ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted text-foreground"
-          )}
-        >
-          <Tag className="h-4 w-4" /> Origens do Paciente
-        </button>
-        <button
-          onClick={() => setAbaAtiva('USUARIOS')}
-          className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-left",
-            abaAtiva === 'USUARIOS' ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted text-foreground"
-          )}
-        >
-          <Plus className="h-4 w-4" /> Usuários do Sistema
-        </button>
-        <button
-          onClick={() => setAbaAtiva('PAINEL')}
-          className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-left",
-            abaAtiva === 'PAINEL' ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted text-foreground"
-          )}
-        >
-          <Settings2 className="h-4 w-4" /> Painel de Chamadas
-        </button>
-        <button
-          onClick={() => setAbaAtiva('SMTP')}
-          className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-left",
-            abaAtiva === 'SMTP' ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted text-foreground"
-          )}
-        >
-          <Mail className="h-4 w-4" /> E-mail (SMTP)
-        </button>
-        <button
-          onClick={() => setAbaAtiva('SEGURANCA')}
-          className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-left",
-            abaAtiva === 'SEGURANCA' ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted text-foreground"
-          )}
-        >
-          <ShieldCheck className="h-4 w-4" /> Segurança & 2FA
-        </button>
+      {/* Menu lateral / abas superiores */}
+      <div className="w-full lg:w-60 xl:w-64 shrink-0 border-b lg:border-b-0 lg:border-r border-border bg-muted/20 p-2 sm:p-3 lg:p-4">
+        {/* Mobile/Tablet: scroll horizontal suave */}
+        <div className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-x-visible pb-1 lg:pb-0 scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('INSTITUICAO')}
+            className={cn(
+              "flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap lg:whitespace-normal transition-all text-left shrink-0 lg:w-full cursor-pointer",
+              abaAtiva === 'INSTITUICAO' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Building2 className="h-4 w-4 shrink-0" /> Instituição
+          </button>
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('ORIGENS')}
+            className={cn(
+              "flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap lg:whitespace-normal transition-all text-left shrink-0 lg:w-full cursor-pointer",
+              abaAtiva === 'ORIGENS' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Tag className="h-4 w-4 shrink-0" /> Origens do Paciente
+          </button>
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('USUARIOS')}
+            className={cn(
+              "flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap lg:whitespace-normal transition-all text-left shrink-0 lg:w-full cursor-pointer",
+              abaAtiva === 'USUARIOS' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Plus className="h-4 w-4 shrink-0" /> Usuários do Sistema
+          </button>
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('PAINEL')}
+            className={cn(
+              "flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap lg:whitespace-normal transition-all text-left shrink-0 lg:w-full cursor-pointer",
+              abaAtiva === 'PAINEL' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Settings2 className="h-4 w-4 shrink-0" /> Painel de Chamadas
+          </button>
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('SMTP')}
+            className={cn(
+              "flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap lg:whitespace-normal transition-all text-left shrink-0 lg:w-full cursor-pointer",
+              abaAtiva === 'SMTP' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Mail className="h-4 w-4 shrink-0" /> E-mail (SMTP)
+          </button>
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('SEGURANCA')}
+            className={cn(
+              "flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap lg:whitespace-normal transition-all text-left shrink-0 lg:w-full cursor-pointer",
+              abaAtiva === 'SEGURANCA' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <ShieldCheck className="h-4 w-4 shrink-0" /> Segurança & 2FA
+          </button>
+        </div>
       </div>
 
       {/* Conteúdo da aba ativa */}
-      <div className="flex-1 min-w-0 p-5 sm:p-6 lg:p-8">
+      <div className="flex-1 min-w-0 p-4 sm:p-5 lg:p-7 max-w-full overflow-hidden">
         
         {/* ABA: INSTITUICAO */}
         {abaAtiva === 'INSTITUICAO' && (
@@ -848,71 +857,166 @@ export function ConfiguracoesClient() {
 
         {/* ABA: PAINEL */}
         {abaAtiva === 'PAINEL' && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Settings2 className="h-5 w-5 text-primary" /> Configurações do Painel
-            </h2>
-            <p className="text-sm text-muted-foreground">Personalize a voz, cores e comportamento do painel de espera.</p>
-            <hr />
+          <div className="space-y-6 w-full min-w-0 max-w-full">
+            <div>
+              <h2 className="text-lg font-bold flex items-center gap-2 text-foreground">
+                <Settings2 className="h-5 w-5 text-primary" /> Configurações do Painel de Chamada
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Personalize a voz, cores, velocidade e comportamento da TV de espera.
+              </p>
+            </div>
+            <hr className="border-border/60" />
 
-            {carregandoPainel ? <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div> : (
-              <form onSubmit={salvarPainel} noValidate className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {carregandoPainel ? (
+              <div className="flex justify-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <form onSubmit={salvarPainel} noValidate className="space-y-6 w-full min-w-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full min-w-0">
                   {/* Seção de Voz */}
-                  <div className="space-y-4 p-5 bg-muted/20 rounded-xl border border-border">
+                  <div className="space-y-4 p-4 sm:p-5 bg-muted/20 rounded-xl border border-border/80 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-bold flex items-center gap-2"><Volume2 className="h-4 w-4" /> Síntese de Voz</h3>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" checked={configPainel.vozAtiva} onChange={e => setConfigPainel({...configPainel, vozAtiva: e.target.checked})} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                      <h3 className="font-bold text-xs flex items-center gap-2 text-foreground">
+                        <Volume2 className="h-4 w-4 text-primary" /> Síntese de Voz
+                      </h3>
+                      <label className="relative inline-flex items-center cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={configPainel.vozAtiva}
+                          onChange={(e) => setConfigPainel({ ...configPainel, vozAtiva: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary" />
                       </label>
                     </div>
-                    
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium block">Tipo de Voz</label>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold block text-foreground">Tipo de Voz</label>
                       <div className="grid grid-cols-2 gap-2">
-                        <button type="button" onClick={() => setConfigPainel({...configPainel, tipoVoz: 'feminina'})} className={cn("py-2 rounded-lg border text-sm font-medium transition-all", configPainel.tipoVoz === 'feminina' ? "bg-primary text-white border-primary" : "bg-card hover:bg-muted")}>Feminina</button>
-                        <button type="button" onClick={() => setConfigPainel({...configPainel, tipoVoz: 'masculina'})} className={cn("py-2 rounded-lg border text-sm font-medium transition-all", configPainel.tipoVoz === 'masculina' ? "bg-primary text-white border-primary" : "bg-card hover:bg-muted")}>Masculina</button>
+                        <button
+                          type="button"
+                          onClick={() => setConfigPainel({ ...configPainel, tipoVoz: 'feminina' })}
+                          className={cn(
+                            'py-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer',
+                            configPainel.tipoVoz === 'feminina'
+                              ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                              : 'bg-card hover:bg-muted text-foreground'
+                          )}
+                        >
+                          Feminina
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfigPainel({ ...configPainel, tipoVoz: 'masculina' })}
+                          className={cn(
+                            'py-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer',
+                            configPainel.tipoVoz === 'masculina'
+                              ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                              : 'bg-card hover:bg-muted text-foreground'
+                          )}
+                        >
+                          Masculina
+                        </button>
                       </div>
                     </div>
 
-                    <div className="space-y-3">
-                      <label className="text-sm font-medium block">Velocidade da Voz</label>
-                      <input type="range" min="0.5" max="1.5" step="0.1" value={configPainel.velocidadeVoz} onChange={e => setConfigPainel({...configPainel, velocidadeVoz: parseFloat(e.target.value)})} className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary" />
-                      <div className="flex justify-between text-[10px] text-muted-foreground"><span>Lenta</span><span>Normal</span><span>Rápida</span></div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <label className="font-semibold text-foreground">Velocidade da Voz</label>
+                        <span className="text-muted-foreground font-mono">{configPainel.velocidadeVoz}x</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="1.5"
+                        step="0.1"
+                        value={configPainel.velocidadeVoz}
+                        onChange={(e) => setConfigPainel({ ...configPainel, velocidadeVoz: parseFloat(e.target.value) })}
+                        className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                      />
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>Lenta</span>
+                        <span>Normal</span>
+                        <span>Rápida</span>
+                      </div>
                     </div>
 
-                    <button type="button" onClick={testarVoz} className="w-full flex items-center justify-center gap-2 py-3 bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-all font-bold text-sm">
+                    <button
+                      type="button"
+                      onClick={testarVoz}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-all font-bold text-xs cursor-pointer"
+                    >
                       <Volume2 className="h-4 w-4" /> TESTAR VOZ AGORA
                     </button>
                   </div>
 
-                  {/* Seção de Cores */}
-                  <div className="space-y-4 p-5 bg-muted/20 rounded-xl border border-border">
-                    <h3 className="font-bold flex items-center gap-2"><Palette className="h-4 w-4" /> Cores do Painel</h3>
-                    <div className="grid grid-cols-1 gap-4">
-                      <div className="flex items-center justify-between gap-4">
-                        <label className="text-sm font-medium">Cor Primária (Destaque)</label>
-                        <input type="color" value={configPainel.corPrimaria} onChange={e => setConfigPainel({...configPainel, corPrimaria: e.target.value})} className="w-12 h-10 rounded cursor-pointer border-0 bg-transparent" />
+                  {/* Seção de Cores & Preview */}
+                  <div className="space-y-4 p-4 sm:p-5 bg-muted/20 rounded-xl border border-border/80 min-w-0">
+                    <h3 className="font-bold text-xs flex items-center gap-2 text-foreground">
+                      <Palette className="h-4 w-4 text-primary" /> Cores do Painel
+                    </h3>
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="text-xs font-semibold text-foreground">Cor de Destaque</label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-mono text-muted-foreground">{configPainel.corPrimaria}</span>
+                          <input
+                            type="color"
+                            value={configPainel.corPrimaria}
+                            onChange={(e) => setConfigPainel({ ...configPainel, corPrimaria: e.target.value })}
+                            className="w-8 h-8 rounded-md cursor-pointer border border-border bg-transparent shrink-0"
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <label className="text-sm font-medium">Cor de Fundo (Painel)</label>
-                        <input type="color" value={configPainel.corSecundaria} onChange={e => setConfigPainel({...configPainel, corSecundaria: e.target.value})} className="w-12 h-10 rounded cursor-pointer border-0 bg-transparent" />
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="text-xs font-semibold text-foreground">Cor de Fundo</label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-mono text-muted-foreground">{configPainel.corSecundaria}</span>
+                          <input
+                            type="color"
+                            value={configPainel.corSecundaria}
+                            onChange={(e) => setConfigPainel({ ...configPainel, corSecundaria: e.target.value })}
+                            className="w-8 h-8 rounded-md cursor-pointer border border-border bg-transparent shrink-0"
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <label className="text-sm font-medium">Cor do Texto</label>
-                        <input type="color" value={configPainel.corTexto} onChange={e => setConfigPainel({...configPainel, corTexto: e.target.value})} className="w-12 h-10 rounded cursor-pointer border-0 bg-transparent" />
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="text-xs font-semibold text-foreground">Cor do Texto</label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-mono text-muted-foreground">{configPainel.corTexto}</span>
+                          <input
+                            type="color"
+                            value={configPainel.corTexto}
+                            onChange={(e) => setConfigPainel({ ...configPainel, corTexto: e.target.value })}
+                            className="w-8 h-8 rounded-md cursor-pointer border border-border bg-transparent shrink-0"
+                          />
+                        </div>
                       </div>
                     </div>
+
                     {/* Preview do Painel */}
-                    <div className="mt-4 p-4 rounded-lg border border-border space-y-2" style={{ backgroundColor: configPainel.corSecundaria }}>
-                      <div className="h-8 rounded flex items-center px-3 text-xs font-black shadow-sm" style={{ backgroundColor: configPainel.corPrimaria, color: '#fff' }}>
+                    <div
+                      className="mt-3 p-3.5 rounded-xl border border-border space-y-2 shadow-xs min-w-0 max-w-full overflow-hidden"
+                      style={{ backgroundColor: configPainel.corSecundaria }}
+                    >
+                      <div
+                        className="h-7 rounded-md flex items-center justify-center px-3 text-[11px] font-black tracking-wide shadow-xs"
+                        style={{ backgroundColor: configPainel.corPrimaria, color: '#fff' }}
+                      >
                         PREVIEW DO CHAMADO
                       </div>
-                      <div className="text-xl font-black text-center py-2" style={{ color: configPainel.corTexto }}>
+                      <div
+                        className="text-base sm:text-lg font-black text-center py-1 truncate"
+                        style={{ color: configPainel.corTexto }}
+                      >
                         MÁRCIO SILVA
                       </div>
-                      <div className="text-[10px] text-center uppercase font-bold" style={{ color: configPainel.corTexto, opacity: 0.7 }}>
+                      <div
+                        className="text-[10px] text-center uppercase font-bold tracking-wider"
+                        style={{ color: configPainel.corTexto, opacity: 0.8 }}
+                      >
                         Consultório 04
                       </div>
                     </div>
