@@ -505,12 +505,19 @@ export function ConfiguracoesClient() {
       });
       const json = await res.json();
       if (json.sucesso) {
+        if (json.dados) {
+          setInstituicao((prev) => ({
+            ...prev,
+            ...json.dados,
+            logomarcaUrl: json.dados.logomarcaUrl ?? prev.logomarcaUrl,
+          }));
+        }
         toast.success('Configurações salvas com sucesso!');
       } else {
         toast.error(json.erro || 'Erro ao salvar.');
       }
     } catch {
-      toast.error('Erro de conexão.');
+      toast.error('Erro de conexão ao salvar.');
     } finally {
       setSalvandoInst(false);
     }
@@ -521,23 +528,17 @@ export function ConfiguracoesClient() {
     if (!file) return;
     setFazendoUpload(true);
 
-    // Ler como Data URL para persistência permanente e exibição instantânea
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (dataUrl) {
-        setInstituicao(prev => ({ ...prev, logomarcaUrl: dataUrl }));
-      }
-    };
-    reader.readAsDataURL(file);
+    // Preview local imediato
+    const previewUrl = URL.createObjectURL(file);
+    setInstituicao((prev) => ({ ...prev, logomarcaUrl: previewUrl }));
 
     const formData = new FormData();
     formData.append('file', file);
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const json = await res.json();
-      if (json.sucesso) {
-        setInstituicao(prev => ({ ...prev, logomarcaUrl: json.dataUrl || json.url }));
+      if (json.sucesso && json.url) {
+        setInstituicao((prev) => ({ ...prev, logomarcaUrl: json.url }));
         toast.success('Logomarca enviada com sucesso!');
       } else {
         toast.error(json.erro || 'Erro no upload.');
