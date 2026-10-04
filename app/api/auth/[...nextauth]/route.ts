@@ -21,7 +21,13 @@ async function authHandler(req: NextRequest, context: { params: Promise<{ nextau
       const data = JSON.parse(text);
 
       if (data && typeof data === 'object') {
-        const origin = (req.nextUrl.origin || process.env.NEXTAUTH_URL || 'http://localhost:3002').replace(/\/$/, '');
+        const forwardedHost = req.headers.get('x-forwarded-host') || req.headers.get('host');
+        const forwardedProto = req.headers.get('x-forwarded-proto') || (req.nextUrl.protocol.replace(':', '') || 'http');
+        const origin = (
+          forwardedHost
+            ? `${forwardedProto}://${forwardedHost}`
+            : (req.nextUrl.origin || process.env.NEXTAUTH_URL || 'http://localhost:3002')
+        ).replace(/\/$/, '');
 
         if (!data.url || typeof data.url !== 'string') {
           if (res.status >= 400 || data.error) {

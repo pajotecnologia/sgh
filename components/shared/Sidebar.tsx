@@ -497,7 +497,14 @@ export function Sidebar({ usuario }: SidebarProps) {
             <button
               type="button"
               title="Encerrar Sessão"
-              onClick={() => signOut({ callbackUrl: '/login' })}
+              onClick={async () => {
+                try {
+                  await signOut({ redirect: false });
+                } catch {
+                  // Fallback se houver falha de rede
+                }
+                window.location.href = '/login';
+              }}
               className="flex items-center justify-center p-2 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
             >
               <LogOut className="h-4 w-4" />

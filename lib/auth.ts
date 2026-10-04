@@ -258,17 +258,22 @@ export const authOptions: NextAuthOptions = {
     async redirect({ url, baseUrl }) {
       try {
         if (url.startsWith('/')) {
-          return `${baseUrl}${url}`;
-        }
-        const parsedUrl = new URL(url);
-        const parsedBase = new URL(baseUrl);
-        if (parsedUrl.origin === parsedBase.origin) {
           return url;
         }
+        const parsedUrl = new URL(url);
+        if (baseUrl) {
+          try {
+            const parsedBase = new URL(baseUrl);
+            if (parsedUrl.origin === parsedBase.origin) {
+              return url;
+            }
+          } catch {}
+        }
+        return parsedUrl.pathname + parsedUrl.search;
       } catch {
         // Fallback seguro em caso de string de URL não padronizada
       }
-      return baseUrl || '/dashboard';
+      return '/dashboard';
     },
   },
 
