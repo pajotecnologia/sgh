@@ -21,7 +21,14 @@ export function BotaoNovoAtendimento({ pacienteId, sexoBiologico }: BotaoNovoAte
   const [obstetrico, setObstetrico] = useState(false);
   const [vaiInternar, setVaiInternar] = useState(false);
 
-  const podeMarcarObstetrico = !sexoBiologico || sexoBiologico.toUpperCase() === 'FEMININO';
+  const sexoNorm = String(sexoBiologico ?? '').toUpperCase();
+  const podeMarcarObstetrico = sexoNorm === 'FEMININO' || sexoNorm === 'F';
+
+  useEffect(() => {
+    if (!podeMarcarObstetrico && obstetrico) {
+      setObstetrico(false);
+    }
+  }, [podeMarcarObstetrico, obstetrico]);
 
   useEffect(() => {
     if (modalAberto && origens.length === 0) {
@@ -65,6 +72,11 @@ export function BotaoNovoAtendimento({ pacienteId, sexoBiologico }: BotaoNovoAte
       toast.error('Selecione a origem do paciente.');
       return;
     }
+
+    if (obstetrico && !podeMarcarObstetrico) {
+      toast.error('Atendimento obstétrico é restrito exclusivamente a pacientes do sexo feminino.');
+      return;
+    }
     
     setLoading(true);
     try {
@@ -74,7 +86,12 @@ export function BotaoNovoAtendimento({ pacienteId, sexoBiologico }: BotaoNovoAte
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ pacienteId, origemId, obstetrico, vaiInternar })
+        body: JSON.stringify({
+          pacienteId,
+          origemId,
+          obstetrico: Boolean(obstetrico && podeMarcarObstetrico),
+          vaiInternar,
+        })
       });
       
       const json = await res.json();
@@ -165,7 +182,7 @@ export function BotaoNovoAtendimento({ pacienteId, sexoBiologico }: BotaoNovoAte
                     checked={obstetrico && podeMarcarObstetrico}
                     disabled={!podeMarcarObstetrico}
                     onChange={(e) => podeMarcarObstetrico && setObstetrico(e.target.checked)}
-                    className="rounded border-input disabled:opacity-40"
+                    className="rounded border-input text-primary focus:ring-primary/30 h-4 w-4 disabled:cursor-not-allowed"
                   />
                   <span>
                     Atendimento obstétrico (gestante/puérpera){' '}

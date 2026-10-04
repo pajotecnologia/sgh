@@ -45,9 +45,11 @@ export async function POST(
       return NextResponse.json({ sucesso: false, erro: 'Atendimento não encontrado.' }, { status: 404 })
     }
 
-    if (data.obstetrico === true && atendimento.paciente?.sexoBiologico !== 'FEMININO') {
+    const sexoNorm = String(atendimento.paciente?.sexoBiologico ?? '').toUpperCase()
+    const ehFeminino = sexoNorm === 'FEMININO' || sexoNorm === 'F'
+    if (data.obstetrico === true && !ehFeminino) {
       return NextResponse.json(
-        { sucesso: false, erro: 'Atendimento obstétrico é permitido exclusivamente para pacientes do sexo feminino.' },
+        { sucesso: false, erro: 'Atendimento obstétrico é permitido exclusivamente para pacientes do sexo biológico feminino.' },
         { status: 400 }
       )
     }

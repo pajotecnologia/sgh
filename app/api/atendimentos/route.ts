@@ -52,9 +52,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Validação de negócio: Atendimento obstétrico é restrito a pacientes do sexo biológico feminino
-    if (obstetrico && paciente.sexoBiologico !== 'FEMININO') {
+    const sexoNorm = String(paciente.sexoBiologico ?? '').toUpperCase();
+    const ehFeminino = sexoNorm === 'FEMININO' || sexoNorm === 'F';
+    if (obstetrico && !ehFeminino) {
       return NextResponse.json<ApiResponse<never>>(
-        { sucesso: false, erro: 'O atendimento obstétrico é permitido exclusivamente para pacientes do sexo feminino.' },
+        { sucesso: false, erro: 'O atendimento obstétrico é permitido exclusivamente para pacientes do sexo biológico feminino.' },
         { status: 400 }
       );
     }

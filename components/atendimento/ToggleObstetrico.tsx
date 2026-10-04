@@ -17,11 +17,12 @@ export function ToggleObstetrico({
   const [obstetrico, setObstetrico] = useState(Boolean(inicial))
   const [salvando, setSalvando] = useState(false)
 
-  const podeMarcar = !sexoBiologico || sexoBiologico.toUpperCase() === 'FEMININO'
+  const sexoNorm = String(sexoBiologico ?? '').toUpperCase()
+  const podeMarcar = sexoNorm === 'FEMININO' || sexoNorm === 'F'
 
   const alternar = async () => {
-    if (!podeMarcar && !obstetrico) {
-      toast.error('Atendimento obstétrico é restrito a pacientes do sexo feminino.')
+    if (!podeMarcar) {
+      toast.error('Atendimento obstétrico é restrito exclusivamente a pacientes do sexo biológico feminino.')
       return
     }
     const novo = !obstetrico
@@ -52,7 +53,7 @@ export function ToggleObstetrico({
     <button
       type="button"
       onClick={alternar}
-      disabled={salvando || (!podeMarcar && !obstetrico)}
+      disabled={salvando || !podeMarcar}
       aria-pressed={obstetrico}
       title={
         !podeMarcar
@@ -62,7 +63,7 @@ export function ToggleObstetrico({
           : 'Marcar como atendimento obstétrico'
       }
       className={cn(
-        'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+        'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
         obstetrico
           ? 'border-pink-500 bg-pink-500/15 text-pink-900 dark:text-pink-100'
           : 'border-border hover:bg-muted/50'

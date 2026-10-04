@@ -192,7 +192,9 @@ export function WorkspaceInternacao({
   }
 
   const paciente = atendimento.paciente
-  const obstetrico = Boolean(atendimento.obstetrico)
+  const sexoNorm = String(paciente.sexoBiologico ?? '').toUpperCase()
+  const ehFeminino = sexoNorm === 'FEMININO' || sexoNorm === 'F'
+  const obstetrico = Boolean(atendimento.obstetrico && ehFeminino)
   const abas = abasPorModo(modo, obstetrico)
   const alergiasPaciente = deduplicarAlergiasPaciente(paciente.alergias ?? [])
   const nomePacienteCompleto =
