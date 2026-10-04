@@ -28,7 +28,7 @@ export const schemaAnamnese = z.object({
 // 4B — DIAGNÓSTICO / CID-10
 // =============================================================================
 export const schemaDiagnostico = z.object({
-  prontuarioId: z.string().uuid(),
+  prontuarioId: z.string().uuid().optional().or(z.literal('')).nullable(),
   codigoCid: z.string().min(3, 'Código CID obrigatório.').max(10),
   descricaoCid: z.string().min(2).max(500),
   hipotese: z.string().max(2000).optional().or(z.literal('')),

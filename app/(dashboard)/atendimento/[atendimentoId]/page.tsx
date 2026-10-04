@@ -409,6 +409,7 @@ export default function WorkspaceAtendimento({
             atendimentoId={atendimento.id}
             prontuarioId={prontuario.id}
             diagnosticosIniciais={prontuario.diagnosticos}
+            onSalvo={carregarDados}
           />
         )}
 

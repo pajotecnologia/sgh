@@ -2,7 +2,7 @@
 // components/atendimento/FormularioDiagnostico.tsx
 // Diagnósticos com busca CID-10 autocomplete
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Trash2, Star, StarOff, Loader2, Plus } from 'lucide-react';
 import { BuscaCid10 } from './BuscaCid10';
@@ -18,14 +18,16 @@ interface Diagnostico {
 
 interface FormularioDiagnosticoProps {
   atendimentoId: string;
-  prontuarioId: string;
+  prontuarioId?: string;
   diagnosticosIniciais?: Diagnostico[];
+  onSalvo?: () => void;
 }
 
 export function FormularioDiagnostico({
   atendimentoId,
   prontuarioId,
   diagnosticosIniciais = [],
+  onSalvo,
 }: FormularioDiagnosticoProps) {
   const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>(diagnosticosIniciais);
   const [codigoCid, setCodigoCid] = useState('');
@@ -33,6 +35,11 @@ export function FormularioDiagnostico({
   const [hipoteseTemp, setHipoteseTemp] = useState('');
   const [ePrincipal, setEPrincipal] = useState(diagnosticosIniciais.length === 0);
   const [salvando, setSalvando] = useState(false);
+  const [excluindoId, setExcluindoId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDiagnosticos(diagnosticosIniciais || []);
+  }, [diagnosticosIniciais]);
 
   async function adicionarDiagnostico() {
     const codigo = codigoCid.trim().toUpperCase();
@@ -53,47 +60,57 @@ export function FormularioDiagnostico({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prontuarioId,
+          prontuarioId: prontuarioId || undefined,
           codigoCid: codigo,
           descricaoCid: descricao,
-          hipotese: hipoteseTemp,
+          hipotese: hipoteseTemp.trim() || undefined,
           principal: ePrincipal,
         }),
       });
       const json = await res.json();
-      if (!json.sucesso) { toast.error(json.erro); return; }
+      if (!res.ok || !json.sucesso) {
+        toast.error(json.erro || 'Falha ao salvar diagnóstico.');
+        return;
+      }
 
       const novo: Diagnostico = json.dados;
 
       // Se for principal, atualizar localmente os outros
       setDiagnosticos((prev) => [
-        ...prev.map((d) => ePrincipal ? { ...d, principal: false } : d),
+        ...prev.map((d) => (ePrincipal ? { ...d, principal: false } : d)),
         novo,
       ]);
 
-      // Resetar
+      // Resetar campos de entrada
       setCodigoCid('');
       setDescricaoCid('');
       setHipoteseTemp('');
       setEPrincipal(false);
-      toast.success(`CID ${codigo} adicionado!`);
+      toast.success(`CID ${codigo} adicionado com sucesso!`);
+      onSalvo?.();
     } catch {
-      toast.error('Erro ao adicionar diagnóstico.');
+      toast.error('Erro de conexão ao adicionar diagnóstico.');
     } finally {
       setSalvando(false);
     }
   }
 
   async function removerDiagnostico(id: string) {
+    setExcluindoId(id);
     try {
       const res = await fetch(`/api/atendimento/${atendimentoId}/diagnostico?id=${id}`, { method: 'DELETE' });
       const json = await res.json();
-      if (json.sucesso) {
+      if (res.ok && json.sucesso) {
         setDiagnosticos((prev) => prev.filter((d) => d.id !== id));
-        toast.success('Diagnóstico removido.');
+        toast.success('Diagnóstico excluído com sucesso.');
+        onSalvo?.();
+      } else {
+        toast.error(json.erro || 'Falha ao remover diagnóstico.');
       }
     } catch {
       toast.error('Erro ao remover diagnóstico.');
+    } finally {
+      setExcluindoId(null);
     }
   }
 
@@ -129,10 +146,16 @@ export function FormularioDiagnostico({
               <button
                 type="button"
                 onClick={() => removerDiagnostico(d.id)}
-                className="text-muted-foreground hover:text-destructive transition-colors shrink-0 p-1"
+                disabled={excluindoId === d.id}
+                className="text-muted-foreground hover:text-destructive transition-colors shrink-0 p-1.5 rounded-lg hover:bg-destructive/10 disabled:opacity-50"
                 aria-label="Remover diagnóstico"
+                title="Remover diagnóstico"
               >
-                <Trash2 className="h-4 w-4" />
+                {excluindoId === d.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-destructive" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
               </button>
             </div>
           ))}

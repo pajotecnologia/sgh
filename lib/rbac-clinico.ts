@@ -24,7 +24,7 @@ export function podeExecutarAcaoClinica(role: Role, acao: AcaoClinica): boolean 
 export function medicoPodeAcessarAtendimento(role: Role, usuarioId: string, medicoId: string | null): boolean {
   if (role === 'ADMIN' || role === 'DIRETOR_CLINICO') return true
   if (role !== 'MEDICO') return false
-  return medicoId === usuarioId
+  return medicoId === null || medicoId === usuarioId
 }
 
 export function atendimentoPodeSerEditado(status: StatusAtendimento): boolean {

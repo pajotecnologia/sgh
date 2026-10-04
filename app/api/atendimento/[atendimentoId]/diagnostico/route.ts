@@ -1,5 +1,5 @@
 // app/api/atendimento/[atendimentoId]/diagnostico/route.ts
-// POST/GET — Diagnósticos com CID-10
+// POST/GET/DELETE — Diagnósticos com CID-10
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
@@ -19,14 +19,18 @@ export async function POST(
   if (!['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'].includes(sessao.usuario.role)) {
     return NextResponse.json({ sucesso: false, erro: 'Sem permissão.' }, { status: 403 });
   }
-  const atendimento = await prisma.atendimento.findUnique({ where: { id: atendimentoId }, select: { medicoId: true, deletedAt: true } });
+
+  const atendimento = await prisma.atendimento.findUnique({
+    where: { id: atendimentoId },
+    select: { medicoId: true, deletedAt: true },
+  });
   if (!atendimento || atendimento.deletedAt !== null || !medicoPodeAcessarAtendimento(sessao.usuario.role, sessao.usuario.id, atendimento.medicoId)) {
     return NextResponse.json({ sucesso: false, erro: 'Atendimento não autorizado para este usuário.' }, { status: 403 });
   }
 
   try {
     if (await prontuarioEstaEncerrado(atendimentoId)) {
-      return NextResponse.json({ sucesso: false, erro: 'Prontuário encerrado. Edição não permitida.' }, { status: 409 })
+      return NextResponse.json({ sucesso: false, erro: 'Prontuário encerrado. Edição não permitida.' }, { status: 409 });
     }
 
     const body = await req.json();
@@ -38,29 +42,62 @@ export async function POST(
       );
     }
 
-    const { prontuarioId, codigoCid, descricaoCid, hipotese, principal } = validacao.data;
+    const { prontuarioId: prontuarioIdInformado, codigoCid, descricaoCid, hipotese, principal } = validacao.data;
 
-    const pertence = await prontuarioPertenceAoAtendimento(atendimentoId, prontuarioId);
-    if (!pertence) {
-      return NextResponse.json({ sucesso: false, erro: 'Prontuário inválido para este atendimento.' }, { status: 400 });
+    // Vincular médico ao atendimento se ainda não estiver atribuído
+    if (!atendimento.medicoId) {
+      await prisma.atendimento.update({
+        where: { id: atendimentoId },
+        data: { medicoId: sessao.usuario.id },
+      });
     }
 
-    // Se for principal, remover o flag principal dos outros
+    // Garantir prontuário existente para este atendimento
+    let prontuario = await prisma.prontuarioMedico.findUnique({
+      where: { atendimentoId },
+      select: { id: true },
+    });
+
+    if (!prontuario) {
+      prontuario = await prisma.prontuarioMedico.create({
+        data: {
+          atendimentoId,
+        },
+        select: { id: true },
+      });
+    }
+
+    const idProntuarioFinal = prontuario.id;
+
+    if (prontuarioIdInformado && prontuarioIdInformado !== idProntuarioFinal) {
+      const pertence = await prontuarioPertenceAoAtendimento(atendimentoId, prontuarioIdInformado);
+      if (!pertence) {
+        return NextResponse.json({ sucesso: false, erro: 'Prontuário inválido para este atendimento.' }, { status: 400 });
+      }
+    }
+
+    // Se for principal, remover o flag principal dos outros diagnósticos deste prontuário
     if (principal) {
       await prisma.diagnostico.updateMany({
-        where: { prontuarioId, principal: true },
+        where: { prontuarioId: idProntuarioFinal, principal: true },
         data: { principal: false },
       });
     }
 
     const diagnostico = await prisma.diagnostico.create({
-      data: { prontuarioId, codigoCid, descricaoCid, hipotese: hipotese || null, principal },
+      data: {
+        prontuarioId: idProntuarioFinal,
+        codigoCid,
+        descricaoCid,
+        hipotese: hipotese || null,
+        principal: Boolean(principal),
+      },
     });
 
     return NextResponse.json({ sucesso: true, dados: diagnostico }, { status: 201 });
   } catch (erro) {
     console.error('[POST /api/atendimento/diagnostico]', erro);
-    return NextResponse.json({ sucesso: false, erro: 'Erro interno.' }, { status: 500 });
+    return NextResponse.json({ sucesso: false, erro: 'Erro interno ao salvar diagnóstico.' }, { status: 500 });
   }
 }
 
@@ -82,22 +119,45 @@ export async function GET(
     });
     return NextResponse.json({ sucesso: true, dados: prontuario?.diagnosticos ?? [] });
   } catch (erro) {
-    return NextResponse.json({ sucesso: false, erro: 'Erro interno.' }, { status: 500 });
+    return NextResponse.json({ sucesso: false, erro: 'Erro interno ao buscar diagnósticos.' }, { status: 500 });
   }
 }
 
 // DELETE — Remover diagnóstico
-export async function DELETE(req: NextRequest) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ atendimentoId: string }> }
+) {
+  const { atendimentoId } = await params;
   const sessao = await getServerSession(authOptions);
-  if (!sessao || !['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'].includes(sessao.usuario.role)) return NextResponse.json({ sucesso: false, erro: 'Sem permissão.' }, { status: 403 });
+  if (!sessao) return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 });
+  if (!['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'].includes(sessao.usuario.role)) return NextResponse.json({ sucesso: false, erro: 'Sem permissão.' }, { status: 403 });
+
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
-  const atendimentoId = searchParams.get('atendimentoId');
-  if (!id || !atendimentoId) return NextResponse.json({ sucesso: false, erro: 'ID e atendimentoId são obrigatórios.' }, { status: 400 });
-  const atendimento = await prisma.atendimento.findUnique({ where: { id: atendimentoId }, select: { medicoId: true, deletedAt: true } });
-  if (!atendimento || atendimento.deletedAt !== null || !medicoPodeAcessarAtendimento(sessao.usuario.role, sessao.usuario.id, atendimento.medicoId)) return NextResponse.json({ sucesso: false, erro: 'Atendimento não autorizado.' }, { status: 403 });
-  const diagnostico = await prisma.diagnostico.findUnique({ where: { id }, select: { prontuarioId: true } });
-  if (!diagnostico || !(await prontuarioPertenceAoAtendimento(atendimentoId, diagnostico.prontuarioId))) return NextResponse.json({ sucesso: false, erro: 'Diagnóstico não pertence ao atendimento.' }, { status: 403 });
+  if (!id) return NextResponse.json({ sucesso: false, erro: 'ID do diagnóstico é obrigatório.' }, { status: 400 });
+
+  const atendimento = await prisma.atendimento.findUnique({
+    where: { id: atendimentoId },
+    select: { medicoId: true, deletedAt: true },
+  });
+  if (!atendimento || atendimento.deletedAt !== null || !medicoPodeAcessarAtendimento(sessao.usuario.role, sessao.usuario.id, atendimento.medicoId)) {
+    return NextResponse.json({ sucesso: false, erro: 'Atendimento não autorizado.' }, { status: 403 });
+  }
+
+  if (await prontuarioEstaEncerrado(atendimentoId)) {
+    return NextResponse.json({ sucesso: false, erro: 'Prontuário encerrado. Exclusão não permitida.' }, { status: 409 });
+  }
+
+  const diagnostico = await prisma.diagnostico.findUnique({
+    where: { id },
+    select: { prontuarioId: true },
+  });
+  if (!diagnostico || !(await prontuarioPertenceAoAtendimento(atendimentoId, diagnostico.prontuarioId))) {
+    return NextResponse.json({ sucesso: false, erro: 'Diagnóstico não pertence a este atendimento.' }, { status: 403 });
+  }
+
   await prisma.diagnostico.delete({ where: { id } });
-  return NextResponse.json({ sucesso: true, mensagem: 'Diagnóstico removido.' });
+  return NextResponse.json({ sucesso: true, mensagem: 'Diagnóstico removido com sucesso.' });
 }
+
