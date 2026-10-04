@@ -89,6 +89,8 @@ export function PainelChamada({
   const [agora, setAgora] = useState<Date | null>(null);
   const [gestoAudioOk, setGestoAudioOk] = useState(false);
 
+  const [senhaFiltroUrl, setSenhaFiltroUrl] = useState<string | null>(null);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const chamadaIdRef = useRef<string | null>(historicoInicial[0]?.id ?? null);
@@ -107,6 +109,11 @@ export function PainelChamada({
   useEffect(() => {
     setMontado(true);
     setAgora(new Date());
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const s = params.get('senha');
+      if (s) setSenhaFiltroUrl(s.trim());
+    }
     const timer = setInterval(() => setAgora(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -602,6 +609,21 @@ export function PainelChamada({
           </button>
         </div>
       </div>
+
+      {/* Barra de Acompanhamento no Celular (quando acessado via QR Code) */}
+      {senhaFiltroUrl && (
+        <div className="bg-sky-950/90 border-b border-sky-500/40 px-4 py-2 flex items-center justify-between text-xs text-sky-200 shrink-0 shadow-md">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+            <span>
+              Acompanhando senha: <strong className="font-mono text-white text-sm bg-sky-900/80 px-2 py-0.5 rounded border border-sky-400/40">{senhaFiltroUrl}</strong>
+            </span>
+          </div>
+          <span className="text-[11px] text-sky-300 font-medium hidden sm:inline">
+            Aguarde sua chamada aparecer em destaque na tela
+          </span>
+        </div>
+      )}
 
       {/* Área de Conteúdo Principal */}
       <div className="flex-1 flex min-h-0 overflow-hidden">

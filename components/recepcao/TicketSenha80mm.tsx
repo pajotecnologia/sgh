@@ -3,9 +3,10 @@
 // Interface de impressão e visualização de ticket de senha para impressora térmica de 80mm (bobina 72mm-80mm)
 // Compatível com Epson TM-T20, Bematech MP-4200, Elgin i9, Daruma e navegadores modernos.
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Printer, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import type { TipoAtendimentoInfo } from '@/lib/senhas';
+import QRCode from 'qrcode';
 
 interface TicketSenha80mmProps {
   nomeInstituicao?: string;
@@ -68,73 +69,54 @@ function CodigoBarrasSVG({ valor }: { valor: string }) {
 }
 
 /**
- * Gera um QR Code estilizado em SVG para leitura rápida por smartphone.
+ * Gera um QR Code padronizado (ISO/IEC 18004) de alta legibilidade para leitura rápida em qualquer smartphone ou leitor ótico 2D.
  */
-function QrCodeSVG({ valor }: { valor: string }) {
-  // Matriz 21x21 pseudo-determinística com cantos padrão de QR Code
-  const tamanho = 21;
-  const matriz: boolean[][] = Array.from({ length: tamanho }, () => Array(tamanho).fill(false));
+function QrCodeVisual({ valor }: { valor: string }) {
+  const [dataUrl, setDataUrl] = useState<string>('');
 
-  // Função para desenhar os marcadores de canto (Position Detection Patterns)
-  const desenharMarcador = (startX: number, startY: number) => {
-    for (let r = 0; r < 7; r++) {
-      for (let c = 0; c < 7; c++) {
-        if (
-          r === 0 || r === 6 || c === 0 || c === 6 ||
-          (r >= 2 && r <= 4 && c >= 2 && c <= 4)
-        ) {
-          matriz[startY + r][startX + c] = true;
-        }
-      }
-    }
-  };
+  useEffect(() => {
+    let ativo = true;
+    QRCode.toDataURL(valor, {
+      margin: 1,
+      width: 180,
+      errorCorrectionLevel: 'M',
+      color: {
+        dark: '#000000',
+        light: '#ffffff',
+      },
+    })
+      .then((url) => {
+        if (ativo) setDataUrl(url);
+      })
+      .catch((err) => {
+        console.error('Erro ao gerar QR Code:', err);
+      });
 
-  desenharMarcador(0, 0);
-  desenharMarcador(tamanho - 7, 0);
-  desenharMarcador(0, tamanho - 7);
+    return () => {
+      ativo = false;
+    };
+  }, [valor]);
 
-  // Preencher dados com base no hash do valor
-  let seed = 0;
-  for (let i = 0; i < valor.length; i++) {
-    seed = (seed * 31 + valor.charCodeAt(i)) & 0xffffffff;
-  }
-
-  for (let r = 0; r < tamanho; r++) {
-    for (let c = 0; c < tamanho; c++) {
-      // Ignora áreas dos 3 marcadores de canto
-      if (
-        (r < 8 && c < 8) ||
-        (r < 8 && c >= tamanho - 8) ||
-        (r >= tamanho - 8 && c < 8)
-      ) {
-        continue;
-      }
-      seed = (seed * 1664525 + 1013904223) & 0xffffffff;
-      matriz[r][c] = (seed & 1) === 1;
-    }
-  }
-
-  const rects: React.ReactNode[] = [];
-  for (let r = 0; r < tamanho; r++) {
-    for (let c = 0; c < tamanho; c++) {
-      if (matriz[r][c]) {
-        rects.push(
-          <rect key={`${r}-${c}`} x={c} y={r} width={1} height={1} fill="#000000" />
-        );
-      }
-    }
+  if (!dataUrl) {
+    return (
+      <div className="w-24 h-24 my-2 mx-auto bg-slate-100 animate-pulse rounded flex items-center justify-center text-[9px] text-slate-400">
+        Gerando QR...
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col items-center my-2">
-      <svg
-        viewBox={`0 0 ${tamanho} ${tamanho}`}
-        className="w-24 h-24 p-1 bg-white border border-black rounded"
-      >
-        {rects}
-      </svg>
+      <div className="p-1 bg-white border border-black rounded inline-block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={dataUrl}
+          alt={`QR Code ${valor}`}
+          className="w-24 h-24 object-contain print:w-24 print:h-24"
+        />
+      </div>
       <span className="text-[9px] text-black font-mono font-medium mt-1 text-center">
-        Acompanhe sua posição no celular
+        Acompanhe sua chamada no celular
       </span>
     </div>
   );
@@ -162,12 +144,23 @@ export function TicketSenha80mm({
     second: '2-digit',
   }).format(new Date(dataHora));
 
+  const [urlAcompanhamento, setUrlAcompanhamento] = useState<string>(
+    `/painel?senha=${encodeURIComponent(numeroAtendimento)}`
+  );
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const origin = window.location.origin;
+      setUrlAcompanhamento(`${origin}/painel?senha=${encodeURIComponent(numeroAtendimento)}`);
+    }
+  }, [numeroAtendimento]);
+
   useEffect(() => {
     if (autoImprimir && !impressoRef.current) {
       impressoRef.current = true;
       const timer = setTimeout(() => {
         window.print();
-      }, 350);
+      }, 450);
       return () => clearTimeout(timer);
     }
   }, [autoImprimir]);
@@ -259,8 +252,8 @@ export function TicketSenha80mm({
         {/* Código de Barras (para leitor ótico da triagem / consultório) */}
         <CodigoBarrasSVG valor={numeroAtendimento} />
 
-        {/* QR Code de Acompanhamento */}
-        <QrCodeSVG valor={`SGH:${numeroAtendimento}`} />
+        {/* QR Code de Acompanhamento no Painel */}
+        <QrCodeVisual valor={urlAcompanhamento} />
 
         {/* Mensagem e Instrução Final */}
         <div className="text-center mt-3 pt-2 border-t border-dashed border-black">
