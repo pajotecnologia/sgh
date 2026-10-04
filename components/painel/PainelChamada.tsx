@@ -1,12 +1,12 @@
 'use client';
 // components/painel/PainelChamada.tsx
 // Painel de chamada em tela cheia com Código de Senha por Tipo de Atendimento (SP, SG, S8, PD, OB, EX, RT)
-// Suporte a Protocolo de Manchester, voz sintetizada TTS, fila dos próximos e histórico de chamadas.
+// Layout balanceado para TV full screen ou tela dividida com mídia rotativa.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getPusherCliente, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher';
 import { cn } from '@/lib/utils';
-import { Activity, Volume2, VolumeX, Wifi, WifiOff, Clock, ArrowRight, BellRing } from 'lucide-react';
+import { Activity, Volume2, VolumeX, Wifi, WifiOff, Clock, ArrowRight, DoorOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { CorTriagem } from '@/types';
@@ -38,21 +38,20 @@ interface PainelChamadaProps {
 }
 
 const COR_CONFIG: Record<string, { borda: string; bg: string; badgeBg: string; texto: string; label: string; glow: string }> = {
-  VERMELHO: { borda: 'border-l-red-500', bg: 'bg-red-950/40', badgeBg: 'bg-red-500/20 text-red-300 border-red-500/50', texto: 'text-red-400', label: 'EMERGÊNCIA', glow: 'shadow-red-500/20' },
-  LARANJA: { borda: 'border-l-orange-500', bg: 'bg-orange-950/30', badgeBg: 'bg-orange-500/20 text-orange-300 border-orange-500/50', texto: 'text-orange-400', label: 'MUITO URGENTE', glow: 'shadow-orange-500/20' },
-  AMARELO: { borda: 'border-l-yellow-400', bg: 'bg-yellow-950/30', badgeBg: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50', texto: 'text-yellow-400', label: 'URGENTE', glow: 'shadow-yellow-500/20' },
-  VERDE: { borda: 'border-l-green-500', bg: 'bg-green-950/30', badgeBg: 'bg-green-500/20 text-green-300 border-green-500/50', texto: 'text-green-400', label: 'POUCO URGENTE', glow: 'shadow-green-500/20' },
-  AZUL: { borda: 'border-l-blue-500', bg: 'bg-blue-950/30', badgeBg: 'bg-blue-500/20 text-blue-300 border-blue-500/50', texto: 'text-blue-400', label: 'NÃO URGENTE', glow: 'shadow-blue-500/20' },
-  CINZA: { borda: 'border-l-gray-500', bg: 'bg-gray-900/40', badgeBg: 'bg-gray-500/20 text-gray-300 border-gray-500/50', texto: 'text-gray-400', label: 'OBSERVAÇÃO', glow: 'shadow-gray-500/20' },
+  VERMELHO: { borda: 'border-red-500', bg: 'bg-red-950/40', badgeBg: 'bg-red-500/20 text-red-300 border-red-500/50', texto: 'text-red-400', label: 'EMERGÊNCIA', glow: 'shadow-red-500/20' },
+  LARANJA: { borda: 'border-orange-500', bg: 'bg-orange-950/30', badgeBg: 'bg-orange-500/20 text-orange-300 border-orange-500/50', texto: 'text-orange-400', label: 'MUITO URGENTE', glow: 'shadow-orange-500/20' },
+  AMARELO: { borda: 'border-yellow-400', bg: 'bg-yellow-950/30', badgeBg: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50', texto: 'text-yellow-400', label: 'URGENTE', glow: 'shadow-yellow-500/20' },
+  VERDE: { borda: 'border-green-500', bg: 'bg-green-950/30', badgeBg: 'bg-green-500/20 text-green-300 border-green-500/50', texto: 'text-green-400', label: 'POUCO URGENTE', glow: 'shadow-green-500/20' },
+  AZUL: { borda: 'border-blue-500', bg: 'bg-blue-950/30', badgeBg: 'bg-blue-500/20 text-blue-300 border-blue-500/50', texto: 'text-blue-400', label: 'NÃO URGENTE', glow: 'shadow-blue-500/20' },
+  CINZA: { borda: 'border-gray-500', bg: 'bg-gray-900/40', badgeBg: 'bg-gray-500/20 text-gray-300 border-gray-500/50', texto: 'text-gray-400', label: 'OBSERVAÇÃO', glow: 'shadow-gray-500/20' },
 };
 
-/** Beep suave sem arquivo estático (Web Audio API) */
 function tocarBeepNotificacao(ctx: AudioContext) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.type = 'sine';
-  osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-  osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
+  osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+  osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
   gain.gain.setValueAtTime(0.18, ctx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
   osc.connect(gain);
@@ -61,7 +60,6 @@ function tocarBeepNotificacao(ctx: AudioContext) {
   osc.stop(ctx.currentTime + 0.6);
 }
 
-/** Formata a pronúncia da senha para a voz sintetizada */
 function formatarVozSenha(senha: string): string {
   const limpa = senha.replace(/\s+/g, '').toUpperCase();
   const partes = limpa.split('-');
@@ -106,7 +104,6 @@ export function PainelChamada({
     gestoAudioOkRef.current = gestoAudioOk;
   }, [gestoAudioOk]);
 
-  // Relógio
   useEffect(() => {
     setMontado(true);
     setAgora(new Date());
@@ -114,7 +111,6 @@ export function PainelChamada({
     return () => clearInterval(timer);
   }, []);
 
-  // Configuração do Painel
   useEffect(() => {
     const carregarConfig = async () => {
       try {
@@ -128,7 +124,6 @@ export function PainelChamada({
     return () => clearInterval(timer);
   }, []);
 
-  // Carregar Próximos Chamados
   const carregarProximos = useCallback(async () => {
     try {
       const res = await fetch(`/api/painel/proximos?setor=${encodeURIComponent(setor)}&limite=5`);
@@ -148,7 +143,6 @@ export function PainelChamada({
     return () => clearInterval(timer);
   }, [carregarProximos]);
 
-  // Audio Context e TTS
   const obterOuCriarAudioContext = useCallback(() => {
     if (typeof window === 'undefined') return null;
     const AC =
@@ -250,7 +244,6 @@ export function PainelChamada({
     });
   }, [falarChamada, tocarSomChamada, carregarProximos]);
 
-  // WebSocket Pusher + Polling Fallback
   useEffect(() => {
     let pusherAtivo = false;
     const pusher = getPusherCliente();
@@ -320,7 +313,6 @@ export function PainelChamada({
     };
   }, [setor, exibirChamada, carregarProximos]);
 
-  // Informações da chamada atual
   const corCfg = chamadaAtual?.corTriagem ? COR_CONFIG[chamadaAtual.corTriagem] : null;
   const senhaAtual = chamadaAtual?.senha ?? (chamadaAtual ? resolverSenhaETipo({ numeroAtendimento: chamadaAtual.numeroAtendimento }).senha : '---');
   const tipoAtual = chamadaAtual?.tipoAtendimento ?? (chamadaAtual ? resolverSenhaETipo({ numeroAtendimento: chamadaAtual.numeroAtendimento }).tipo : null);
@@ -333,159 +325,165 @@ export function PainelChamada({
     <PainelMidiaRotativa
       imagens={configPainel.imagensRotativas}
       intervaloSegundos={configPainel.intervaloRotacaoSegundos}
-      className="h-full w-full min-h-0"
+      className="h-full w-full min-h-0 object-cover"
     />
   ) : null;
 
   const areaChamadas = (
-    <div className="flex flex-col min-h-0 h-full justify-between">
-      {/* 1. Área Central: Chamada Atual em Destaque Gigante */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 relative overflow-hidden min-h-0 py-4">
+    <div className="flex flex-col h-full min-h-0 justify-between bg-slate-950/70 p-3 sm:p-4 lg:p-6 overflow-hidden">
+      {/* 1. Área Central: Chamada Atual em Card Elegante e Arejado */}
+      <div className="flex-1 flex items-center justify-center min-h-0 relative py-2">
         {corCfg && (
-          <div className={cn('absolute inset-0 transition-all duration-700 opacity-70', corCfg.bg)} />
+          <div className={cn('absolute inset-0 transition-all duration-700 opacity-20 blur-3xl pointer-events-none', corCfg.bg)} />
         )}
 
         {chamadaAtual ? (
           <div
             className={cn(
-              'relative z-10 text-center w-full max-w-4xl p-6 sm:p-8 rounded-3xl',
-              'bg-slate-900/80 border-2 backdrop-blur-xl shadow-2xl transition-all duration-500',
+              'relative z-10 w-full max-w-2xl mx-auto flex flex-col items-center justify-center text-center',
+              'bg-slate-900/90 border-2 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur-xl transition-all duration-500',
               animando ? 'animate-fade-in-up scale-100' : 'opacity-0 scale-95',
-              corCfg ? `${corCfg.borda.replace('border-l-', 'border-')} ${corCfg.glow}` : 'border-sky-500/50 shadow-sky-500/10'
+              corCfg ? `${corCfg.borda} ${corCfg.glow}` : 'border-sky-500/40 shadow-sky-500/10'
             )}
           >
-            {/* Badges Superiores: Tipo de Atendimento + Etapa da Chamada */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+            {/* Badges Superiores */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-4 shrink-0">
               {tipoAtual && (
-                <span className={cn('px-3.5 py-1 rounded-full text-xs sm:text-sm font-black uppercase tracking-wider border shadow-sm', tipoAtual.bgBadge)}>
+                <span className={cn('px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border shadow-sm', tipoAtual.bgBadge)}>
                   ● {tipoAtual.nomeCurto}
                 </span>
               )}
 
               <span className={cn(
-                'px-3.5 py-1 rounded-full text-xs sm:text-sm font-extrabold uppercase tracking-wider border',
+                'px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border',
                 etapaAtual === 'TRIAGEM'
-                  ? 'bg-cyan-950/60 text-cyan-300 border-cyan-500/50'
-                  : 'bg-emerald-950/60 text-emerald-300 border-emerald-500/50'
+                  ? 'bg-cyan-950/60 text-cyan-300 border-cyan-500/40'
+                  : 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
               )}>
                 {etapaAtual === 'TRIAGEM' ? 'Chamada para Triagem' : 'Chamada para Consultório'}
               </span>
 
               {corCfg && (
-                <span className={cn('px-3.5 py-1 rounded-full text-xs sm:text-sm font-black uppercase tracking-wider border', corCfg.badgeBg)}>
+                <span className={cn('px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border', corCfg.badgeBg)}>
                   ◉ {corCfg.label}
                 </span>
               )}
             </div>
 
-            {/* CÓDIGO DA SENHA EM SUPER DESTAQUE GIGANTE */}
-            <div className="my-2 py-1">
-              <span className="text-xs uppercase tracking-[0.3em] text-slate-400 font-bold block mb-1">
+            {/* Bloco da Senha */}
+            <div className="flex flex-col items-center justify-center my-1 w-full">
+              <span className="text-[11px] sm:text-xs uppercase tracking-[0.25em] text-slate-400 font-bold mb-1">
                 SENHA DE ATENDIMENTO
               </span>
-              <h2
-                className="font-black font-mono tracking-tight text-white drop-shadow-[0_10px_25px_rgba(255,255,255,0.2)]"
-                style={{ fontSize: exibirMidia ? 'clamp(3rem, 6.5vw, 5.5rem)' : 'clamp(4rem, 9vw, 7.5rem)' }}
+              <div
+                className="font-mono font-black text-white tracking-tight leading-none drop-shadow-[0_8px_20px_rgba(255,255,255,0.15)] my-1"
+                style={{ fontSize: exibirMidia ? 'clamp(2.8rem, 5.5vw, 4.8rem)' : 'clamp(3.8rem, 8vw, 6.5rem)' }}
               >
                 {senhaAtual}
-              </h2>
+              </div>
             </div>
 
             {/* Nome do Paciente */}
-            <h1
-              className="font-extrabold text-slate-100 text-balance leading-tight mb-4 tracking-tight"
-              style={{ fontSize: exibirMidia ? 'clamp(1.5rem, 2.8vw, 2.5rem)' : 'clamp(1.8rem, 4vw, 3.2rem)' }}
-            >
-              {chamadaAtual.nomePaciente}
-            </h1>
+            <div className="w-full my-2 px-2">
+              <h1
+                className="font-extrabold text-slate-100 uppercase tracking-tight line-clamp-1 leading-snug"
+                style={{ fontSize: exibirMidia ? 'clamp(1.25rem, 2.2vw, 1.9rem)' : 'clamp(1.5rem, 3vw, 2.5rem)' }}
+                title={chamadaAtual.nomePaciente}
+              >
+                {chamadaAtual.nomePaciente}
+              </h1>
+            </div>
 
-            {/* Sala de Destino / Guichê */}
-            <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-4 px-6 sm:px-8 py-3.5 bg-gradient-to-r from-sky-600/30 via-primary/30 to-sky-600/30 backdrop-blur-md rounded-2xl border border-sky-400/30 shadow-xl shadow-black/30">
-              <span className="text-sky-200 text-xs sm:text-sm uppercase tracking-widest font-bold">
+            {/* Caixa de Destino (Sala / Consultório) */}
+            <div className="w-full max-w-lg mt-3 flex flex-col items-center justify-center py-3 px-4 bg-gradient-to-r from-sky-950/80 via-sky-900/60 to-sky-950/80 border border-sky-500/30 rounded-2xl shadow-inner">
+              <span className="text-sky-300 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest mb-0.5">
                 Dirija-se à
               </span>
               <span
-                className="font-black text-white uppercase tracking-wide"
-                style={{ fontSize: exibirMidia ? 'clamp(1.3rem, 2.4vw, 2.2rem)' : 'clamp(1.6rem, 3.2vw, 2.8rem)' }}
+                className="font-black text-white uppercase tracking-wide text-center line-clamp-1"
+                style={{ fontSize: exibirMidia ? 'clamp(1.15rem, 2vw, 1.75rem)' : 'clamp(1.4rem, 2.6vw, 2.2rem)' }}
               >
                 {chamadaAtual.salaDestino}
               </span>
             </div>
 
-            <p className="font-mono text-xs text-slate-500 mt-3">
-              Atendimento: {chamadaAtual.numeroAtendimento}
+            {/* Protocolo */}
+            <p className="font-mono text-[10px] sm:text-xs text-slate-500 mt-3">
+              Atendimento: <span className="text-slate-400 font-semibold">{chamadaAtual.numeroAtendimento}</span>
             </p>
           </div>
         ) : (
-          <div className="text-center text-slate-500 relative z-10">
-            <Activity className="h-12 w-12 lg:h-16 lg:w-16 mx-auto mb-3 opacity-30 animate-pulse text-sky-400" />
-            <p className="text-xl lg:text-2xl font-bold text-slate-300">Aguardando próximas chamadas...</p>
+          <div className="text-center text-slate-500 relative z-10 py-8">
+            <Activity className="h-12 w-12 mx-auto mb-3 opacity-30 animate-pulse text-sky-400" />
+            <p className="text-lg font-bold text-slate-300">Aguardando chamadas...</p>
             <p className="text-xs mt-1 text-slate-500">As novas senhas aparecerão automaticamente na tela</p>
           </div>
         )}
       </div>
 
-      {/* 2. Seção: Próximos na Fila de Espera */}
-      <div className="shrink-0 px-4 sm:px-6 lg:px-8 py-3 bg-slate-900/90 border-t border-white/10 backdrop-blur-md">
+      {/* 2. Seção: Próximos a Serem Chamados */}
+      <div className="shrink-0 mt-3 pt-3 border-t border-white/10 bg-slate-900/60 rounded-2xl p-3 backdrop-blur-md">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-sky-400 shrink-0" />
-            <span className="text-xs sm:text-sm font-extrabold text-slate-200 uppercase tracking-wider">
+            <Clock className="h-3.5 w-3.5 text-sky-400 shrink-0" />
+            <span className="text-xs font-extrabold text-slate-200 uppercase tracking-wider">
               Próximos a serem chamados
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-white/10 text-[11px] font-semibold text-slate-300">
-              {proximos.length} aguardando
+            <span className="px-2 py-0.2 rounded-full bg-white/10 text-[10px] font-bold text-slate-300">
+              {proximos.length} na fila
             </span>
           </div>
-          <span className="text-[11px] text-slate-400 hidden sm:inline-flex items-center gap-1">
-            Ordem por gravidade clínica e chegada <ArrowRight className="h-3 w-3" />
+          <span className="text-[10px] text-slate-400 hidden sm:inline-flex items-center gap-1 font-medium">
+            Prioridade clínica e chegada <ArrowRight className="h-3 w-3" />
           </span>
         </div>
 
         {proximos.length === 0 ? (
-          <div className="py-2.5 text-center text-xs text-slate-500 bg-slate-950/40 rounded-xl border border-white/5">
+          <div className="py-2 text-center text-xs text-slate-500 bg-slate-950/40 rounded-xl border border-white/5">
             Nenhum paciente aguardando chamada neste momento.
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
-            {proximos.slice(0, 5).map((p, idx) => {
+          <div className={cn(
+            'grid gap-2',
+            exibirMidia ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5'
+          )}>
+            {proximos.slice(0, exibirMidia ? 3 : 5).map((p, idx) => {
               const cfg = p.corTriagem ? COR_CONFIG[p.corTriagem] : null;
               return (
                 <div
                   key={p.id}
-                  className="flex flex-col justify-between p-2.5 rounded-xl bg-slate-800/80 border border-white/10 hover:border-white/25 transition-all shadow-sm"
+                  className="flex flex-col justify-between p-2 rounded-xl bg-slate-800/80 border border-white/10 hover:border-white/20 transition-all shadow-sm"
                 >
-                  <div className="flex items-center justify-between gap-1 mb-1.5">
-                    <span className="text-[10px] font-black text-sky-400 bg-sky-950/80 px-1.5 py-0.5 rounded">
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className="text-[9px] font-black text-sky-400 bg-sky-950/80 px-1.5 py-0.2 rounded">
                       #{idx + 1}º
                     </span>
                     {cfg ? (
-                      <span className={cn('text-[9px] font-black uppercase px-1.5 py-0.5 rounded border', cfg.badgeBg)}>
+                      <span className={cn('text-[8px] font-black uppercase px-1.5 py-0.2 rounded border truncate max-w-[85px]', cfg.badgeBg)}>
                         {cfg.label.split(' ')[0]}
                       </span>
                     ) : (
-                      <span className={cn('text-[9px] font-black uppercase px-1.5 py-0.5 rounded border', p.tipoAtendimento?.bgBadge ?? 'bg-slate-700/50 text-slate-300 border-white/10')}>
+                      <span className={cn('text-[8px] font-black uppercase px-1.5 py-0.2 rounded border truncate max-w-[85px]', p.tipoAtendimento?.bgBadge ?? 'bg-slate-700/50 text-slate-300 border-white/10')}>
                         {p.tipoAtendimento?.nomeCurto ?? p.etapa}
                       </span>
                     )}
                   </div>
 
-                  {/* SENHA EM DESTAQUE NO CARD */}
-                  <div className="my-0.5 flex items-baseline justify-between gap-1">
-                    <span className="font-mono font-black text-sm text-sky-300">
+                  <div className="flex items-baseline justify-between gap-1 my-0.5">
+                    <span className="font-mono font-black text-xs sm:text-sm text-sky-300">
                       {p.senha}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium truncate max-w-[90px]">
+                    <span className="text-[9px] text-slate-400 font-medium">
                       {p.etapa === 'TRIAGEM' ? 'Triagem' : 'Médico'}
                     </span>
                   </div>
 
-                  <p className="text-xs font-bold text-white truncate" title={p.nomePaciente}>
+                  <p className="text-[11px] font-bold text-white truncate" title={p.nomePaciente}>
                     {p.nomePaciente}
                   </p>
 
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1 pt-1 border-t border-white/5">
-                    <span className="font-mono text-[9px] text-slate-500 truncate">{p.numeroAtendimento}</span>
+                  <div className="flex items-center justify-between text-[9px] text-slate-400 mt-1 pt-1 border-t border-white/5">
+                    <span className="font-mono text-slate-500 truncate">{p.numeroAtendimento}</span>
                     <span className="shrink-0 text-slate-400 font-medium">{p.tempoEsperaMinutos}min</span>
                   </div>
                 </div>
@@ -495,33 +493,30 @@ export function PainelChamada({
         )}
       </div>
 
-      {/* 3. Seção: Chamadas Anteriores (Histórico Recente) */}
+      {/* 3. Seção: Últimas Chamadas Realizadas */}
       {historico.length > 1 && (
-        <div className="shrink-0 border-t border-white/10 bg-slate-950 px-4 sm:px-6 lg:px-8 py-2">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
-              Últimas chamadas realizadas
-            </span>
-          </div>
-          <div className={cn('grid gap-2', exibirMidia ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 md:grid-cols-4')}>
-            {historico.slice(1, 5).map((c, idx) => {
+        <div className="shrink-0 mt-2.5 pt-2 border-t border-white/10">
+          <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1.5">
+            Últimas chamadas realizadas
+          </p>
+          <div className={cn(
+            'grid gap-2',
+            exibirMidia ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
+          )}>
+            {historico.slice(1, exibirMidia ? 3 : 5).map((c, idx) => {
               const cfg = c.corTriagem ? COR_CONFIG[c.corTriagem] : null;
               const senhaCard = c.senha ?? resolverSenhaETipo({ numeroAtendimento: c.numeroAtendimento }).senha;
-              const opacidade = [0.9, 0.7, 0.5, 0.4][idx] ?? 0.35;
+              const opacidade = [0.9, 0.7, 0.5, 0.4][idx] ?? 0.4;
               return (
                 <div
                   key={c.id}
-                  className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-900/90 border border-white/10"
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-900/90 border border-white/10 overflow-hidden"
                   style={{ opacity: opacidade }}
                 >
-                  {cfg ? (
-                    <div className={cn('w-1.5 self-stretch rounded-full shrink-0', cfg.borda.replace('border-l-', 'bg-'))} />
-                  ) : (
-                    <div className="w-1.5 self-stretch rounded-full shrink-0 bg-sky-500" />
-                  )}
+                  <div className={cn('w-1.5 self-stretch rounded-full shrink-0', cfg ? cfg.borda.replace('border-', 'bg-') : 'bg-sky-500')} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-mono font-black text-xs text-sky-400">{senhaCard}</span>
+                      <span className="font-mono font-black text-xs text-sky-400 shrink-0">{senhaCard}</span>
                       <p className="text-xs font-semibold text-slate-200 truncate">{c.nomePaciente}</p>
                     </div>
                     <p className="text-[10px] text-slate-400 truncate">{c.salaDestino}</p>
@@ -536,10 +531,10 @@ export function PainelChamada({
   );
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden relative bg-slate-950 text-white font-sans">
+    <div className="h-screen flex flex-col overflow-hidden relative bg-slate-950 text-white font-sans select-none">
       {montado && <audio ref={audioRef} src="/sons/chamada-painel.mp3" preload="auto" />}
 
-      {/* Tela de Desbloqueio de Áudio (Políticas de Autoplay dos navegadores) */}
+      {/* Modal de Desbloqueio de Áudio */}
       {!gestoAudioOk && (
         <button
           type="button"
@@ -550,51 +545,49 @@ export function PainelChamada({
             <Volume2 className="h-16 w-16 text-sky-400" />
           </div>
           <p className="text-3xl font-extrabold text-white max-w-lg tracking-tight">
-            Toque na tela para ativar som e voz do painel
+            Toque na tela para ativar o áudio do painel
           </p>
           <p className="text-slate-300 text-sm max-w-md leading-relaxed">
-            Navegadores exigem um toque inicial para liberar a voz sintetizada e o aviso sonoro das senhas chamadas.
+            Permite o anúncio sonoro e a vocalização das senhas chamadas em tempo real.
           </p>
           <span className="mt-2 px-6 py-2.5 rounded-xl bg-sky-600 text-white font-bold text-sm shadow-lg shadow-sky-600/30 hover:bg-sky-500 transition-colors">
-            Ativar Sistema de Áudio
+            Ativar Som do Painel
           </span>
         </button>
       )}
 
       {/* Barra de Topo */}
-      <div className="flex items-center justify-between px-6 sm:px-8 py-3.5 border-b border-white/10 bg-slate-900/80 backdrop-blur-md shrink-0">
-        {/* Logo e Nome */}
+      <div className="flex items-center justify-between px-4 sm:px-8 py-3 border-b border-white/10 bg-slate-900/90 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-3">
           {instituicao?.logomarcaUrl ? (
-            <img src={instituicao.logomarcaUrl} alt="Logo" className="h-9 object-contain rounded bg-white/10 p-1" />
+            <img src={instituicao.logomarcaUrl} alt="Logo" className="h-8 object-contain rounded bg-white/10 p-1" />
           ) : (
-            <div className="p-2 bg-gradient-to-tr from-sky-600 to-primary rounded-xl shadow-md shadow-primary/30">
-              <Activity className="h-5 w-5 text-white" />
+            <div className="p-1.5 bg-gradient-to-tr from-sky-600 to-primary rounded-xl shadow-md shadow-primary/30">
+              <Activity className="h-4 w-4 text-white" />
             </div>
           )}
           <div>
-            <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold leading-none">
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold leading-none">
               {instituicao?.nomeInstituicao ?? 'SGH - HOSPITAL'}
             </p>
-            <p className="text-base font-black text-white leading-none mt-1">Painel de Chamadas</p>
+            <p className="text-sm sm:text-base font-black text-white leading-none mt-1">Painel de Chamadas</p>
           </div>
           {setor !== 'GERAL' && (
-            <span className="px-2.5 py-0.5 bg-primary/20 text-primary border border-primary/30 rounded-full text-xs font-bold ml-2">
+            <span className="px-2 py-0.5 bg-primary/20 text-primary border border-primary/30 rounded-full text-[10px] font-bold ml-2">
               {setor}
             </span>
           )}
         </div>
 
-        {/* Relógio + Controles */}
-        <div className="flex items-center gap-4 flex-wrap justify-end">
-          <p className="text-2xl font-mono font-black text-white tabular-nums tracking-tight" suppressHydrationWarning>
+        <div className="flex items-center gap-3 sm:gap-4 justify-end">
+          <p className="text-xl sm:text-2xl font-mono font-black text-white tabular-nums tracking-tight" suppressHydrationWarning>
             {agora ? format(agora, 'HH:mm:ss') : '--:--:--'}
           </p>
-          <p className="text-xs text-slate-400 capitalize hidden sm:inline-block font-medium" suppressHydrationWarning>
+          <p className="text-xs text-slate-400 capitalize hidden md:inline-block font-medium" suppressHydrationWarning>
             {agora ? format(agora, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : ''}
           </p>
 
-          <div className={cn('flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold', conectado ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/30' : 'bg-red-950/60 text-red-400 border border-red-500/30')}>
+          <div className={cn('flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold', conectado ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/30' : 'bg-red-950/60 text-red-400 border border-red-500/30')}>
             {conectado ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
             {conectado ? 'Online' : 'Offline'}
           </div>
@@ -602,7 +595,7 @@ export function PainelChamada({
           <button
             type="button"
             onClick={() => setSomAtivo((s) => !s)}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-slate-300"
+            className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-slate-300"
             aria-label={somAtivo ? 'Silenciar' : 'Ativar som'}
           >
             {somAtivo ? <Volume2 className="h-4 w-4 text-sky-400" /> : <VolumeX className="h-4 w-4 text-red-400" />}
@@ -610,20 +603,20 @@ export function PainelChamada({
         </div>
       </div>
 
-      {/* Área Principal */}
+      {/* Área de Conteúdo Principal */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
-        {exibirMidia && midiaEsquerda ? (
-          <div className="w-1/2 shrink-0 border-r border-white/10">{areaMidia}</div>
-        ) : null}
-        <div className={cn('min-w-0 flex flex-col', exibirMidia ? 'w-1/2' : 'w-full')}>
+        {exibirMidia && midiaEsquerda && (
+          <div className="w-1/2 shrink-0 border-r border-white/10 h-full">{areaMidia}</div>
+        )}
+        <div className={cn('h-full min-h-0', exibirMidia ? 'w-1/2' : 'w-full')}>
           {areaChamadas}
         </div>
-        {exibirMidia && !midiaEsquerda ? (
-          <div className="w-1/2 shrink-0 border-l border-white/10">{areaMidia}</div>
-        ) : null}
+        {exibirMidia && !midiaEsquerda && (
+          <div className="w-1/2 shrink-0 border-l border-white/10 h-full">{areaMidia}</div>
+        )}
       </div>
 
-      {/* Rodapé */}
+      {/* Rodapé Institucional */}
       <div className="shrink-0 bg-slate-950 py-1 text-center border-t border-white/5">
         <p className="text-[10px] text-slate-500 font-medium">
           Desenvolvido por PAJO Tecnologia · pajotech.com.br
