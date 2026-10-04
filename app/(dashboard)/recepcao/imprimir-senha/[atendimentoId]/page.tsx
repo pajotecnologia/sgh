@@ -42,8 +42,7 @@ export default async function PaginaImprimirSenha({
   }
 
   const instituicao = await prisma.instituicao.findFirst({
-    where: { ativo: true },
-    select: { nomeInstituicao: true, unidade: true },
+    select: { nomeInstituicao: true, nomeMunicipio: true },
   });
 
   const { senha, tipo } = resolverSenhaETipo({
@@ -60,7 +59,7 @@ export default async function PaginaImprimirSenha({
   return (
     <TicketSenha80mm
       nomeInstituicao={instituicao?.nomeInstituicao ?? 'SGH - HOSPITAL GERAL'}
-      unidadeNome={instituicao?.unidade ?? atendimento.setor ?? 'PRONTO ATENDIMENTO'}
+      unidadeNome={instituicao?.nomeMunicipio ?? atendimento.setor ?? 'PRONTO ATENDIMENTO'}
       senha={senha}
       tipoInfo={tipo}
       nomePaciente={nomePaciente}
