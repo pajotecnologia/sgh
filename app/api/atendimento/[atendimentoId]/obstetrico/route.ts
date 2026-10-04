@@ -32,10 +32,24 @@ export async function POST(
 
     const atendimento = await prisma.atendimento.findFirst({
       where: { id: atendimentoId, deletedAt: null },
-      select: { id: true },
+      select: {
+        id: true,
+        paciente: {
+          select: {
+            sexoBiologico: true,
+          },
+        },
+      },
     })
     if (!atendimento) {
       return NextResponse.json({ sucesso: false, erro: 'Atendimento não encontrado.' }, { status: 404 })
+    }
+
+    if (data.obstetrico === true && atendimento.paciente?.sexoBiologico !== 'FEMININO') {
+      return NextResponse.json(
+        { sucesso: false, erro: 'Atendimento obstétrico é permitido exclusivamente para pacientes do sexo feminino.' },
+        { status: 400 }
+      )
     }
 
     const atualizado = await prisma.atendimento.update({

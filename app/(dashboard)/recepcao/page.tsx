@@ -295,7 +295,7 @@ export default async function PaginaRecepcao({
                       </Link>
 
                       {(!atend || atend.status === 'CONCLUIDO' || atend.status === 'ALTA') && (
-                        <BotaoNovoAtendimento pacienteId={p.id} />
+                        <BotaoNovoAtendimento pacienteId={p.id} sexoBiologico={p.sexoBiologico} />
                       )}
                       
                       {atend && (

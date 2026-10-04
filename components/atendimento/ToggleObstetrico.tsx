@@ -8,14 +8,22 @@ import { cn } from '@/lib/utils'
 export function ToggleObstetrico({
   atendimentoId,
   inicial,
+  sexoBiologico,
 }: {
   atendimentoId: string
   inicial?: boolean
+  sexoBiologico?: string
 }) {
   const [obstetrico, setObstetrico] = useState(Boolean(inicial))
   const [salvando, setSalvando] = useState(false)
 
+  const podeMarcar = !sexoBiologico || sexoBiologico.toUpperCase() === 'FEMININO'
+
   const alternar = async () => {
+    if (!podeMarcar && !obstetrico) {
+      toast.error('Atendimento obstétrico é restrito a pacientes do sexo feminino.')
+      return
+    }
     const novo = !obstetrico
     setObstetrico(novo)
     setSalvando(true)
@@ -44,10 +52,17 @@ export function ToggleObstetrico({
     <button
       type="button"
       onClick={alternar}
-      disabled={salvando}
+      disabled={salvando || (!podeMarcar && !obstetrico)}
       aria-pressed={obstetrico}
+      title={
+        !podeMarcar
+          ? 'Atendimento obstétrico restrito a pacientes do sexo feminino'
+          : obstetrico
+          ? 'Desmarcar atendimento obstétrico'
+          : 'Marcar como atendimento obstétrico'
+      }
       className={cn(
-        'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors disabled:opacity-60',
+        'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
         obstetrico
           ? 'border-pink-500 bg-pink-500/15 text-pink-900 dark:text-pink-100'
           : 'border-border hover:bg-muted/50'
@@ -55,6 +70,7 @@ export function ToggleObstetrico({
     >
       {salvando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Baby className="h-3.5 w-3.5" />}
       {obstetrico ? 'Atendimento obstétrico' : 'Marcar obstétrico'}
+      {!podeMarcar && <span className="text-[10px] text-muted-foreground">(somente feminino)</span>}
     </button>
   )
 }

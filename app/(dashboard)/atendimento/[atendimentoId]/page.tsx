@@ -287,7 +287,11 @@ export default function WorkspaceAtendimento({
         )}
 
         <div className="shrink-0">
-          <ToggleObstetrico atendimentoId={atendimento.id} inicial={atendimento.obstetrico} />
+          <ToggleObstetrico
+            atendimentoId={atendimento.id}
+            inicial={atendimento.obstetrico}
+            sexoBiologico={paciente.sexoBiologico}
+          />
         </div>
       </div>
 

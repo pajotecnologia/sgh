@@ -104,7 +104,7 @@ export function FichaPacienteClient({ dados }: { dados: DadosPaciente }) {
         </Link>
         <div className="flex gap-2">
           {(!dados.atendimentos.length || ['CONCLUIDO', 'ALTA', 'TRANSFERIDO', 'OBITO'].includes(dados.atendimentos[0].status)) && (
-            <BotaoNovoAtendimento pacienteId={dados.id} />
+            <BotaoNovoAtendimento pacienteId={dados.id} sexoBiologico={dados.sexoBiologico} />
           )}
           <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-muted transition-colors">
             <Printer className="h-4 w-4" /> Imprimir

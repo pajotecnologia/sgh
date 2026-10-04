@@ -41,13 +41,21 @@ export async function POST(req: NextRequest) {
     // Verificar se o paciente existe
     const paciente = await prisma.paciente.findUnique({
       where: { id: pacienteId },
-      select: { id: true, nomeExibicao: true, nomeCriptografado: true }
+      select: { id: true, nomeExibicao: true, nomeCriptografado: true, sexoBiologico: true }
     });
 
     if (!paciente) {
       return NextResponse.json<ApiResponse<never>>(
         { sucesso: false, erro: 'Paciente não encontrado.' },
         { status: 404 }
+      );
+    }
+
+    // Validação de negócio: Atendimento obstétrico é restrito a pacientes do sexo biológico feminino
+    if (obstetrico && paciente.sexoBiologico !== 'FEMININO') {
+      return NextResponse.json<ApiResponse<never>>(
+        { sucesso: false, erro: 'O atendimento obstétrico é permitido exclusivamente para pacientes do sexo feminino.' },
+        { status: 400 }
       );
     }
 

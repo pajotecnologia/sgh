@@ -132,13 +132,15 @@ export function calcularIdadeEmAnos(dataNascimento?: Date | string | null): numb
 }
 
 /**
- * Sugere o tipo de atendimento com base na data de nascimento e flags clínicas.
+ * Sugere o tipo de atendimento com base na data de nascimento, flags clínicas e sexo biológico.
+ * Atendimento Obstétrico (OB) é restrito exclusivamente ao sexo biológico feminino.
  */
 export function sugerirTipoAtendimento(
   dataNascimento?: Date | string | null,
-  options?: { obstetrico?: boolean; preferencialManual?: boolean }
+  options?: { obstetrico?: boolean; preferencialManual?: boolean; sexoBiologico?: string | null }
 ): TipoAtendimentoCodigo {
-  if (options?.obstetrico) return 'OB';
+  const isFeminino = !options?.sexoBiologico || options.sexoBiologico.toUpperCase() === 'FEMININO';
+  if (options?.obstetrico && isFeminino) return 'OB';
   if (options?.preferencialManual) return 'SP';
 
   const idade = calcularIdadeEmAnos(dataNascimento);
@@ -170,6 +172,7 @@ export function resolverSenhaETipo(params: {
   tipoSalvo?: string | null;
   dataNascimento?: Date | string | null;
   obstetrico?: boolean;
+  sexoBiologico?: string | null;
 }): { senha: string; tipo: TipoAtendimentoInfo; idade: number | null } {
   const idade = calcularIdadeEmAnos(params.dataNascimento);
 
@@ -185,7 +188,10 @@ export function resolverSenhaETipo(params: {
   if (params.tipoSalvo && params.tipoSalvo in TIPOS_ATENDIMENTO) {
     tipoCodigo = params.tipoSalvo as TipoAtendimentoCodigo;
   } else {
-    tipoCodigo = sugerirTipoAtendimento(params.dataNascimento, { obstetrico: params.obstetrico });
+    tipoCodigo = sugerirTipoAtendimento(params.dataNascimento, {
+      obstetrico: params.obstetrico,
+      sexoBiologico: params.sexoBiologico,
+    });
   }
 
   // 3. Extrair sufixo numérico determinístico do numeroAtendimento (ex: 20261004-A1B2 -> número derivado)

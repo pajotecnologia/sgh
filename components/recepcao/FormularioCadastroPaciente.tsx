@@ -278,6 +278,15 @@ export function FormularioCadastroPaciente({ pacienteId }: { pacienteId?: string
     carregar();
   }, [pacienteId, form]);
 
+  const sexoBiologicoAtual = form.watch('dadosPessoais.sexoBiologico');
+  const podeMarcarObstetrico = sexoBiologicoAtual === 'FEMININO';
+
+  useEffect(() => {
+    if (!podeMarcarObstetrico && obstetrico) {
+      setObstetrico(false);
+    }
+  }, [podeMarcarObstetrico, obstetrico]);
+
   // Validação de CPF em tempo real (duplicidade)
   useEffect(() => {
     if (cpfValue?.length === 14 && !pacienteId) {
@@ -1100,14 +1109,34 @@ export function FormularioCadastroPaciente({ pacienteId }: { pacienteId?: string
               </Campo>
 
               <div className="flex items-center gap-4 sm:col-span-2 pt-6">
-                <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                <label
+                  className={cn(
+                    'flex items-center gap-2 text-xs font-medium transition-opacity',
+                    podeMarcarObstetrico
+                      ? 'cursor-pointer text-foreground'
+                      : 'cursor-not-allowed opacity-50 text-muted-foreground'
+                  )}
+                  title={
+                    podeMarcarObstetrico
+                      ? 'Marcar como atendimento obstétrico'
+                      : 'Atendimento obstétrico disponível exclusivamente para pacientes do sexo feminino'
+                  }
+                >
                   <input
                     type="checkbox"
-                    checked={obstetrico}
-                    onChange={(e) => setObstetrico(e.target.checked)}
-                    className="h-4 w-4 rounded text-primary focus:ring-primary"
+                    checked={obstetrico && podeMarcarObstetrico}
+                    disabled={!podeMarcarObstetrico}
+                    onChange={(e) => podeMarcarObstetrico && setObstetrico(e.target.checked)}
+                    className="h-4 w-4 rounded text-primary focus:ring-primary disabled:opacity-40"
                   />
-                  Atendimento Obstétrico
+                  <span>
+                    Atendimento Obstétrico{' '}
+                    {!podeMarcarObstetrico && (
+                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-normal">
+                        (somente sexo feminino)
+                      </span>
+                    )}
+                  </span>
                 </label>
 
                 <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">

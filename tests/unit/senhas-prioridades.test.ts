@@ -43,10 +43,17 @@ describe('Módulo de Senhas e Prioridades Hospitalares (SGH)', () => {
       expect(sugerirTipoAtendimento(nasc5)).toBe('PD');
     });
 
-    it('deve sugerir Obstetrícia (OB) quando a flag obstétrica estiver ativa', () => {
+    it('deve sugerir Obstetrícia (OB) quando a flag obstétrica estiver ativa e paciente for do sexo feminino', () => {
       const hoje = new Date();
       const nasc25 = new Date(hoje.getFullYear() - 25, 0, 1);
+      expect(sugerirTipoAtendimento(nasc25, { obstetrico: true, sexoBiologico: 'FEMININO' })).toBe('OB');
       expect(sugerirTipoAtendimento(nasc25, { obstetrico: true })).toBe('OB');
+    });
+
+    it('NÃO deve sugerir Obstetrícia (OB) se o paciente for do sexo masculino, mesmo com flag ativa', () => {
+      const hoje = new Date();
+      const nasc25 = new Date(hoje.getFullYear() - 25, 0, 1);
+      expect(sugerirTipoAtendimento(nasc25, { obstetrico: true, sexoBiologico: 'MASCULINO' })).toBe('SG');
     });
 
     it('deve sugerir Geral (SG) para adultos sem prioridade legal', () => {

@@ -81,7 +81,11 @@ export default async function PaginaRealizarTriagem({
       </div>
 
       <div className="flex justify-end">
-        <ToggleObstetrico atendimentoId={atendimento.id} inicial={atendimento.obstetrico} />
+        <ToggleObstetrico
+          atendimentoId={atendimento.id}
+          inicial={atendimento.obstetrico}
+          sexoBiologico={atendimento.paciente.sexoBiologico}
+        />
       </div>
 
       {/* Formulário principal */}

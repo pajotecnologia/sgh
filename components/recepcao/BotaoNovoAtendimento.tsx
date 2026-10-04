@@ -8,9 +8,10 @@ import { notificarFilaAtualizada } from '@/lib/fila-triagem-sync';
 
 interface BotaoNovoAtendimentoProps {
   pacienteId: string;
+  sexoBiologico?: string;
 }
 
-export function BotaoNovoAtendimento({ pacienteId }: BotaoNovoAtendimentoProps) {
+export function BotaoNovoAtendimento({ pacienteId, sexoBiologico }: BotaoNovoAtendimentoProps) {
   const router = useRouter();
   const [modalAberto, setModalAberto] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -19,6 +20,8 @@ export function BotaoNovoAtendimento({ pacienteId }: BotaoNovoAtendimentoProps) 
   const [carregandoOrigens, setCarregandoOrigens] = useState(false);
   const [obstetrico, setObstetrico] = useState(false);
   const [vaiInternar, setVaiInternar] = useState(false);
+
+  const podeMarcarObstetrico = !sexoBiologico || sexoBiologico.toUpperCase() === 'FEMININO';
 
   useEffect(() => {
     if (modalAberto && origens.length === 0) {
@@ -145,14 +148,33 @@ export function BotaoNovoAtendimento({ pacienteId }: BotaoNovoAtendimentoProps) 
               </div>
 
               <div className="space-y-2 pt-1">
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <label
+                  className={`flex items-center gap-2 text-sm ${
+                    podeMarcarObstetrico
+                      ? 'cursor-pointer text-foreground'
+                      : 'cursor-not-allowed opacity-50 text-muted-foreground'
+                  }`}
+                  title={
+                    podeMarcarObstetrico
+                      ? 'Marcar atendimento como obstétrico'
+                      : 'Atendimento obstétrico disponível exclusivamente para pacientes do sexo feminino'
+                  }
+                >
                   <input
                     type="checkbox"
-                    checked={obstetrico}
-                    onChange={(e) => setObstetrico(e.target.checked)}
-                    className="rounded border-input"
+                    checked={obstetrico && podeMarcarObstetrico}
+                    disabled={!podeMarcarObstetrico}
+                    onChange={(e) => podeMarcarObstetrico && setObstetrico(e.target.checked)}
+                    className="rounded border-input disabled:opacity-40"
                   />
-                  <span>Atendimento obstétrico (gestante/puérpera)</span>
+                  <span>
+                    Atendimento obstétrico (gestante/puérpera){' '}
+                    {!podeMarcarObstetrico && (
+                      <span className="text-xs text-amber-600 dark:text-amber-400 font-normal">
+                        (somente sexo feminino)
+                      </span>
+                    )}
+                  </span>
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input
