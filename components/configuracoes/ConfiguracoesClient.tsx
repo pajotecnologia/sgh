@@ -611,7 +611,7 @@ export function ConfiguracoesClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...novaSala,
-          nome: textoCadastroMaiusculo(novaSala.nome.trim()),
+          nome: novaSala.nome.trim(),
         }),
       });
       const json = await res.json();
@@ -674,7 +674,7 @@ export function ConfiguracoesClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formSalaEdicao,
-          nome: textoCadastroMaiusculo(formSalaEdicao.nome.trim()),
+          nome: formSalaEdicao.nome.trim(),
         }),
       });
       const json = await res.json();
@@ -1014,9 +1014,9 @@ export function ConfiguracoesClient() {
                   <label className="text-xs font-semibold text-muted-foreground">Nome da Sala / Consultório *</label>
                   <input
                     value={novaSala.nome}
-                    onChange={(e) => setNovaSala({ ...novaSala, nome: textoCadastroMaiusculo(e.target.value) })}
+                    onChange={(e) => setNovaSala({ ...novaSala, nome: e.target.value })}
                     className={inputClass}
-                    placeholder="EX: CONSULTÓRIO 05, SALA DE GESSO"
+                    placeholder="Ex: Consultório 05, Sala de Gesso..."
                     required
                   />
                 </div>
@@ -1184,8 +1184,9 @@ export function ConfiguracoesClient() {
                       <label className="text-xs font-semibold">Nome da Sala *</label>
                       <input
                         value={formSalaEdicao.nome}
-                        onChange={(e) => setFormSalaEdicao({ ...formSalaEdicao, nome: textoCadastroMaiusculo(e.target.value) })}
+                        onChange={(e) => setFormSalaEdicao({ ...formSalaEdicao, nome: e.target.value })}
                         className={inputClass}
+                        placeholder="Ex: Consultório 01, Sala de Emergência..."
                         required
                       />
                     </div>
