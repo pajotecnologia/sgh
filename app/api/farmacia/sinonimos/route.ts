@@ -19,7 +19,9 @@ const schemaCriar = z.object({
 
 const schemaAtualizar = z.object({
   id: z.string().uuid(),
-  ativo: z.boolean(),
+  sinonimo: z.string().min(2).max(120).optional(),
+  medicamentoId: z.string().uuid().optional(),
+  ativo: z.boolean().optional(),
 })
 
 export async function GET(req: NextRequest) {
@@ -143,9 +145,28 @@ export async function PATCH(req: NextRequest) {
     }
 
     const d = validacao.data
+    const dataUpdate: { sinonimo?: string; sinonimoNorm?: string; medicamentoId?: string; ativo?: boolean } = {}
+
+    if (d.sinonimo) {
+      const sinonimoNorm = normalizarSinonimoParaBanco(d.sinonimo)
+      if (!sinonimoNorm) {
+        return NextResponse.json({ sucesso: false, erro: 'Sinônimo inválido.' }, { status: 400 })
+      }
+      dataUpdate.sinonimo = d.sinonimo.trim()
+      dataUpdate.sinonimoNorm = sinonimoNorm
+    }
+
+    if (d.medicamentoId) {
+      dataUpdate.medicamentoId = d.medicamentoId
+    }
+
+    if (typeof d.ativo === 'boolean') {
+      dataUpdate.ativo = d.ativo
+    }
+
     const atualizado = await prisma.tbMedicamentoSinonimo.update({
       where: { id: d.id },
-      data: { ativo: d.ativo },
+      data: dataUpdate,
       include: { medicamento: true },
     })
 
@@ -158,12 +179,58 @@ export async function PATCH(req: NextRequest) {
       entidadeId: atualizado.id,
       ipOrigem: req.headers.get('x-forwarded-for') ?? null,
       userAgent: req.headers.get('user-agent') ?? null,
-      detalhes: { ativo: d.ativo },
+      detalhes: { ...dataUpdate },
     })
 
     return NextResponse.json({ sucesso: true, dados: atualizado })
   } catch (e) {
     console.error('[PATCH /api/farmacia/sinonimos]', e)
     return NextResponse.json({ sucesso: false, erro: 'Erro interno.' }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const sessao = await getServerSession(authOptions)
+  if (!sessao) return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 })
+  if (!ROLES.includes(sessao.usuario.role as (typeof ROLES)[number])) {
+    return NextResponse.json({ sucesso: false, erro: 'Sem permissão.' }, { status: 403 })
+  }
+
+  try {
+    const url = new URL(req.url)
+    const id = (url.searchParams.get('id') ?? '').trim()
+    if (!id) {
+      return NextResponse.json({ sucesso: false, erro: 'ID do sinônimo é obrigatório.' }, { status: 400 })
+    }
+
+    const existente = await prisma.tbMedicamentoSinonimo.findUnique({
+      where: { id },
+      include: { medicamento: true },
+    })
+
+    if (!existente) {
+      return NextResponse.json({ sucesso: false, erro: 'Sinônimo não encontrado.' }, { status: 404 })
+    }
+
+    await prisma.tbMedicamentoSinonimo.delete({
+      where: { id },
+    })
+
+    await auditarLgpd({
+      usuarioId: sessao.usuario.id,
+      role: sessao.usuario.role as never,
+      atendimentoId: null,
+      acao: 'EXCLUSAO',
+      entidade: 'TbMedicamentoSinonimo',
+      entidadeId: id,
+      ipOrigem: req.headers.get('x-forwarded-for') ?? null,
+      userAgent: req.headers.get('user-agent') ?? null,
+      detalhes: { sinonimo: existente.sinonimo, medicamentoId: existente.medicamentoId },
+    })
+
+    return NextResponse.json({ sucesso: true, mensagem: 'Sinônimo excluído com sucesso.' })
+  } catch (e) {
+    console.error('[DELETE /api/farmacia/sinonimos]', e)
+    return NextResponse.json({ sucesso: false, erro: 'Erro interno ao excluir sinônimo.' }, { status: 500 })
   }
 }
