@@ -1,10 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao';
+import { resolverSenhaETipo, ordenarFilaHospitalar, type TipoAtendimentoInfo } from '@/lib/senhas';
 import type { CorTriagem, StatusAtendimento } from '@/types';
 
 export interface ProximoChamadoItem {
   id: string;
   numeroAtendimento: string;
+  senha: string;
+  tipoAtendimento: TipoAtendimentoInfo;
   nomePaciente: string;
   corTriagem: CorTriagem | null;
   status: StatusAtendimento;
@@ -12,15 +15,6 @@ export interface ProximoChamadoItem {
   posicao: number;
   tempoEsperaMinutos: number;
 }
-
-const PESO_MANCHESTER: Record<string, number> = {
-  VERMELHO: 0,
-  LARANJA: 1,
-  AMARELO: 2,
-  VERDE: 3,
-  AZUL: 4,
-  CINZA: 5,
-};
 
 export async function buscarProximosChamados(
   setor: string = 'GERAL',
@@ -45,16 +39,22 @@ export async function buscarProximosChamados(
         paciente: { deletedAt: null },
       },
       include: {
-        paciente: { select: { nomeExibicao: true, nomeCriptografado: true } },
+        paciente: {
+          select: {
+            nomeExibicao: true,
+            nomeCriptografado: true,
+            dataNascimento: true,
+          },
+        },
         triagem: { select: { corClassificacao: true, entradaTriagem: true } },
       },
       orderBy: { createdAt: 'asc' },
-      take: 30,
+      take: 40,
     });
 
     const agora = Date.now();
 
-    const itens = (atendimentos || [])
+    const itensBrutos = (atendimentos || [])
       .filter((a) => Boolean(a && a.paciente))
       .map((a) => {
         const corTriagem = a.triagem?.corClassificacao ?? null;
@@ -64,39 +64,37 @@ export async function buscarProximosChamados(
           : 0;
         const etapa: 'TRIAGEM' | 'CONSULTÓRIO' = a.status === 'AGUARDANDO_TRIAGEM' ? 'TRIAGEM' : 'CONSULTÓRIO';
 
+        const senhaInfo = resolverSenhaETipo({
+          numeroAtendimento: a.numeroAtendimento,
+          dataNascimento: a.paciente.dataNascimento,
+          obstetrico: a.obstetrico,
+        });
+
         return {
           id: a.id,
           numeroAtendimento: a.numeroAtendimento ?? '---',
+          senha: senhaInfo.senha,
+          tipoAtendimento: senhaInfo.tipo,
+          tipoCodigo: senhaInfo.tipo.codigo,
+          dataNascimento: a.paciente.dataNascimento,
           nomePaciente: nomeCompletoParaExibicao(a.paciente?.nomeExibicao, a.paciente?.nomeCriptografado),
           corTriagem,
           status: a.status,
           etapa,
           tempoEsperaMinutos,
           createdAt: a.createdAt,
+          entradaFila: entrada,
         };
       });
 
-    // Ordenação: Protocolo de Manchester (gravidade) e ordem de chegada
-    itens.sort((a, b) => {
-      const pesoA = a.corTriagem
-        ? (PESO_MANCHESTER[a.corTriagem] ?? 9)
-        : a.status === 'AGUARDANDO_TRIAGEM'
-          ? 8
-          : 10;
-      const pesoB = b.corTriagem
-        ? (PESO_MANCHESTER[b.corTriagem] ?? 9)
-        : b.status === 'AGUARDANDO_TRIAGEM'
-          ? 8
-          : 10;
+    // Ordenação com rigor hospitalar: Manchester + 80+ + Prioritário Legal + Tempo de Espera
+    const itensOrdenados = ordenarFilaHospitalar(itensBrutos);
 
-      if (pesoA !== pesoB) return pesoA - pesoB;
-
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
-
-    return itens.slice(0, limite).map((item, idx) => ({
+    return itensOrdenados.slice(0, limite).map((item, idx) => ({
       id: item.id,
       numeroAtendimento: item.numeroAtendimento,
+      senha: item.senha,
+      tipoAtendimento: item.tipoAtendimento,
       nomePaciente: item.nomePaciente,
       corTriagem: item.corTriagem,
       status: item.status,

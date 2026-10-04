@@ -13,9 +13,14 @@ import { cn } from '@/lib/utils';
 import { EnvoltorioListaPaginada } from '@/components/shared/EnvoltorioListaPaginada';
 import type { CorTriagem } from '@/types';
 
+import type { TipoAtendimentoInfo } from '@/lib/senhas';
+
 interface PacienteNaFila {
   atendimentoId: string;
   numeroAtendimento: string;
+  senha?: string;
+  tipoAtendimento?: TipoAtendimentoInfo;
+  idadeAnos?: number | null;
   nomePaciente: string;
   corTriagem: CorTriagem | null;
   labelCor: string;

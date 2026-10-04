@@ -7,12 +7,12 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { PROTOCOLO_MANCHESTER } from '@/types'
 import { calcularTempoEspera, alertaTempoManchester } from '@/lib/utils'
-import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao'
 import {
   whereAguardandoTriagem,
   whereEmTriagem,
   includePacienteFilaPreTriagem,
 } from '@/lib/fila-aguardando-triagem'
+import { resolverSenhaETipo, ordenarFilaHospitalar } from '@/lib/senhas'
 import type { StatusAtendimento } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
@@ -49,38 +49,65 @@ export async function GET(req: NextRequest) {
               paciente: { deletedAt: null },
             }
 
+    const { nomeCompletoParaExibicao } = await import('@/lib/nome-paciente-exibicao');
+
     if (modo === 'aguardando' || modo === 'em-triagem') {
       const atendimentos = await prisma.atendimento.findMany({
         where: whereBase,
         include: includePacienteFilaPreTriagem,
         orderBy: { createdAt: 'asc' },
-      })
+      });
 
-      const fila = atendimentos.map((a) => ({
-        atendimentoId: a.id,
-        numeroAtendimento: a.numeroAtendimento,
-        nomePaciente: nomeCompletoParaExibicao(
-          a.paciente.nomeExibicao,
-          a.paciente.nomeCriptografado
-        ),
-        dataNascimento: a.paciente.dataNascimento.toISOString(),
-        sexoBiologico: a.paciente.sexoBiologico,
-        convenio: a.paciente.convenio,
-        alergias: a.paciente.alergias.map((al) => al.descricao),
-        entradaFila: a.createdAt.toISOString(),
-        status: a.status,
-      }))
+      const filaBruta = atendimentos.map((a) => {
+        const senhaInfo = resolverSenhaETipo({
+          numeroAtendimento: a.numeroAtendimento,
+          dataNascimento: a.paciente.dataNascimento,
+          obstetrico: a.obstetrico,
+        });
+
+        const tempoEsperaMinutos = calcularTempoEspera(a.createdAt);
+
+        return {
+          atendimentoId: a.id,
+          numeroAtendimento: a.numeroAtendimento,
+          senha: senhaInfo.senha,
+          tipoAtendimento: senhaInfo.tipo,
+          idadeAnos: senhaInfo.idade,
+          nomePaciente: nomeCompletoParaExibicao(
+            a.paciente.nomeExibicao,
+            a.paciente.nomeCriptografado
+          ),
+          dataNascimento: a.paciente.dataNascimento.toISOString(),
+          sexoBiologico: a.paciente.sexoBiologico,
+          convenio: a.paciente.convenio,
+          alergias: a.paciente.alergias.map((al) => al.descricao),
+          entradaFila: a.createdAt.toISOString(),
+          tempoEsperaMinutos,
+          status: a.status,
+          tipoCodigo: senhaInfo.tipo.codigo,
+          createdAt: a.createdAt,
+        };
+      });
+
+      const filaOrdenada = ordenarFilaHospitalar(filaBruta);
 
       return NextResponse.json(
-        { sucesso: true, dados: fila, total: fila.length, modo },
+        { sucesso: true, dados: filaOrdenada, total: filaOrdenada.length, modo },
         { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
-      )
+      );
     }
 
     const atendimentos = await prisma.atendimento.findMany({
       where: whereBase,
       include: {
-        paciente: { select: { nomeExibicao: true, nomeCriptografado: true } },
+        paciente: {
+          select: {
+            nomeExibicao: true,
+            nomeCriptografado: true,
+            dataNascimento: true,
+            sexoBiologico: true,
+          },
+        },
         triagem: {
           select: {
             corClassificacao: true,
@@ -100,23 +127,32 @@ export async function GET(req: NextRequest) {
         },
       },
       orderBy: { createdAt: 'asc' },
-    })
+    });
 
-    const fila = atendimentos.map((a) => {
-      const corTriagem = a.triagem?.corClassificacao ?? null
-      const entradaFila = a.triagem?.entradaTriagem ?? a.createdAt
-      const tempoEsperaMinutos = calcularTempoEspera(entradaFila)
+    const filaBruta = atendimentos.map((a) => {
+      const corTriagem = a.triagem?.corClassificacao ?? null;
+      const entradaFila = a.triagem?.entradaTriagem ?? a.createdAt;
+      const tempoEsperaMinutos = calcularTempoEspera(entradaFila);
       const ultrapassado = corTriagem
         ? alertaTempoManchester(corTriagem, tempoEsperaMinutos)
-        : false
+        : false;
 
       const configCor = corTriagem
         ? PROTOCOLO_MANCHESTER.find((c) => c.cor === corTriagem)
-        : null
+        : null;
+
+      const senhaInfo = resolverSenhaETipo({
+        numeroAtendimento: a.numeroAtendimento,
+        dataNascimento: a.paciente.dataNascimento,
+        obstetrico: a.obstetrico,
+      });
 
       return {
         atendimentoId: a.id,
         numeroAtendimento: a.numeroAtendimento,
+        senha: senhaInfo.senha,
+        tipoAtendimento: senhaInfo.tipo,
+        idadeAnos: senhaInfo.idade,
         nomePaciente: nomeCompletoParaExibicao(
           a.paciente.nomeExibicao,
           a.paciente.nomeCriptografado
@@ -131,31 +167,19 @@ export async function GET(req: NextRequest) {
         sinaisVitais: a.triagem?.sinaisVitais ?? null,
         sala: a.sala,
         setor: a.setor,
-      }
-    })
+        tipoCodigo: senhaInfo.tipo.codigo,
+        createdAt: a.createdAt,
+      };
+    });
 
-    const ORDEM_COR: Record<string, number> = {
-      VERMELHO: 0,
-      LARANJA: 1,
-      AMARELO: 2,
-      VERDE: 3,
-      AZUL: 4,
-      CINZA: 5,
-    }
-
-    fila.sort((a, b) => {
-      const ordemA = a.corTriagem ? (ORDEM_COR[a.corTriagem] ?? 9) : 10
-      const ordemB = b.corTriagem ? (ORDEM_COR[b.corTriagem] ?? 9) : 10
-      if (ordemA !== ordemB) return ordemA - ordemB
-      return b.tempoEsperaMinutos - a.tempoEsperaMinutos
-    })
+    const filaOrdenada = ordenarFilaHospitalar(filaBruta);
 
     return NextResponse.json(
-      { sucesso: true, dados: fila, total: fila.length, modo: 'pos' },
+      { sucesso: true, dados: filaOrdenada, total: filaOrdenada.length, modo: 'pos' },
       { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
-    )
+    );
   } catch (erro) {
-    console.error('[GET /api/triagem/fila] Erro:', erro)
-    return NextResponse.json({ sucesso: false, erro: 'Erro interno.' }, { status: 500 })
+    console.error('[GET /api/triagem/fila] Erro:', erro);
+    return NextResponse.json({ sucesso: false, erro: 'Erro interno.' }, { status: 500 });
   }
 }

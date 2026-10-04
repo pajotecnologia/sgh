@@ -14,9 +14,14 @@ import { getPusherCliente, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher'
 import { escutarFilaAtualizada, fetchFilaTriagem } from '@/lib/fila-triagem-sync'
 import { EnvoltorioListaPaginada } from '@/components/shared/EnvoltorioListaPaginada'
 
+import type { TipoAtendimentoInfo } from '@/lib/senhas'
+
 export interface PacienteAguardando {
   atendimentoId: string
   numeroAtendimento: string
+  senha?: string
+  tipoAtendimento?: TipoAtendimentoInfo
+  idadeAnos?: number | null
   nomePaciente: string
   dataNascimento: string
   sexoBiologico: string
@@ -85,8 +90,20 @@ function CardPaciente({
     >
       <div className="flex items-start justify-between gap-2 mb-1">
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-[11px] text-foreground truncate">{p.nomePaciente}</p>
-          <p className="text-[10px] font-mono text-muted-foreground">{p.numeroAtendimento}</p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {p.senha && (
+              <span className="font-mono font-black text-[10px] px-1.5 py-0.2 rounded bg-sky-950/60 text-sky-300 border border-sky-500/40">
+                {p.senha}
+              </span>
+            )}
+            {p.tipoAtendimento && (
+              <span className={cn('text-[8px] font-bold uppercase px-1 py-0.2 rounded border', p.tipoAtendimento.bgBadge)}>
+                {p.tipoAtendimento.nomeCurto}
+              </span>
+            )}
+            <p className="font-semibold text-[11px] text-foreground truncate">{p.nomePaciente}</p>
+          </div>
+          <p className="text-[10px] font-mono text-muted-foreground mt-0.5">{p.numeroAtendimento}</p>
         </div>
         <div className="flex flex-col items-end gap-0.5 shrink-0">
           {destaqueEmTriagem && (

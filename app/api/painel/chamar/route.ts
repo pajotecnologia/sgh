@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { schemaChamarPaciente } from '@/lib/validations/triagem';
 import { mensagemErroValidacaoApi } from '@/lib/validations/id';
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao';
+import { resolverSenhaETipo } from '@/lib/senhas';
 import { dispararEventoPusher, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher';
 import type { ApiResponse, ChamadaPainelDTO } from '@/types';
 import { usuarioPodeExecutarTransicao } from '@/lib/fluxo-atendimento';
@@ -44,7 +45,13 @@ export async function POST(req: NextRequest) {
     const atendimento = await prisma.atendimento.findFirst({
       where: { id: atendimentoId, deletedAt: null },
       include: {
-        paciente: { select: { nomeExibicao: true, nomeCriptografado: true } },
+        paciente: {
+          select: {
+            nomeExibicao: true,
+            nomeCriptografado: true,
+            dataNascimento: true,
+          },
+        },
         triagem: { select: { corClassificacao: true } },
       },
     });
@@ -121,11 +128,24 @@ export async function POST(req: NextRequest) {
       atendimento.paciente.nomeCriptografado
     );
 
+    const { senha, tipo } = resolverSenhaETipo({
+      numeroAtendimento: atendimento.numeroAtendimento,
+      dataNascimento: atendimento.paciente.dataNascimento,
+      obstetrico: atendimento.obstetrico,
+    });
+
+    const etapaChamada = atendimento.status === 'AGUARDANDO_TRIAGEM' || !atendimento.triagem?.corClassificacao
+      ? 'TRIAGEM'
+      : 'CONSULTÓRIO';
+
     // Montar DTO para o painel
     const payload: ChamadaPainelDTO = {
       id: chamada.id,
       nomePaciente: nomePacientePainel,
       numeroAtendimento: atendimento.numeroAtendimento,
+      senha,
+      tipoAtendimento: tipo,
+      etapa: etapaChamada,
       salaDestino,
       corTriagem: atendimento.triagem?.corClassificacao ?? undefined,
       chamadoEm: chamada.chamadoEm,

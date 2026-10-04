@@ -236,6 +236,19 @@ export interface ChamadaPainelDTO {
   id: string;
   nomePaciente: string;
   numeroAtendimento: string;
+  senha?: string;
+  tipoAtendimento?: {
+    codigo: string;
+    nome: string;
+    nomeCurto: string;
+    descricao?: string;
+    legislacao?: string;
+    bgBadge?: string;
+    textoBadge?: string;
+    bordaBadge?: string;
+    corHex?: string;
+  };
+  etapa?: 'TRIAGEM' | 'CONSULTÓRIO' | string;
   salaDestino: string;
   corTriagem?: CorTriagem;
   chamadoEm: Date;

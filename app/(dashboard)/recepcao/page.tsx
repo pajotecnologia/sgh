@@ -3,10 +3,11 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
-import { UserPlus, Search, ClipboardCheck, ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
+import { UserPlus, Search, ClipboardCheck, ArrowDownAZ, ArrowUpAZ, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { hashCpf } from '@/lib/encryption';
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao';
+import { resolverSenhaETipo } from '@/lib/senhas';
 import { BotaoNovoAtendimento } from '@/components/recepcao/BotaoNovoAtendimento';
 import { BannerPosCadastro } from '@/components/recepcao/BannerPosCadastro';
 import { PaginacaoLista } from '@/components/shared/PaginacaoLista';
@@ -241,15 +242,28 @@ export default async function PaginaRecepcao({
             {pacientes.map((p) => {
               const atend = p.atendimentos[0];
               const statusInfo = atend ? (labelStatus[atend.status] ?? { label: atend.status, cor: 'bg-gray-100 text-gray-600' }) : null;
+              const senhaInfo = atend ? resolverSenhaETipo({
+                numeroAtendimento: atend.numeroAtendimento,
+                dataNascimento: p.dataNascimento,
+              }) : null;
+
               return (
                 <tr key={p.id} className="hover:bg-muted/20 transition-colors">
                   <td className="px-5 py-4 font-mono text-sm text-slate-600">
                     {p.cpfFormatado}
                   </td>
                   <td className="px-5 py-4">
-                    <div className="font-medium text-foreground">{p.nomeParaLista}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium text-foreground">{p.nomeParaLista}</div>
+                      {senhaInfo && (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-black font-mono border ${senhaInfo.tipo.bgBadge}`}>
+                          {senhaInfo.senha}
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground mt-0.5 capitalize">
                       {p.sexoBiologico.toLowerCase()} · {format(new Date(p.dataNascimento), 'dd/MM/yyyy')}
+                      {senhaInfo?.idade !== null && ` (${senhaInfo?.idade} anos)`}
                     </div>
                   </td>
                   <td className="px-5 py-4 hidden lg:table-cell text-muted-foreground">
@@ -264,14 +278,18 @@ export default async function PaginaRecepcao({
                       ) : (
                         <span className="text-muted-foreground text-xs">—</span>
                       )}
-                      {atend && <span className="font-mono text-xs text-muted-foreground">#{atend.numeroAtendimento}</span>}
+                      {atend && (
+                        <span className="font-mono text-xs text-muted-foreground">
+                          #{atend.numeroAtendimento}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-5 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
                       <Link
                         href={`/recepcao/${p.id}/editar`}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
                       >
                         Editar
                       </Link>
@@ -280,24 +298,36 @@ export default async function PaginaRecepcao({
                         <BotaoNovoAtendimento pacienteId={p.id} />
                       )}
                       
+                      {atend && (
+                        <Link
+                          href={`/recepcao/imprimir-senha/${atend.numeroAtendimento}`}
+                          target="_blank"
+                          title="Imprimir Ticket Térmico de 80mm"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors"
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                          Senha 80mm
+                        </Link>
+                      )}
+
                       {atend ? (
                         <Link
                           href={`/recepcao/imprimir/${atend.numeroAtendimento}`}
                           target="_blank"
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
                         >
                           <ClipboardCheck className="h-3.5 w-3.5" />
-                          Imprimir Ficha
+                          Ficha
                         </Link>
                       ) : (
                         <Link
                           href={`/recepcao/${p.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
                         >
                           <ClipboardCheck className="h-3.5 w-3.5" />
-                          Imprimir ficha
+                          Ficha
                         </Link>
                       )}
                     </div>

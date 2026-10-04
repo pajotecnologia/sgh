@@ -3,9 +3,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { resolverSenhaETipo } from '@/lib/senhas';
 
-// Rota pública — o painel é uma TV sem login
-// Rate limiting via Vercel Edge ou middleware externo (não implementado aqui)
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -17,7 +16,12 @@ export async function GET(req: NextRequest) {
       include: {
         atendimento: {
           include: {
-            paciente: { select: { nomeExibicao: true } },
+            paciente: {
+              select: {
+                nomeExibicao: true,
+                dataNascimento: true,
+              },
+            },
             triagem: { select: { corClassificacao: true } },
           },
         },
@@ -28,21 +32,35 @@ export async function GET(req: NextRequest) {
 
     const dados = (chamadas || [])
       .filter((c) => Boolean(c && c.atendimento && c.atendimento.paciente))
-      .map((c) => ({
-        id: c.id,
-        nomePaciente: c.atendimento.paciente.nomeExibicao || 'Paciente',
-        numeroAtendimento: c.atendimento.numeroAtendimento ?? '---',
-        salaDestino: c.salaDestino ?? 'Consultório',
-        corTriagem: c.atendimento.triagem?.corClassificacao ?? null,
-        chamadoEm: c.chamadoEm ? new Date(c.chamadoEm).toISOString() : new Date().toISOString(),
-        setorPainel: c.setorPainel ?? setor,
-      }));
+      .map((c) => {
+        const senhaInfo = resolverSenhaETipo({
+          numeroAtendimento: c.atendimento.numeroAtendimento,
+          dataNascimento: c.atendimento.paciente.dataNascimento,
+          obstetrico: c.atendimento.obstetrico,
+        });
+
+        const etapa = c.atendimento.status === 'AGUARDANDO_TRIAGEM' || !c.atendimento.triagem?.corClassificacao
+          ? 'TRIAGEM'
+          : 'CONSULTÓRIO';
+
+        return {
+          id: c.id,
+          nomePaciente: c.atendimento.paciente.nomeExibicao || 'Paciente',
+          numeroAtendimento: c.atendimento.numeroAtendimento ?? '---',
+          senha: senhaInfo.senha,
+          tipoAtendimento: senhaInfo.tipo,
+          etapa,
+          salaDestino: c.salaDestino ?? 'Consultório',
+          corTriagem: c.atendimento.triagem?.corClassificacao ?? null,
+          chamadoEm: c.chamadoEm ? new Date(c.chamadoEm).toISOString() : new Date().toISOString(),
+          setorPainel: c.setorPainel ?? setor,
+        };
+      });
 
     return NextResponse.json(
       { sucesso: true, dados },
       {
         status: 200,
-        // Cache mínimo — dados mudam frequentemente
         headers: { 'Cache-Control': 'no-store' },
       }
     );
