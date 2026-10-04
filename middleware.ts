@@ -8,6 +8,7 @@ import { getToken } from 'next-auth/jwt';
 const PUBLIC_PATHS = [
   '/',
   '/login',
+  '/painel',
   '/ajuda',
   '/manual',
   '/esqueci-senha',
@@ -21,15 +22,23 @@ const PUBLIC_PATHS = [
 
 const PUBLIC_API_PATHS = [
   '/api/auth',
-  '/api/painel/config',
-  '/api/painel/historico',
+  '/api/painel',
 ];
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true;
-  if (pathname.startsWith('/_next') || pathname.startsWith('/public') || pathname.startsWith('/images')) return true;
+  if (pathname.startsWith('/painel')) return true;
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/public') ||
+    pathname.startsWith('/images') ||
+    pathname.startsWith('/sons') ||
+    pathname.startsWith('/icons')
+  ) {
+    return true;
+  }
 
   return PUBLIC_API_PATHS.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
