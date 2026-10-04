@@ -202,14 +202,14 @@ export function EdicaoMedicamentoELotes({ medicamento }: { medicamento: Medicame
   return (
     <div className="space-y-4 w-full min-w-0">
       {/* Botões de Navegação de Aba */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2 overflow-x-auto pb-1">
+      <div className="flex flex-wrap gap-2 p-1.5 bg-muted/40 dark:bg-muted/20 rounded-xl border border-border">
         <button
           type="button"
           onClick={() => setAbaAtiva('lotes')}
-          className={`px-4 py-2 text-xs font-bold rounded-t-xl transition-colors border-b-2 ${
+          className={`px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
             abaAtiva === 'lotes'
-              ? 'border-primary text-primary bg-primary/10'
-              : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-background/80 bg-transparent'
           }`}
         >
           📦 Lotes e Validades (FEFO)
@@ -217,10 +217,10 @@ export function EdicaoMedicamentoELotes({ medicamento }: { medicamento: Medicame
         <button
           type="button"
           onClick={() => setAbaAtiva('dados')}
-          className={`px-4 py-2 text-xs font-bold rounded-t-xl transition-colors border-b-2 ${
+          className={`px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
             abaAtiva === 'dados'
-              ? 'border-primary text-primary bg-primary/10'
-              : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-background/80 bg-transparent'
           }`}
         >
           📝 Editar Cadastro do Medicamento
@@ -228,10 +228,10 @@ export function EdicaoMedicamentoELotes({ medicamento }: { medicamento: Medicame
         <button
           type="button"
           onClick={() => setAbaAtiva('historico')}
-          className={`px-4 py-2 text-xs font-bold rounded-t-xl transition-colors border-b-2 ${
+          className={`px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
             abaAtiva === 'historico'
-              ? 'border-primary text-primary bg-primary/10'
-              : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-background/80 bg-transparent'
           }`}
         >
           📜 Histórico de Movimentações

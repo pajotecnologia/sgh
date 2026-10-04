@@ -364,30 +364,37 @@ export default function WorkspaceAtendimento({
       )}
 
       {/* Navegação por Abas */}
-      <div className="border-b border-border mt-6">
-        <div className="flex gap-6 overflow-x-auto pb-[1px]">
+      <div className="p-1.5 bg-muted/40 dark:bg-muted/20 rounded-xl border border-border mt-6">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {abas.map((aba) => {
             const tabHabilitada =
               !atendimentoEncerrado ||
               (modoInternacao && aba.id === 'ENCAMINHAMENTO') ||
               (!modoInternacao && aba.id === 'RECEITA_ALTA')
             return (
-            <button
-              key={aba.id}
-              type="button"
-              onClick={() => setAbaAtual(aba.id)}
-              disabled={!tabHabilitada}
-              className={cn(
-                'flex items-center gap-2 pb-3 px-1 border-b-2 text-sm font-medium transition-all whitespace-nowrap',
-                abaAtual === aba.id
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'
-              )}
-            >
-              <aba.icon className="h-4 w-4" />
-              {aba.label}
-              {aba.completado && <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />}
-            </button>
+              <button
+                key={aba.id}
+                type="button"
+                onClick={() => setAbaAtual(aba.id)}
+                disabled={!tabHabilitada}
+                className={cn(
+                  'flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all',
+                  abaAtual === aba.id
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/80 bg-transparent disabled:opacity-50 disabled:pointer-events-none'
+                )}
+              >
+                <aba.icon className="h-4 w-4 shrink-0" />
+                <span>{aba.label}</span>
+                {aba.completado && (
+                  <CheckCircle2
+                    className={cn(
+                      'h-3.5 w-3.5 shrink-0',
+                      abaAtual === aba.id ? 'text-primary-foreground' : 'text-green-500'
+                    )}
+                  />
+                )}
+              </button>
             )
           })}
         </div>
