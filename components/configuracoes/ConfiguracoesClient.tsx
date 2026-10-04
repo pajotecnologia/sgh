@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { Building2, MapPin, Upload, Image as ImageIcon, Loader2, Plus, Trash2, Tag, Volume2, Palette, Settings2, Mail, Pencil, LayoutPanelLeft, Video, Sparkles, ShieldCheck, KeyRound, DoorOpen, Check, RotateCcw } from 'lucide-react';
+import { Building2, MapPin, Upload, Image as ImageIcon, Loader2, Plus, Trash2, Tag, Volume2, Palette, Settings2, Mail, Pencil, LayoutPanelLeft, Video, Sparkles, ShieldCheck, KeyRound, DoorOpen, Check, RotateCcw, Users } from 'lucide-react';
 import { textoCadastroMaiusculo } from '@/lib/cadastro-maiusculo';
 import { cn } from '@/lib/utils';
 import type { MidiaPainelRotativa, ConfigPainelExibicao } from '@/lib/painel-config';
@@ -779,15 +779,17 @@ export function ConfiguracoesClient() {
   return (
     <div className="bg-card border border-border rounded-xl shadow-xs flex flex-col w-full max-w-full min-w-0 overflow-hidden">
       
-      {/* Abas superiores modernas com navegação horizontal fixa e responsiva */}
-      <div className="w-full border-b border-border bg-muted/30 p-2 sm:p-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+      {/* Abas superiores modernas com quebra automática (sem barra de rolagem) */}
+      <div className="w-full border-b border-border bg-muted/20 p-2.5 sm:p-3.5">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={() => setAbaAtiva('INSTITUICAO')}
             className={cn(
-              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
-              abaAtiva === 'INSTITUICAO' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+              abaAtiva === 'INSTITUICAO'
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 hover:border-border"
             )}
           >
             <Building2 className="h-4 w-4 shrink-0" /> Instituição
@@ -796,8 +798,10 @@ export function ConfiguracoesClient() {
             type="button"
             onClick={() => setAbaAtiva('SALAS')}
             className={cn(
-              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
-              abaAtiva === 'SALAS' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+              abaAtiva === 'SALAS'
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 hover:border-border"
             )}
           >
             <DoorOpen className="h-4 w-4 shrink-0" /> Salas / Consultórios
@@ -806,8 +810,10 @@ export function ConfiguracoesClient() {
             type="button"
             onClick={() => setAbaAtiva('ORIGENS')}
             className={cn(
-              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
-              abaAtiva === 'ORIGENS' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+              abaAtiva === 'ORIGENS'
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 hover:border-border"
             )}
           >
             <Tag className="h-4 w-4 shrink-0" /> Origens do Paciente
@@ -816,18 +822,22 @@ export function ConfiguracoesClient() {
             type="button"
             onClick={() => setAbaAtiva('USUARIOS')}
             className={cn(
-              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
-              abaAtiva === 'USUARIOS' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+              abaAtiva === 'USUARIOS'
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 hover:border-border"
             )}
           >
-            <Plus className="h-4 w-4 shrink-0" /> Usuários do Sistema
+            <Users className="h-4 w-4 shrink-0" /> Usuários do Sistema
           </button>
           <button
             type="button"
             onClick={() => setAbaAtiva('PAINEL')}
             className={cn(
-              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
-              abaAtiva === 'PAINEL' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+              abaAtiva === 'PAINEL'
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 hover:border-border"
             )}
           >
             <Settings2 className="h-4 w-4 shrink-0" /> Painel de Chamadas
@@ -836,8 +846,10 @@ export function ConfiguracoesClient() {
             type="button"
             onClick={() => setAbaAtiva('SMTP')}
             className={cn(
-              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
-              abaAtiva === 'SMTP' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+              abaAtiva === 'SMTP'
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 hover:border-border"
             )}
           >
             <Mail className="h-4 w-4 shrink-0" /> E-mail (SMTP)
@@ -846,8 +858,10 @@ export function ConfiguracoesClient() {
             type="button"
             onClick={() => setAbaAtiva('SEGURANCA')}
             className={cn(
-              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
-              abaAtiva === 'SEGURANCA' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+              abaAtiva === 'SEGURANCA'
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 hover:border-border"
             )}
           >
             <ShieldCheck className="h-4 w-4 shrink-0" /> Segurança & 2FA
