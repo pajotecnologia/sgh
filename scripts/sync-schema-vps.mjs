@@ -113,6 +113,45 @@ async function main() {
     `);
     console.log('✓ Tabela logs_acesso_paciente verificada.');
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "salas_atendimento" (
+        "id" TEXT NOT NULL,
+        "nome" TEXT NOT NULL,
+        "tipo" TEXT NOT NULL DEFAULT 'CONSULTORIO',
+        "setor" TEXT NOT NULL DEFAULT 'GERAL',
+        "ordem" INTEGER NOT NULL DEFAULT 0,
+        "ativo" BOOLEAN NOT NULL DEFAULT true,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "salas_atendimento_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    await client.query('CREATE UNIQUE INDEX IF NOT EXISTS "salas_atendimento_nome_key" ON "salas_atendimento"("nome");');
+    console.log('✓ Tabela salas_atendimento verificada.');
+
+    // Inserir salas padrão se a tabela estiver vazia
+    const countSalas = await client.query('SELECT COUNT(*) FROM "salas_atendimento";');
+    if (parseInt(countSalas.rows[0].count, 10) === 0) {
+      const salasPadrao = [
+        { nome: 'Consultório 01', tipo: 'CONSULTORIO', setor: 'GERAL', ordem: 1 },
+        { nome: 'Consultório 02', tipo: 'CONSULTORIO', setor: 'GERAL', ordem: 2 },
+        { nome: 'Consultório 03', tipo: 'CONSULTORIO', setor: 'GERAL', ordem: 3 },
+        { nome: 'Consultório 04', tipo: 'CONSULTORIO', setor: 'GERAL', ordem: 4 },
+        { nome: 'Sala de Procedimentos', tipo: 'PROCEDIMENTOS', setor: 'GERAL', ordem: 5 },
+        { nome: 'Sala de Emergência', tipo: 'EMERGENCIA', setor: 'EMERGENCIA', ordem: 6 },
+        { nome: 'Sala de Observação', tipo: 'OBSERVACAO', setor: 'GERAL', ordem: 7 },
+        { nome: 'Raio-X', tipo: 'EXAME', setor: 'GERAL', ordem: 8 },
+        { nome: 'Laboratório', tipo: 'EXAME', setor: 'GERAL', ordem: 9 },
+      ];
+      for (const s of salasPadrao) {
+        await client.query(
+          'INSERT INTO "salas_atendimento" ("id", "nome", "tipo", "setor", "ordem", "ativo") VALUES (gen_random_uuid(), $1, $2, $3, $4, true) ON CONFLICT DO NOTHING;',
+          [s.nome, s.tipo, s.setor, s.ordem]
+        );
+      }
+      console.log('✓ Salas e consultórios padrão inseridos.');
+    }
+
     console.log('✨ Sincronização concluída com sucesso!');
   } catch (err) {
     console.warn('Aviso durante sync-schema-vps:', err?.message || err);

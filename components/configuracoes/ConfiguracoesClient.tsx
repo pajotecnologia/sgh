@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { Building2, MapPin, Upload, Image as ImageIcon, Loader2, Plus, Trash2, Tag, Volume2, Palette, Settings2, Mail, Pencil, LayoutPanelLeft, Video, Sparkles, ShieldCheck, KeyRound } from 'lucide-react';
+import { Building2, MapPin, Upload, Image as ImageIcon, Loader2, Plus, Trash2, Tag, Volume2, Palette, Settings2, Mail, Pencil, LayoutPanelLeft, Video, Sparkles, ShieldCheck, KeyRound, DoorOpen, Check, RotateCcw } from 'lucide-react';
 import { textoCadastroMaiusculo } from '@/lib/cadastro-maiusculo';
 import { cn } from '@/lib/utils';
 import type { MidiaPainelRotativa, ConfigPainelExibicao } from '@/lib/painel-config';
@@ -23,6 +23,31 @@ interface Instituicao {
   mfaHabilitado?: boolean;
 }
 
+export interface SalaItem {
+  id: string;
+  nome: string;
+  tipo: string;
+  setor: string;
+  ordem: number;
+  ativo: boolean;
+}
+
+export const TIPOS_SALA = [
+  { value: 'CONSULTORIO', label: 'Consultório Médico' },
+  { value: 'TRIAGEM', label: 'Triagem / Acolhimento' },
+  { value: 'PROCEDIMENTOS', label: 'Sala de Procedimentos' },
+  { value: 'EMERGENCIA', label: 'Emergência / Sala Vermelha' },
+  { value: 'OBSERVACAO', label: 'Sala de Observação / Repouso' },
+  { value: 'EXAME', label: 'Exames / Raio-X / Laboratório' },
+  { value: 'OUTRO', label: 'Outro' },
+];
+
+export const SETORES_SALA = [
+  { value: 'GERAL', label: 'Geral (Todos os Painéis)' },
+  { value: 'EMERGENCIA', label: 'Pronto-Socorro / Emergência' },
+  { value: 'AMBULATORIO', label: 'Ambulatório / Consultórios' },
+];
+
 interface Origem {
   id: string;
   descricao: string;
@@ -43,7 +68,7 @@ export function ConfiguracoesClient() {
   const inputMidiaPainelRef = useRef<HTMLInputElement>(null);
 
   const [abaAtiva, setAbaAtiva] = useState<
-    'INSTITUICAO' | 'ORIGENS' | 'USUARIOS' | 'PAINEL' | 'SMTP' | 'SEGURANCA'
+    'INSTITUICAO' | 'SALAS' | 'ORIGENS' | 'USUARIOS' | 'PAINEL' | 'SMTP' | 'SEGURANCA'
   >('INSTITUICAO');
   
   const [instituicao, setInstituicao] = useState<Instituicao>({
@@ -53,6 +78,17 @@ export function ConfiguracoesClient() {
   const [carregandoInst, setCarregandoInst] = useState(true);
   const [salvandoInst, setSalvandoInst] = useState(false);
   const [fazendoUpload, setFazendoUpload] = useState(false);
+
+  // --- SALAS & CONSULTÓRIOS ---
+  const [salas, setSalas] = useState<SalaItem[]>([]);
+  const [carregandoSalas, setCarregandoSalas] = useState(true);
+  const [novaSala, setNovaSala] = useState({ nome: '', tipo: 'CONSULTORIO', setor: 'GERAL', ordem: 0 });
+  const [salvandoSala, setSalvandoSala] = useState(false);
+  const [modalEditarSala, setModalEditarSala] = useState(false);
+  const [salaEditando, setSalaEditando] = useState<SalaItem | null>(null);
+  const [formSalaEdicao, setFormSalaEdicao] = useState({ nome: '', tipo: 'CONSULTORIO', setor: 'GERAL', ordem: 0, ativo: true });
+  const [salvandoSalaEdicao, setSalvandoSalaEdicao] = useState(false);
+  const [restaurandoSalas, setRestaurandoSalas] = useState(false);
 
   const [origens, setOrigens] = useState<Origem[]>([]);
   const [novaOrigem, setNovaOrigem] = useState('');
@@ -107,23 +143,30 @@ export function ConfiguracoesClient() {
 
   async function carregarDados() {
     setCarregandoInst(true);
+    setCarregandoSalas(true);
     setCarregandoOrigens(true);
     setCarregandoUsuarios(true);
     setCarregandoPainel(true);
     setCarregandoSmtp(true);
     try {
-      const [resInst, resOrigens, resUsers, resPainel, resSmtp] = await Promise.all([
+      const [resInst, resSalas, resOrigens, resUsers, resPainel, resSmtp] = await Promise.all([
         fetch('/api/configuracoes/instituicao'),
+        fetch('/api/configuracoes/salas?ativos=false'),
         fetch('/api/configuracoes/origens'),
         fetch('/api/configuracoes/usuarios'),
         fetch('/api/configuracoes/painel'),
         fetch('/api/configuracoes/smtp'),
       ]);
       const jsonInst = await resInst.json();
+      const jsonSalas = await resSalas.json();
       const jsonOrigens = await resOrigens.json();
       const jsonUsers = await resUsers.json();
       const jsonPainel = await resPainel.json();
       const jsonSmtp = await resSmtp.json();
+
+      if (jsonSalas.sucesso && Array.isArray(jsonSalas.dados)) {
+        setSalas(jsonSalas.dados);
+      }
       
       if (jsonInst.sucesso && jsonInst.dados) {
         const d = jsonInst.dados as Instituicao;
@@ -184,6 +227,7 @@ export function ConfiguracoesClient() {
       toast.error('Erro ao carregar configurações.');
     } finally {
       setCarregandoInst(false);
+      setCarregandoSalas(false);
       setCarregandoOrigens(false);
       setCarregandoUsuarios(false);
       setCarregandoPainel(false);
@@ -553,6 +597,141 @@ export function ConfiguracoesClient() {
     }
   }
 
+  // --- SALAS & CONSULTÓRIOS ---
+  async function addSala(e: React.FormEvent) {
+    e.preventDefault();
+    if (!novaSala.nome.trim()) {
+      toast.error('Informe o nome da sala ou consultório.');
+      return;
+    }
+    setSalvandoSala(true);
+    try {
+      const res = await fetch('/api/configuracoes/salas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...novaSala,
+          nome: textoCadastroMaiusculo(novaSala.nome.trim()),
+        }),
+      });
+      const json = await res.json();
+      if (json.sucesso) {
+        setSalas((prev) => [...prev, json.dados].sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome)));
+        setNovaSala({ nome: '', tipo: 'CONSULTORIO', setor: 'GERAL', ordem: 0 });
+        toast.success('Sala/consultório cadastrado com sucesso!');
+      } else {
+        toast.error(json.erro || 'Erro ao cadastrar sala.');
+      }
+    } catch {
+      toast.error('Erro de conexão ao cadastrar sala.');
+    } finally {
+      setSalvandoSala(false);
+    }
+  }
+
+  async function alternarAtivoSala(sala: SalaItem) {
+    try {
+      const res = await fetch(`/api/configuracoes/salas/${sala.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ativo: !sala.ativo }),
+      });
+      const json = await res.json();
+      if (json.sucesso) {
+        setSalas((prev) => prev.map((s) => (s.id === sala.id ? { ...s, ativo: !s.ativo } : s)));
+        toast.success(sala.ativo ? 'Sala desativada.' : 'Sala ativada com sucesso.');
+      } else {
+        toast.error(json.erro || 'Erro ao alterar status.');
+      }
+    } catch {
+      toast.error('Erro de conexão.');
+    }
+  }
+
+  function abrirEdicaoSala(sala: SalaItem) {
+    setSalaEditando(sala);
+    setFormSalaEdicao({
+      nome: sala.nome,
+      tipo: sala.tipo,
+      setor: sala.setor,
+      ordem: sala.ordem,
+      ativo: sala.ativo,
+    });
+    setModalEditarSala(true);
+  }
+
+  async function salvarEdicaoSala(e: React.FormEvent) {
+    e.preventDefault();
+    if (!salaEditando) return;
+    if (!formSalaEdicao.nome.trim()) {
+      toast.error('O nome da sala é obrigatório.');
+      return;
+    }
+    setSalvandoSalaEdicao(true);
+    try {
+      const res = await fetch(`/api/configuracoes/salas/${salaEditando.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formSalaEdicao,
+          nome: textoCadastroMaiusculo(formSalaEdicao.nome.trim()),
+        }),
+      });
+      const json = await res.json();
+      if (json.sucesso) {
+        setSalas((prev) =>
+          prev
+            .map((s) => (s.id === salaEditando.id ? { ...s, ...json.dados } : s))
+            .sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome))
+        );
+        setModalEditarSala(false);
+        setSalaEditando(null);
+        toast.success('Sala atualizada!');
+      } else {
+        toast.error(json.erro || 'Erro ao atualizar.');
+      }
+    } catch {
+      toast.error('Erro de conexão.');
+    } finally {
+      setSalvandoSalaEdicao(false);
+    }
+  }
+
+  async function removerSala(id: string, nome: string) {
+    if (!confirm(`Deseja excluir permanentemente a sala "${nome}"?`)) return;
+    try {
+      const res = await fetch(`/api/configuracoes/salas/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.sucesso) {
+        setSalas((prev) => prev.filter((s) => s.id !== id));
+        toast.success('Sala excluída com sucesso.');
+      } else {
+        toast.error(json.erro || 'Erro ao excluir.');
+      }
+    } catch {
+      toast.error('Erro de conexão.');
+    }
+  }
+
+  async function restaurarSalasPadrao() {
+    if (!confirm('Deseja recarregar as salas e consultórios padrão do hospital?')) return;
+    setRestaurandoSalas(true);
+    try {
+      const res = await fetch('/api/configuracoes/salas/seed', { method: 'POST' });
+      const json = await res.json();
+      if (json.sucesso) {
+        setSalas(json.dados);
+        toast.success(json.mensagem || 'Salas padrão restauradas com sucesso!');
+      } else {
+        toast.error(json.erro || 'Erro ao restaurar salas.');
+      }
+    } catch {
+      toast.error('Erro de conexão.');
+    } finally {
+      setRestaurandoSalas(false);
+    }
+  }
+
   // --- ORIGENS ---
   async function addOrigem(e: React.FormEvent) {
     e.preventDefault();
@@ -612,6 +791,16 @@ export function ConfiguracoesClient() {
             )}
           >
             <Building2 className="h-4 w-4 shrink-0" /> Instituição
+          </button>
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('SALAS')}
+            className={cn(
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0",
+              abaAtiva === 'SALAS' ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <DoorOpen className="h-4 w-4 shrink-0" /> Salas / Consultórios
           </button>
           <button
             type="button"
@@ -773,6 +962,282 @@ export function ConfiguracoesClient() {
 
                 <div className="flex justify-end pt-4 border-t border-border"><button type="submit" disabled={salvandoInst} className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-70">{salvandoInst ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar Configurações'}</button></div>
               </form>
+            )}
+          </div>
+        )}
+
+        {/* ABA: SALAS & CONSULTÓRIOS */}
+        {abaAtiva === 'SALAS' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/80">
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
+                  <DoorOpen className="h-5 w-5 text-primary" /> Salas e Consultórios
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Cadastre e gerencie as salas e consultórios que aparecem no modal de chamada de pacientes para o painel de TV.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={restaurarSalasPadrao}
+                disabled={restaurandoSalas}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-background hover:bg-muted text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                title="Restaura as 9 salas e consultórios padrão do hospital"
+              >
+                {restaurandoSalas ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                Restaurar Salas Padrão
+              </button>
+            </div>
+
+            {/* Formulário de Novo Cadastro de Sala */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-muted/20 border border-border space-y-4">
+              <h3 className="text-sm font-bold flex items-center gap-2 text-foreground">
+                <Plus className="h-4 w-4 text-primary" /> Cadastrar Nova Sala / Consultório
+              </h3>
+              <form onSubmit={addSala} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+                <div className="lg:col-span-2 space-y-1">
+                  <label className="text-xs font-semibold text-muted-foreground">Nome da Sala / Consultório *</label>
+                  <input
+                    value={novaSala.nome}
+                    onChange={(e) => setNovaSala({ ...novaSala, nome: textoCadastroMaiusculo(e.target.value) })}
+                    className={inputClass}
+                    placeholder="EX: CONSULTÓRIO 05, SALA DE GESSO"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-muted-foreground">Tipo / Categoria</label>
+                  <select
+                    value={novaSala.tipo}
+                    onChange={(e) => setNovaSala({ ...novaSala, tipo: e.target.value })}
+                    className={inputClass}
+                  >
+                    {TIPOS_SALA.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-muted-foreground">Painel / Setor</label>
+                  <select
+                    value={novaSala.setor}
+                    onChange={(e) => setNovaSala({ ...novaSala, setor: e.target.value })}
+                    className={inputClass}
+                  >
+                    {SETORES_SALA.map((s) => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <div className="w-20 space-y-1 shrink-0">
+                    <label className="text-xs font-semibold text-muted-foreground">Ordem</label>
+                    <input
+                      type="number"
+                      value={novaSala.ordem}
+                      onChange={(e) => setNovaSala({ ...novaSala, ordem: parseInt(e.target.value, 10) || 0 })}
+                      className={inputClass}
+                      title="Posição de exibição na grade do modal"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={salvandoSala || !novaSala.nome.trim()}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary text-primary-foreground text-xs font-bold rounded-lg shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50 h-[42px]"
+                  >
+                    {salvandoSala ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    Cadastrar
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Listagem de Salas */}
+            {carregandoSalas ? (
+              <div className="flex justify-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : salas.length === 0 ? (
+              <div className="p-8 text-center border border-dashed border-border rounded-xl bg-card space-y-3">
+                <DoorOpen className="h-10 w-10 mx-auto text-muted-foreground opacity-40" />
+                <p className="text-sm font-semibold text-foreground">Nenhuma sala cadastrada no momento.</p>
+                <p className="text-xs text-muted-foreground">Cadastre uma nova sala acima ou clique no botão para restaurar as salas padrão.</p>
+                <button
+                  type="button"
+                  onClick={restaurarSalasPadrao}
+                  className="px-4 py-2 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-colors"
+                >
+                  Restaurar Salas Padrão
+                </button>
+              </div>
+            ) : (
+              <div className="border border-border rounded-xl overflow-hidden bg-background shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground tracking-wider">
+                      <tr>
+                        <th className="text-center px-3 py-3 w-16">Ordem</th>
+                        <th className="text-left px-4 py-3 font-semibold">Nome da Sala / Consultório</th>
+                        <th className="text-left px-4 py-3 font-semibold">Tipo</th>
+                        <th className="text-left px-4 py-3 font-semibold">Setor</th>
+                        <th className="text-center px-4 py-3 font-semibold">Status</th>
+                        <th className="text-right px-4 py-3 font-semibold">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {salas.map((sala) => {
+                        const tipoObj = TIPOS_SALA.find((t) => t.value === sala.tipo);
+                        const setorObj = SETORES_SALA.find((s) => s.value === sala.setor);
+                        return (
+                          <tr key={sala.id} className={cn("hover:bg-muted/20 transition-colors", !sala.ativo && "opacity-60 bg-muted/10")}>
+                            <td className="px-3 py-3 text-center font-mono text-xs font-bold text-muted-foreground">
+                              #{sala.ordem}
+                            </td>
+                            <td className="px-4 py-3 font-bold text-foreground">
+                              {sala.nome}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                                {tipoObj?.label ?? sala.tipo}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-muted-foreground">
+                              {setorObj?.label.split(' ')[0] ?? sala.setor}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => alternarAtivoSala(sala)}
+                                className={cn(
+                                  "px-2.5 py-1 rounded-full text-xs font-bold cursor-pointer transition-colors inline-flex items-center gap-1",
+                                  sala.ativo
+                                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-300 dark:border-slate-700"
+                                )}
+                                title={sala.ativo ? "Clique para desativar sala do modal" : "Clique para ativar sala no modal"}
+                              >
+                                {sala.ativo ? <Check className="h-3 w-3" /> : null}
+                                {sala.ativo ? 'Ativo' : 'Inativo'}
+                              </button>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => abrirEdicaoSala(sala)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-border hover:bg-muted text-xs font-semibold text-foreground transition-colors"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" /> Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removerSala(sala.id, sala.nome)}
+                                  className="p-1.5 text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                                  title="Excluir sala"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Modal de Edição de Sala */}
+            {modalEditarSala && salaEditando && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border overflow-hidden">
+                  <div className="px-6 py-4 border-b border-border bg-muted/30 flex justify-between items-center">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                      <Pencil className="h-4 w-4 text-primary" /> Editar Sala / Consultório
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => { setModalEditarSala(false); setSalaEditando(null); }}
+                      className="p-1 text-muted-foreground hover:text-foreground rounded-lg"
+                    >
+                      <Plus className="h-5 w-5 rotate-45" />
+                    </button>
+                  </div>
+                  <form onSubmit={salvarEdicaoSala} className="p-6 space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold">Nome da Sala *</label>
+                      <input
+                        value={formSalaEdicao.nome}
+                        onChange={(e) => setFormSalaEdicao({ ...formSalaEdicao, nome: textoCadastroMaiusculo(e.target.value) })}
+                        className={inputClass}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold">Tipo / Categoria</label>
+                      <select
+                        value={formSalaEdicao.tipo}
+                        onChange={(e) => setFormSalaEdicao({ ...formSalaEdicao, tipo: e.target.value })}
+                        className={inputClass}
+                      >
+                        {TIPOS_SALA.map((t) => (
+                          <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold">Painel de Destino / Setor</label>
+                      <select
+                        value={formSalaEdicao.setor}
+                        onChange={(e) => setFormSalaEdicao({ ...formSalaEdicao, setor: e.target.value })}
+                        className={inputClass}
+                      >
+                        {SETORES_SALA.map((s) => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 items-center pt-1">
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold">Ordem</label>
+                        <input
+                          type="number"
+                          value={formSalaEdicao.ordem}
+                          onChange={(e) => setFormSalaEdicao({ ...formSalaEdicao, ordem: parseInt(e.target.value, 10) || 0 })}
+                          className={inputClass}
+                        />
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer pt-5">
+                        <input
+                          type="checkbox"
+                          checked={formSalaEdicao.ativo}
+                          onChange={(e) => setFormSalaEdicao({ ...formSalaEdicao, ativo: e.target.checked })}
+                          className="w-4 h-4 rounded text-primary focus:ring-primary"
+                        />
+                        <span className="text-xs font-semibold">Sala Ativa</span>
+                      </label>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                      <button
+                        type="button"
+                        onClick={() => { setModalEditarSala(false); setSalaEditando(null); }}
+                        className="px-4 py-2 text-xs font-semibold border border-border rounded-lg hover:bg-muted"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={salvandoSalaEdicao}
+                        className="flex items-center gap-2 px-5 py-2 bg-primary text-white text-xs font-bold rounded-lg shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+                      >
+                        {salvandoSalaEdicao ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar Alterações'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
             )}
           </div>
         )}

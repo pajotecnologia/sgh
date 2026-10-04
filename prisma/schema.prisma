@@ -1197,6 +1197,20 @@ model OrigemPaciente {
   @@map("origens_pacientes")
 }
 
+/// Salas e consultórios configuráveis para chamadas no painel e atendimento
+model SalaAtendimento {
+  id        String   @id @default(uuid())
+  nome      String   @unique
+  tipo      String   @default("CONSULTORIO") // CONSULTORIO, PROCEDIMENTOS, EMERGENCIA, OBSERVACAO, EXAME, OUTRO
+  setor     String   @default("GERAL")       // GERAL, EMERGENCIA, AMBULATORIO
+  ordem     Int      @default(0)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("salas_atendimento")
+}
+
 /// Roles de acesso do sistema (RBAC)
 enum Role {
   ADMIN

@@ -2,7 +2,7 @@
 // components/triagem/ModalChamarPaciente.tsx
 // Modal para selecionar sala e chamar paciente para o painel
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -12,8 +12,8 @@ import { schemaChamarPaciente, type ChamarPacienteForm } from '@/lib/validations
 import { mensagemErroValidacaoApi } from '@/lib/validations/id';
 import { cn } from '@/lib/utils';
 
-// Salas pré-configuradas — em produção viriam do banco (tabela configurável pelo admin)
-const SALAS_DISPONIVEIS = [
+// Fallback inicial caso a requisição ainda esteja carregando
+const SALAS_FALLBACK = [
   'Consultório 01', 'Consultório 02', 'Consultório 03', 'Consultório 04',
   'Sala de Procedimentos', 'Sala de Emergência', 'Sala de Observação',
   'Raio-X', 'Laboratório',
@@ -33,6 +33,30 @@ interface ModalChamarPacienteProps {
 
 export function ModalChamarPaciente({ atendimentoId, onClose, onSuccess }: ModalChamarPacienteProps) {
   const [salaCustomizada, setSalaCustomizada] = useState(false);
+  const [salas, setSalas] = useState<string[]>(SALAS_FALLBACK);
+  const [carregandoSalas, setCarregandoSalas] = useState(true);
+
+  useEffect(() => {
+    let ativo = true;
+    async function carregarSalas() {
+      try {
+        const res = await fetch('/api/configuracoes/salas?ativos=true');
+        const json = await res.json();
+        if (ativo && json.sucesso && Array.isArray(json.dados) && json.dados.length > 0) {
+          const nomes = json.dados.map((s: { nome: string }) => s.nome);
+          setSalas(nomes);
+        }
+      } catch {
+        // Usa fallback
+      } finally {
+        if (ativo) setCarregandoSalas(false);
+      }
+    }
+    void carregarSalas();
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   const {
     register,
@@ -122,7 +146,7 @@ export function ModalChamarPaciente({ atendimentoId, onClose, onSuccess }: Modal
             {/* Grade de salas rápidas */}
             {!salaCustomizada && (
               <div className="grid grid-cols-2 gap-2 mb-2">
-                {SALAS_DISPONIVEIS.map((sala) => (
+                {salas.map((sala) => (
                   <button
                     key={sala}
                     type="button"
@@ -130,7 +154,7 @@ export function ModalChamarPaciente({ atendimentoId, onClose, onSuccess }: Modal
                     className={cn(
                       'px-3 py-2 rounded-lg border text-xs font-medium text-left transition-all',
                       salaAtual === textoCadastroMaiusculo(sala)
-                        ? 'border-primary bg-primary/10 text-primary'
+                        ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm'
                         : 'border-border hover:bg-muted'
                     )}
                   >
@@ -140,7 +164,7 @@ export function ModalChamarPaciente({ atendimentoId, onClose, onSuccess }: Modal
                 <button
                   type="button"
                   onClick={() => { setSalaCustomizada(true); setValue('salaDestino', ''); }}
-                  className="px-3 py-2 rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:bg-muted transition-colors"
+                  className="px-3 py-2 rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-center"
                 >
                   + Outra sala...
                 </button>
