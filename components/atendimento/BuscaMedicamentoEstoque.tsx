@@ -24,6 +24,7 @@ interface BuscaMedicamentoEstoqueProps {
   onSelecionarMedicamento: (med: MedicamentoCatalogoItem) => void
   onNomeChange: (nome: string) => void
   erro?: string
+  modoReceitaAlta?: boolean
 }
 
 export function BuscaMedicamentoEstoque({
@@ -31,6 +32,7 @@ export function BuscaMedicamentoEstoque({
   onSelecionarMedicamento,
   onNomeChange,
   erro,
+  modoReceitaAlta = false,
 }: BuscaMedicamentoEstoqueProps) {
   const [busca, setBusca] = useState(valorNome)
   const [resultados, setResultados] = useState<MedicamentoCatalogoItem[]>([])
@@ -92,6 +94,12 @@ export function BuscaMedicamentoEstoque({
     setAberto(false)
   }
 
+  const handleUsarTextoLivre = () => {
+    setItemSelecionado(null)
+    onNomeChange(busca.trim())
+    setAberto(false)
+  }
+
   return (
     <div className="relative w-full" ref={containerRef}>
       <div className="relative flex items-center">
@@ -109,7 +117,11 @@ export function BuscaMedicamentoEstoque({
             setAberto(true)
             if (resultados.length === 0) buscarMedicamentos(busca)
           }}
-          placeholder="Selecione ou digite o nome / princípio ativo..."
+          placeholder={
+            modoReceitaAlta
+              ? "Digite o medicamento (livre) ou busque sugestões..."
+              : "Selecione ou digite o nome / princípio ativo..."
+          }
           className={cn(
             'w-full pl-9 pr-9 py-2 text-sm border rounded-md bg-background outline-none transition-all',
             'focus:ring-2 focus:ring-primary/30 focus:border-primary',
@@ -131,14 +143,19 @@ export function BuscaMedicamentoEstoque({
         </button>
       </div>
 
-      {/* Indicador persistente de saldo e alertas de segurança do item selecionado */}
+      {/* Indicador persistente de saldo e alertas de segurança */}
       {itemSelecionado ? (
         <div className="mt-2 space-y-1.5">
           <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
             {itemSelecionado.saldoAtual > 0 ? (
               <span className="inline-flex items-center gap-1 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 px-2 py-0.5 rounded border border-green-200 dark:border-green-800">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                Disponível em estoque ({itemSelecionado.saldoAtual} {itemSelecionado.unidade ?? 'un'})
+                Disponível no hospital ({itemSelecionado.saldoAtual} {itemSelecionado.unidade ?? 'un'})
+              </span>
+            ) : modoReceitaAlta ? (
+              <span className="inline-flex items-center gap-1 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800">
+                <Info className="h-3.5 w-3.5" />
+                Uso domiciliar / aquisição externa
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded border border-red-200 dark:border-red-800">
@@ -147,7 +164,7 @@ export function BuscaMedicamentoEstoque({
               </span>
             )}
 
-            {/* Badges Explicativos de Segurança com interatividade */}
+            {/* Badges Explicativos de Segurança */}
             {itemSelecionado.mav ? (
               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-800 dark:text-red-200 bg-red-100 dark:bg-red-950/80 px-2 py-0.5 rounded-md border border-red-300 dark:border-red-800">
                 <ShieldAlert className="h-3.5 w-3.5 text-red-700 dark:text-red-400" />
@@ -218,14 +235,38 @@ export function BuscaMedicamentoEstoque({
             </div>
           ) : null}
         </div>
+      ) : modoReceitaAlta && busca.trim().length >= 2 ? (
+        <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-blue-700 dark:text-blue-300 bg-blue-50/70 dark:bg-blue-950/30 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-900">
+          <Info className="h-3 w-3 shrink-0" />
+          <span>Medicamento de uso domiciliar / pós-alta (sem vínculo obrigatório de estoque)</span>
+        </div>
       ) : null}
 
       {/* Dropdown Auto-Suggest / Combobox de Medicamentos */}
       {aberto ? (
         <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border border-border rounded-xl shadow-xl max-h-64 overflow-y-auto divide-y divide-border">
+          {modoReceitaAlta && busca.trim().length >= 2 && (
+            <button
+              type="button"
+              onClick={handleUsarTextoLivre}
+              className="w-full text-left p-2.5 bg-primary/5 hover:bg-primary/10 text-primary font-medium transition-colors flex items-center gap-2 text-xs"
+            >
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+              <span className="truncate">
+                Prescrever <strong>"{busca.trim()}"</strong> como medicamento livre para uso em casa
+              </span>
+            </button>
+          )}
+
           {resultados.length === 0 && !carregando ? (
             <div className="p-3 text-xs text-center text-muted-foreground">
-              Nenhum medicamento encontrado para "{busca}".
+              {modoReceitaAlta ? (
+                <span>
+                  Nenhum item com este nome no catálogo hospitalar. O medicamento <strong>"{busca}"</strong> será emitido normalmente na receita.
+                </span>
+              ) : (
+                <span>Nenhum medicamento encontrado para "{busca}".</span>
+              )}
             </div>
           ) : (
             resultados.map((med) => {
@@ -277,6 +318,10 @@ export function BuscaMedicamentoEstoque({
                         <Package className="h-3 w-3" />
                         {med.saldoAtual} {med.unidade ?? 'un'}
                       </span>
+                    ) : modoReceitaAlta ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-300 dark:border-slate-700">
+                        Uso domiciliar
+                      </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-950/60 px-2 py-0.5 rounded-full border border-red-300 dark:border-red-800">
                         <AlertCircle className="h-3 w-3" />
@@ -293,3 +338,4 @@ export function BuscaMedicamentoEstoque({
     </div>
   )
 }
+

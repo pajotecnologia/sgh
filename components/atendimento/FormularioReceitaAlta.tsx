@@ -44,10 +44,12 @@ export function FormularioReceitaAlta({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/80 dark:bg-emerald-950/30 px-4 py-3 text-sm text-emerald-900 dark:text-emerald-100">
-        <p>
-          <strong>Receita de alta</strong> — medicamentos para uso em casa após o atendimento no pronto-socorro.
-          Não entra na fila de aplicação da enfermagem (Medicação PS).
+      <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/80 dark:bg-emerald-950/30 px-4 py-3 text-sm text-emerald-900 dark:text-emerald-100 space-y-1">
+        <p className="font-semibold">
+          Receita de Alta / Pós-Alta — Medicamentos para uso domiciliar
+        </p>
+        <p className="text-xs text-emerald-800 dark:text-emerald-200">
+          Os medicamentos prescritos aqui são para compra e uso em casa pelo paciente. Não é necessário que o medicamento conste no cadastro ou no estoque da farmácia do hospital, permitindo digitação livre de fórmulas, marcas e posologias específicas.
         </p>
       </div>
 

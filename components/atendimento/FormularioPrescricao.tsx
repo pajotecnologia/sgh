@@ -454,10 +454,16 @@ export function FormularioPrescricao({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
                 <div className="lg:col-span-4">
                   <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
-                    Medicamento * <span className="font-normal text-muted-foreground/70">(pesquise no estoque)</span>
+                    Medicamento *{' '}
+                    <span className="font-normal text-muted-foreground/70">
+                      {variantEfetivo === 'receita_alta'
+                        ? '(digite livremente ou busque no catálogo)'
+                        : '(pesquise no estoque)'}
+                    </span>
                   </label>
                   <BuscaMedicamentoEstoque
                     valorNome={itensWatch[itemEmEdicao]?.nomeMedicamento ?? ''}
+                    modoReceitaAlta={variantEfetivo === 'receita_alta'}
                     onNomeChange={(nome) => setValue(`itens.${itemEmEdicao}.nomeMedicamento`, nome, { shouldValidate: true })}
                     onSelecionarMedicamento={(med: MedicamentoCatalogoItem) => {
                       setValue(`itens.${itemEmEdicao}.nomeMedicamento`, med.nome, { shouldValidate: true })
