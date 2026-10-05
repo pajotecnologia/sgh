@@ -9,6 +9,7 @@ const PUBLIC_PATHS = [
   '/',
   '/login',
   '/painel',
+  '/acompanhamento',
   '/ajuda',
   '/manual',
   '/esqueci-senha',
@@ -23,13 +24,14 @@ const PUBLIC_PATHS = [
 const PUBLIC_API_PATHS = [
   '/api/auth',
   '/api/painel',
+  '/api/publico',
 ];
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true;
-  if (pathname.startsWith('/painel')) return true;
+  if (pathname.startsWith('/painel') || pathname.startsWith('/acompanhamento')) return true;
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/public') ||

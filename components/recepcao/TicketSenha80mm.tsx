@@ -145,13 +145,13 @@ export function TicketSenha80mm({
   }).format(new Date(dataHora));
 
   const [urlAcompanhamento, setUrlAcompanhamento] = useState<string>(
-    `/painel?senha=${encodeURIComponent(numeroAtendimento)}`
+    `/acompanhamento/${encodeURIComponent(numeroAtendimento)}`
   );
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const origin = window.location.origin;
-      setUrlAcompanhamento(`${origin}/painel?senha=${encodeURIComponent(numeroAtendimento)}`);
+      setUrlAcompanhamento(`${origin}/acompanhamento/${encodeURIComponent(numeroAtendimento)}`);
     }
   }, [numeroAtendimento]);
 
