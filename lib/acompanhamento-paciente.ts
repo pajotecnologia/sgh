@@ -25,6 +25,13 @@ export interface DadosAcompanhamentoPaciente {
   posicaoFila: number;
   totalNaFila: number;
   foiChamado: boolean;
+  isInternado: boolean;
+  internacao?: {
+    setor: string;
+    leito: string | null;
+    dataInternacao: string | null;
+    status: 'AGUARDANDO_LEITO' | 'EM_LEITO' | 'ALTA_HOSPITALAR';
+  } | null;
   chamada?: {
     salaDestino: string;
     chamadoEm: string;
@@ -89,6 +96,36 @@ export async function buscarDadosAcompanhamentoPaciente(
             queixaPrincipal: true,
           },
         },
+        leito: {
+          select: {
+            id: true,
+            codigo: true,
+            ala: true,
+            quarto: true,
+            tipo: true,
+            clinicaRef: {
+              select: { nome: true },
+            },
+          },
+        },
+        fichaInternacaoAlta: {
+          select: {
+            id: true,
+            status: true,
+            dadosFormulario: true,
+            updatedAt: true,
+          },
+        },
+        laudoInternacao: {
+          select: {
+            id: true,
+            status: true,
+            clinica: true,
+            diagnosticoInicial: true,
+            dataSolicitacao: true,
+            createdAt: true,
+          },
+        },
         chamadas: {
           orderBy: { chamadoEm: 'desc' },
           take: 1,
@@ -130,7 +167,56 @@ export async function buscarDadosAcompanhamentoPaciente(
       Math.floor((agora - new Date(atendimento.createdAt).getTime()) / 60000)
     );
 
-    // Calcular posição na fila
+    // Identificação do fluxo de internação
+    const isInternado =
+      atendimento.status === 'INTERNADO' ||
+      atendimento.status === 'AGUARDANDO_INTERNACAO' ||
+      Boolean(atendimento.fichaInternacaoAlta) ||
+      Boolean(atendimento.laudoInternacao) ||
+      Boolean(atendimento.leitoId) ||
+      (atendimento.vaiInternar && atendimento.status !== 'AGUARDANDO_TRIAGEM' && atendimento.status !== 'EM_TRIAGEM');
+
+    const dadosFormFicha = (atendimento.fichaInternacaoAlta?.dadosFormulario as Record<string, unknown>) || null;
+    const setorFicha =
+      (typeof dadosFormFicha?.setor === 'string' && dadosFormFicha.setor) ||
+      (typeof dadosFormFicha?.unidade === 'string' && dadosFormFicha.unidade) ||
+      null;
+    const leitoFicha =
+      (typeof dadosFormFicha?.leito === 'string' && dadosFormFicha.leito) ||
+      (typeof dadosFormFicha?.quarto === 'string' && dadosFormFicha.quarto) ||
+      null;
+
+    const setorInternacao =
+      atendimento.leito?.clinicaRef?.nome ||
+      atendimento.leito?.ala ||
+      atendimento.laudoInternacao?.clinica ||
+      setorFicha ||
+      atendimento.setor ||
+      'Clínica Médica / Internação';
+
+    const leitoInternacao =
+      (atendimento.leito
+        ? `${atendimento.leito.codigo}${atendimento.leito.ala ? ` - ${atendimento.leito.ala}` : ''}`
+        : null) ||
+      leitoFicha ||
+      atendimento.sala ||
+      (atendimento.leitoId ? `Leito ${atendimento.leitoId}` : null);
+
+    const internacaoInfo = isInternado
+      ? {
+          setor: setorInternacao,
+          leito: leitoInternacao,
+          dataInternacao:
+            atendimento.laudoInternacao?.dataSolicitacao?.toISOString() ||
+            atendimento.fichaInternacaoAlta?.updatedAt?.toISOString() ||
+            atendimento.updatedAt.toISOString(),
+          status: (atendimento.status === 'AGUARDANDO_INTERNACAO'
+            ? 'AGUARDANDO_LEITO'
+            : 'EM_LEITO') as 'AGUARDANDO_LEITO' | 'EM_LEITO' | 'ALTA_HOSPITALAR',
+        }
+      : null;
+
+    // Calcular posição na fila (somente se ainda estiver aguardando na porta do PS)
     let pessoasNaFrente = 0;
     let posicaoFila = 1;
     let totalNaFila = 1;
@@ -171,7 +257,7 @@ export async function buscarDadosAcompanhamentoPaciente(
         posicaoFila = idx + 1;
         pessoasNaFrente = idx;
       }
-    } else if (atendimento.status === 'AGUARDANDO_ATENDIMENTO') {
+    } else if (atendimento.status === 'AGUARDANDO_ATENDIMENTO' && !isInternado) {
       const filaMedica = await prisma.atendimento.findMany({
         where: {
           deletedAt: null,
@@ -235,7 +321,19 @@ export async function buscarDadosAcompanhamentoPaciente(
     let statusFormatado = 'Aguardando Triagem';
     let mensagemStatus = 'Aguarde sua senha ser chamada para a Sala de Triagem e Classificação de Risco.';
 
-    if (atendimento.status === 'AGUARDANDO_TRIAGEM') {
+    if (isInternado) {
+      etapaAtual = 'OBSERVACAO';
+      if (atendimento.status === 'AGUARDANDO_INTERNACAO') {
+        statusFormatado = 'Aguardando Leito de Internação';
+        mensagemStatus =
+          'Encaminhamento para internação hospitalar emitido pela equipe médica. Aguardando alocação e preparação do leito pela enfermagem.';
+      } else {
+        statusFormatado = 'Paciente Internado';
+        mensagemStatus = `Paciente admitido na unidade de internação hospitalar.${
+          leitoInternacao ? ` Leito: ${leitoInternacao}` : ''
+        }${setorInternacao ? ` • Setor: ${setorInternacao}` : ''}`;
+      }
+    } else if (atendimento.status === 'AGUARDANDO_TRIAGEM') {
       etapaAtual = 'TRIAGEM';
       if (foiChamado && chamadaInfo) {
         statusFormatado = `Chamado para Triagem — ${chamadaInfo.salaDestino}`;
@@ -267,17 +365,18 @@ export async function buscarDadosAcompanhamentoPaciente(
       etapaAtual = 'CONSULTORIO';
       statusFormatado = 'Em Consulta Médica';
       mensagemStatus = 'Você está em atendimento no consultório médico.';
-    } else if (atendimento.status === 'INTERNADO' || atendimento.status === 'AGUARDANDO_INTERNACAO') {
-      etapaAtual = 'OBSERVACAO';
-      statusFormatado = 'Encaminhado para Internação';
-      mensagemStatus = 'Paciente admitido na unidade de internação hospitalar.';
-    } else if (atendimento.status === 'CONCLUIDO' || atendimento.status === 'ALTA' || atendimento.status === 'TRANSFERIDO' || atendimento.status === 'OBITO') {
+    } else if (
+      atendimento.status === 'CONCLUIDO' ||
+      atendimento.status === 'ALTA' ||
+      atendimento.status === 'TRANSFERIDO' ||
+      atendimento.status === 'OBITO'
+    ) {
       etapaAtual = 'FINALIZADO';
       statusFormatado = 'Atendimento Concluído';
       mensagemStatus = 'Atendimento finalizado com sucesso.';
     }
 
-    // Linha do tempo de etapas
+    // Linha do tempo de etapas inteligente para internação vs pronto-atendimento
     const etapas: DadosAcompanhamentoPaciente['etapas'] = [
       {
         id: 'recepcao',
@@ -290,31 +389,53 @@ export async function buscarDadosAcompanhamentoPaciente(
         id: 'triagem',
         titulo: 'Classificação de Risco (Triagem)',
         subtitulo: corTriagem ? 'Classificação realizada' : 'Enfermagem / Manchester',
-        status: corTriagem
-          ? 'concluido'
-          : atendimento.status === 'EM_TRIAGEM' || atendimento.status === 'AGUARDANDO_TRIAGEM'
-          ? 'atual'
-          : 'pendente',
+        status:
+          corTriagem || isInternado
+            ? 'concluido'
+            : atendimento.status === 'EM_TRIAGEM' || atendimento.status === 'AGUARDANDO_TRIAGEM'
+            ? 'atual'
+            : 'pendente',
         detalhe: corTriagem ? `Classificado (${corTriagem})` : undefined,
       },
       {
         id: 'consulta',
         titulo: 'Atendimento Médico',
-        subtitulo: 'Consulta clínica / Diagnóstico',
+        subtitulo: isInternado ? 'Indicação clínica de internação' : 'Consulta clínica e diagnóstico',
         status:
-          atendimento.status === 'CONCLUIDO' || atendimento.status === 'ALTA' || atendimento.status === 'INTERNADO'
+          isInternado || atendimento.status === 'CONCLUIDO' || atendimento.status === 'ALTA'
             ? 'concluido'
             : atendimento.status === 'AGUARDANDO_ATENDIMENTO' || atendimento.status === 'EM_ATENDIMENTO'
             ? 'atual'
             : 'pendente',
         detalhe: chamadaInfo ? `Destino: ${chamadaInfo.salaDestino}` : undefined,
       },
-      {
-        id: 'conclusao',
-        titulo: 'Desfecho e Alta',
-        subtitulo: 'Receita médica, exames ou alta hospitalar',
-        status: atendimento.status === 'CONCLUIDO' || atendimento.status === 'ALTA' ? 'concluido' : 'pendente',
-      },
+      ...(isInternado
+        ? [
+            {
+              id: 'internacao',
+              titulo: 'Internação Hospitalar',
+              subtitulo: `Setor: ${setorInternacao}${leitoInternacao ? ` • Leito: ${leitoInternacao}` : ''}`,
+              status: (atendimento.status === 'AGUARDANDO_INTERNACAO'
+                ? 'atual'
+                : 'concluido') as 'atual' | 'concluido',
+              detalhe:
+                atendimento.status === 'AGUARDANDO_INTERNACAO'
+                  ? 'Aguardando Leito'
+                  : leitoInternacao
+                  ? `Leito ${leitoInternacao}`
+                  : 'Internado',
+            },
+          ]
+        : [
+            {
+              id: 'conclusao',
+              titulo: 'Desfecho e Alta',
+              subtitulo: 'Receita médica, exames ou alta do PS',
+              status: (atendimento.status === 'CONCLUIDO' || atendimento.status === 'ALTA'
+                ? 'concluido'
+                : 'pendente') as 'concluido' | 'pendente',
+            },
+          ]),
     ];
 
     return {
@@ -336,6 +457,8 @@ export async function buscarDadosAcompanhamentoPaciente(
       posicaoFila,
       totalNaFila,
       foiChamado,
+      isInternado,
+      internacao: internacaoInfo,
       chamada: chamadaInfo,
       etapas,
       instituicao: {

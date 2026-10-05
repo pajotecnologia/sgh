@@ -7,9 +7,12 @@ import type { DadosAcompanhamentoPaciente } from '@/lib/acompanhamento-paciente'
 import { cn } from '@/lib/utils';
 import {
   Activity,
+  Bed,
+  Building2,
   Bell,
   CheckCircle2,
   Clock,
+  HeartHandshake,
   RefreshCw,
   Users,
   Volume2,
@@ -346,6 +349,70 @@ export function PainelAcompanhamentoMobile({
             </div>
           ) : null}
         </div>
+
+        {/* CARD ESPECÍFICO DE INTERNAÇÃO HOSPITALAR */}
+        {dados.isInternado && dados.internacao ? (
+          <div className="rounded-3xl bg-gradient-to-br from-indigo-950/90 via-slate-900/95 to-slate-900 border border-indigo-500/40 p-5 shadow-2xl backdrop-blur-xl relative overflow-hidden space-y-3.5">
+            <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                  <Bed className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-indigo-200">
+                    Internação Hospitalar
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-medium">
+                    {dados.internacao.status === 'AGUARDANDO_LEITO'
+                      ? 'Aguardando Liberação de Leito'
+                      : dados.internacao.status === 'ALTA_HOSPITALAR'
+                      ? 'Alta Hospitalar Concluída'
+                      : 'Paciente em Leito Ativo'}
+                  </p>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                {dados.internacao.status === 'AGUARDANDO_LEITO' ? 'Em Espera' : 'Internado'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="p-3 rounded-2xl bg-white/5 border border-white/5 space-y-1">
+                <div className="flex items-center gap-1.5 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                  <Building2 className="h-3.5 w-3.5 text-indigo-400" />
+                  <span>Setor / Ala</span>
+                </div>
+                <p className="text-xs font-black text-slate-100 uppercase truncate">
+                  {dados.internacao.setor}
+                </p>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-white/5 border border-white/5 space-y-1">
+                <div className="flex items-center gap-1.5 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                  <Bed className="h-3.5 w-3.5 text-indigo-400" />
+                  <span>Leito</span>
+                </div>
+                <p className="text-xs font-black text-indigo-300 uppercase truncate">
+                  {dados.internacao.leito || 'A definir'}
+                </p>
+              </div>
+            </div>
+
+            {dados.internacao.dataInternacao && (
+              <div className="text-[11px] text-slate-400 flex items-center justify-between pt-0.5 px-1 border-t border-white/5">
+                <span>Admissão no leito:</span>
+                <span className="font-semibold text-slate-200">{dados.internacao.dataInternacao}</span>
+              </div>
+            )}
+
+            <div className="p-3 rounded-2xl bg-indigo-950/40 border border-indigo-500/20 text-xs text-indigo-200/90 flex items-start gap-2.5">
+              <HeartHandshake className="h-4 w-4 text-indigo-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] leading-relaxed">
+                Paciente sob cuidados contínuos da equipe médica e enfermagem hospitalar.
+              </p>
+            </div>
+          </div>
+        ) : null}
 
         {/* 3. LINHA DO TEMPO DO ATENDIMENTO (STEPPER) */}
         <div className="rounded-3xl bg-slate-900/60 border border-white/10 p-5 shadow-lg space-y-3">
