@@ -64,6 +64,108 @@ const COR_MANCHESTER_CONFIG: Record<
   },
 };
 
+// Função de síntese de áudio Web Audio API e vibração com zero dependência de arquivos externos
+function emitirAlertaSonoroEVibracao(tipo: 'chamada' | 'status' | 'proximo' | 'teste' = 'chamada') {
+  // 1. Vibração háptica no celular (Android / navegadores compatíveis)
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    try {
+      if (tipo === 'chamada') {
+        navigator.vibrate([500, 150, 500, 150, 800]);
+      } else if (tipo === 'status') {
+        navigator.vibrate([300, 150, 300]);
+      } else if (tipo === 'proximo') {
+        navigator.vibrate([400, 150, 400]);
+      } else {
+        navigator.vibrate([200]);
+      }
+    } catch {}
+  }
+
+  // 2. Síntese Sonora Hospitalar via Web Audio API
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const agora = ctx.currentTime;
+
+    if (tipo === 'chamada') {
+      // Tom de chamada hospitalar (Três notas musicais ascendentes: D5 -> F#5 -> A5)
+      const notas = [587.33, 739.99, 880.0];
+      notas.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, agora + idx * 0.22);
+
+        gain.gain.setValueAtTime(0, agora + idx * 0.22);
+        gain.gain.linearRampToValueAtTime(0.35, agora + idx * 0.22 + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, agora + idx * 0.22 + 0.45);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(agora + idx * 0.22);
+        osc.stop(agora + idx * 0.22 + 0.48);
+      });
+    } else if (tipo === 'status') {
+      // Tom suave de transição de status (Dois tons agradáveis: Sol -> Dó agudo)
+      const notas = [784.0, 1046.5];
+      notas.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, agora + idx * 0.18);
+
+        gain.gain.setValueAtTime(0, agora + idx * 0.18);
+        gain.gain.linearRampToValueAtTime(0.25, agora + idx * 0.18 + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, agora + idx * 0.18 + 0.35);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(agora + idx * 0.18);
+        osc.stop(agora + idx * 0.18 + 0.38);
+      });
+    } else if (tipo === 'proximo') {
+      // Alerta de 'Você é o próximo!'
+      const notas = [659.25, 880.0, 1046.5];
+      notas.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, agora + idx * 0.15);
+
+        gain.gain.setValueAtTime(0, agora + idx * 0.15);
+        gain.gain.linearRampToValueAtTime(0.3, agora + idx * 0.15 + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, agora + idx * 0.15 + 0.35);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(agora + idx * 0.15);
+        osc.stop(agora + idx * 0.15 + 0.38);
+      });
+    } else {
+      // Teste simples ao tocar na tela
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, agora);
+      gain.gain.setValueAtTime(0.2, agora);
+      gain.gain.exponentialRampToValueAtTime(0.001, agora + 0.25);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(agora);
+      osc.stop(agora + 0.28);
+    }
+  } catch {}
+}
+
 export function PainelAcompanhamentoMobile({
   dadosIniciais,
   numeroAtendimento,
@@ -75,10 +177,17 @@ export function PainelAcompanhamentoMobile({
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [somAtivo, setSomAtivo] = useState(true);
+  const [testandoAlerta, setTestandoAlerta] = useState(false);
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState<Date>(new Date());
   const [chamadoAlerta, setChamadoAlerta] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const jaTocouRef = useRef<string | null>(null);
+
+  const ultimoStatusRef = useRef<string | null>(dadosIniciais?.status || null);
+  const ultimaChamadaRef = useRef<string | null>(
+    dadosIniciais?.foiChamado && dadosIniciais.chamada
+      ? `${dadosIniciais.chamada.chamadoEm}-${dadosIniciais.chamada.salaDestino}`
+      : null
+  );
+  const ultimoPessoasNaFrenteRef = useRef<number | null>(dadosIniciais?.pessoasNaFrente ?? null);
 
   const carregarDados = useCallback(async () => {
     try {
@@ -97,26 +206,44 @@ export function PainelAcompanhamentoMobile({
       setUltimaAtualizacao(new Date());
       setErro(null);
 
-      // Disparar vibração e alerta sonoro se foi chamado
+      // 1. Caso 1: Paciente foi CHAMADO no painel (prioridade máxima)
       if (novosDados.foiChamado && novosDados.chamada) {
         setChamadoAlerta(true);
         const chaveChamada = `${novosDados.chamada.chamadoEm}-${novosDados.chamada.salaDestino}`;
-        if (jaTocouRef.current !== chaveChamada) {
-          jaTocouRef.current = chaveChamada;
-          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-            try {
-              navigator.vibrate([400, 200, 400, 200, 600]);
-            } catch {}
-          }
-          if (audioRef.current && somAtivo) {
-            try {
-              audioRef.current.currentTime = 0;
-              audioRef.current.play().catch(() => {});
-            } catch {}
+        if (ultimaChamadaRef.current !== chaveChamada) {
+          ultimaChamadaRef.current = chaveChamada;
+          if (somAtivo) {
+            emitirAlertaSonoroEVibracao('chamada');
           }
         }
       } else {
         setChamadoAlerta(false);
+        ultimaChamadaRef.current = null;
+
+        // 2. Caso 2: MUDANÇA DE STATUS (ex: triado, em atendimento, internado, etc.)
+        if (ultimoStatusRef.current && ultimoStatusRef.current !== novosDados.status) {
+          ultimoStatusRef.current = novosDados.status;
+          if (somAtivo) {
+            emitirAlertaSonoroEVibracao('status');
+          }
+        } else if (!ultimoStatusRef.current) {
+          ultimoStatusRef.current = novosDados.status;
+        }
+
+        // 3. Caso 3: Tornou-se o próximo da fila
+        if (
+          ultimoPessoasNaFrenteRef.current !== null &&
+          ultimoPessoasNaFrenteRef.current > 0 &&
+          novosDados.pessoasNaFrente === 0 &&
+          (novosDados.status === 'AGUARDANDO_TRIAGEM' || novosDados.status === 'AGUARDANDO_ATENDIMENTO')
+        ) {
+          ultimoPessoasNaFrenteRef.current = 0;
+          if (somAtivo) {
+            emitirAlertaSonoroEVibracao('proximo');
+          }
+        } else {
+          ultimoPessoasNaFrenteRef.current = novosDados.pessoasNaFrente;
+        }
       }
     } catch {
       if (!dados) setErro('Erro de conexão ao buscar atendimento.');
@@ -124,6 +251,12 @@ export function PainelAcompanhamentoMobile({
       setCarregando(false);
     }
   }, [numeroAtendimento, dados, somAtivo]);
+
+  const dispararTesteAlerta = () => {
+    setTestandoAlerta(true);
+    emitirAlertaSonoroEVibracao('chamada');
+    setTimeout(() => setTestandoAlerta(false), 1200);
+  };
 
   // Polling em tempo real a cada 3 segundos
   useEffect(() => {
@@ -167,8 +300,6 @@ export function PainelAcompanhamentoMobile({
 
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans flex flex-col justify-between selection:bg-primary/30">
-      <audio ref={audioRef} src="/sons/chamada-painel.mp3" preload="auto" />
-
       {/* 1. TOPO: Identificação Institucional e Controles */}
       <header className="px-4 py-3 bg-slate-900/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -197,13 +328,24 @@ export function PainelAcompanhamentoMobile({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setSomAtivo((s) => !s)}
-            className="p-2 rounded-xl bg-white/10 hover:bg-white/15 text-slate-300 transition-colors"
+            onClick={() => {
+              const novo = !somAtivo;
+              setSomAtivo(novo);
+              if (novo) {
+                emitirAlertaSonoroEVibracao('teste');
+              }
+            }}
+            className={cn(
+              'p-2 rounded-xl border transition-colors flex items-center gap-1.5',
+              somAtivo
+                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                : 'bg-white/10 border-white/10 text-slate-500'
+            )}
             title={somAtivo ? 'Silenciar som' : 'Ativar som de chamada'}
             aria-label="Controle de áudio"
           >
             {somAtivo ? (
-              <Volume2 className="h-4 w-4 text-primary" />
+              <Volume2 className="h-4 w-4 text-emerald-400" />
             ) : (
               <VolumeX className="h-4 w-4 text-slate-500" />
             )}
@@ -224,6 +366,41 @@ export function PainelAcompanhamentoMobile({
 
       {/* 2. CORPO PRINCIPAL */}
       <main className="flex-1 p-4 max-w-md mx-auto w-full space-y-4">
+        {/* BARRA DE ALERTA SONORO E VIBRAÇÃO */}
+        <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl bg-slate-900/90 border border-white/10 shadow-sm">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              className={cn(
+                'p-1.5 rounded-xl border shrink-0',
+                somAtivo
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  : 'bg-slate-800 text-slate-500 border-white/10'
+              )}
+            >
+              {somAtivo ? <Volume2 className="h-4 w-4 animate-pulse" /> : <VolumeX className="h-4 w-4" />}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold text-slate-200 truncate">
+                {somAtivo ? 'Som e Vibração Ativos' : 'Alertas Silenciados'}
+              </p>
+              <p className="text-[10px] text-slate-400 truncate">
+                {somAtivo ? 'Vibra e toca ao mudar status ou ser chamado' : 'Toque no alto-falante para ativar'}
+              </p>
+            </div>
+          </div>
+
+          {somAtivo && (
+            <button
+              type="button"
+              onClick={dispararTesteAlerta}
+              disabled={testandoAlerta}
+              className="px-2.5 py-1 rounded-xl bg-primary/20 hover:bg-primary/30 border border-primary/30 text-[11px] font-bold text-sky-300 transition-all shrink-0 active:scale-95"
+            >
+              {testandoAlerta ? 'Tocando...' : 'Testar'}
+            </button>
+          )}
+        </div>
+
         {/* BANNER DE CHAMADA ATIVA (SUPER DESTAQUE QUANDO CHAMADO) */}
         {dados.foiChamado && dados.chamada ? (
           <div className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-b from-sky-600 via-sky-700 to-sky-900 border-2 border-sky-300 shadow-2xl shadow-sky-500/30 animate-pulse text-center">
