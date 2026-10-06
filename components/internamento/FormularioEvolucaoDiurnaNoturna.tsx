@@ -169,7 +169,14 @@ export function FormularioEvolucaoDiurnaNoturna({ atendimentoId }: { atendimento
   const handleSelecionarTurno = (novoTurno: 'DIURNA' | 'NOTURNA') => {
     if (novoTurno === turno) return
     setTurno(novoTurno)
-    limparCampos()
+    carregar(novoTurno, dataReferencia)
+  }
+
+  const handleDataChange = (novaData: string) => {
+    setDataReferencia(novaData)
+    if (novaData) {
+      carregar(turno, novaData)
+    }
   }
 
   const handleCarregarAvaliacaoDiurna = async () => {
@@ -346,20 +353,11 @@ export function FormularioEvolucaoDiurnaNoturna({ atendimentoId }: { atendimento
             <input
               type="date"
               value={dataReferencia}
-              onChange={(e) => setDataReferencia(e.target.value)}
+              onChange={(e) => handleDataChange(e.target.value)}
               className={cn(inputCls, 'w-auto min-w-[10rem]')}
               aria-label="Data do turno"
             />
           </div>
-          <button
-            type="button"
-            onClick={handleTrocarTurnoData}
-            disabled={carregando}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted disabled:opacity-50"
-          >
-            {carregando ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Carregar ficha
-          </button>
         </div>
       </section>
 

@@ -599,28 +599,16 @@ export function FormularioFichaInternacaoAlta({
             Confirmar internação
           </button>
         ) : (
-          <>
-            <button
-              type="button"
-              disabled={enviando}
-              onClick={() => void salvarFicha('EM_ANDAMENTO')}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-primary text-primary text-sm font-medium hover:bg-primary/5 disabled:opacity-50 transition-colors"
-              aria-label="Salvar ficha em andamento"
-            >
-              {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileText className="h-4 w-4" aria-hidden />}
-              Salvar ficha
-            </button>
-            <button
-              type="button"
-              disabled={enviando}
-              onClick={() => void salvarFicha('CONCLUIDA', { voltarListagem: !!voltarAposConcluir })}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors ml-auto"
-              aria-label="Concluir ficha"
-            >
-              {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <UserCheck className="h-4 w-4" aria-hidden />}
-              Concluir ficha
-            </button>
-          </>
+          <button
+            type="button"
+            disabled={enviando}
+            onClick={() => void salvarFicha('CONCLUIDA', { voltarListagem: !!voltarAposConcluir })}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors ml-auto shadow-2xs"
+            aria-label="Concluir ficha"
+          >
+            {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <UserCheck className="h-4 w-4" aria-hidden />}
+            Concluir ficha
+          </button>
         )}
         </div>
       </div>

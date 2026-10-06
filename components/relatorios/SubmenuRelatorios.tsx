@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -53,70 +54,80 @@ const RELATORIOS_CADASTRAIS = [
 export function SubmenuRelatorios() {
   const pathname = usePathname()
 
+  const ehCadastral = RELATORIOS_CADASTRAIS.some(
+    (it) => pathname === it.href || pathname.startsWith(`${it.href}/`)
+  )
+  const [abaAtiva, setAbaAtiva] = useState<'clinicos' | 'cadastrais'>(ehCadastral ? 'cadastrais' : 'clinicos')
+
+  const listaExibida = abaAtiva === 'clinicos' ? RELATORIOS_CLINICOS : RELATORIOS_CADASTRAIS
+
   return (
-    <div className="no-print space-y-3 pb-3 border-b border-border/60">
-      {/* Grupo Clínico */}
-      <div className="space-y-1.5">
-        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
-          Relatórios Clínicos & Internamento
-        </span>
-        <nav className="flex flex-wrap gap-1.5" aria-label="Relatórios Clínicos">
-          {RELATORIOS_CLINICOS.map((it) => {
-            const Icone = it.icon
-            const ativo = pathname === it.href || pathname.startsWith(`${it.href}/`)
-
-            return (
-              <Link
-                key={it.href}
-                href={it.href}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors',
-                  ativo
-                    ? 'border-primary bg-primary/10 text-primary shadow-2xs font-semibold'
-                    : 'border-border bg-card text-foreground hover:bg-muted/70'
-                )}
-                aria-current={ativo ? 'page' : undefined}
-              >
-                <Icone className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
-                {it.label}
-              </Link>
-            )
-          })}
-        </nav>
+    <div className="no-print space-y-2.5 pb-3 border-b border-border/60">
+      {/* Seletor Segmentado de Categoria */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="inline-flex rounded-xl bg-muted/60 p-1 border border-border/40 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('clinicos')}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all',
+              abaAtiva === 'clinicos'
+                ? 'bg-background text-primary shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Stethoscope className="h-3.5 w-3.5" />
+            Relatórios Clínicos & Assistenciais
+            <span className="ml-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.2">
+              {RELATORIOS_CLINICOS.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('cadastrais')}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all',
+              abaAtiva === 'cadastrais'
+                ? 'bg-background text-primary shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <ClipboardList className="h-3.5 w-3.5" />
+            Cadastros & Operações
+            <span className="ml-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-bold px-1.5 py-0.2">
+              {RELATORIOS_CADASTRAIS.length}
+            </span>
+          </button>
+        </div>
       </div>
 
-      {/* Grupo Cadastral */}
-      <div className="space-y-1.5">
-        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
-          Relatórios Cadastrais & Operacionais
-        </span>
-        <nav className="flex flex-wrap gap-1.5" aria-label="Relatórios Cadastrais">
-          {RELATORIOS_CADASTRAIS.map((it) => {
-            const Icone = it.icon
-            const ativo =
-              pathname === it.href ||
-              (it.href === '/relatorios/atendimentos' && pathname === '/relatorios') ||
-              pathname.startsWith(`${it.href}/`)
+      {/* Lista de Relatórios Filtrada */}
+      <nav className="flex flex-wrap gap-1.5 overflow-x-auto py-0.5" aria-label="Navegação de Relatórios">
+        {listaExibida.map((it) => {
+          const Icone = it.icon
+          const ativo =
+            pathname === it.href ||
+            (it.href === '/relatorios/atendimentos' && pathname === '/relatorios') ||
+            pathname.startsWith(`${it.href}/`)
 
-            return (
-              <Link
-                key={it.href}
-                href={it.href}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors',
-                  ativo
-                    ? 'border-primary bg-primary/10 text-primary shadow-2xs font-semibold'
-                    : 'border-border bg-card text-foreground hover:bg-muted/70'
-                )}
-                aria-current={ativo ? 'page' : undefined}
-              >
-                <Icone className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
-                {it.label}
-              </Link>
-            )
-          })}
-        </nav>
-      </div>
+          return (
+            <Link
+              key={it.href}
+              href={it.href}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all shrink-0',
+                ativo
+                  ? 'border-primary bg-primary text-primary-foreground shadow-xs font-semibold'
+                  : 'border-border bg-card text-foreground hover:bg-muted/70'
+              )}
+              aria-current={ativo ? 'page' : undefined}
+            >
+              <Icone className={cn('h-3.5 w-3.5 shrink-0', ativo ? 'text-primary-foreground' : 'text-muted-foreground')} aria-hidden />
+              {it.label}
+            </Link>
+          )
+        })}
+      </nav>
     </div>
   )
 }
