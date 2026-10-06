@@ -43,6 +43,16 @@ function formatarDataHoraBr(val: Date | string | null | undefined): string {
   return `${dia}/${mes}/${ano} ${hora}:${min}`;
 }
 
+function sanitizarTextoParaPdf(val: any): string {
+  if (val === null || val === undefined) return '—';
+  const str = String(val);
+  return str
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}]/gu, '')
+    .replace(/[^\x20-\x7E\xA0-\xFF\n\r\t]/g, ' ')
+    .trim() || '—';
+}
+
+
 function intervaloDiaLocal(dataStr: string): { inicio: Date; fim: Date } {
   const [y, m, d] = dataStr.split('-').map((x) => parseInt(x, 10));
   if (!y || m < 1 || m > 12 || d < 1 || d > 31) {
@@ -147,7 +157,7 @@ export async function GET(req: NextRequest) {
         y = pageH - PAGE_MARGIN;
       }
       for (const line of lines) {
-        page.drawText(line, {
+        page.drawText(sanitizarTextoParaPdf(line), {
           x: PAGE_MARGIN,
           y,
           size: bodySize,

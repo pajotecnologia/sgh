@@ -41,6 +41,16 @@ function formatarDataHoraBr(val: Date | string | null | undefined): string {
   return `${dia}/${mes}/${ano} ${hora}:${min}`;
 }
 
+function sanitizarTextoParaPdf(val: any): string {
+  if (val === null || val === undefined) return '—';
+  const str = String(val);
+  return str
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}]/gu, '')
+    .replace(/[^\x20-\x7E\xA0-\xFF\n\r\t]/g, ' ')
+    .trim() || '—';
+}
+
+
 export async function GET(req: NextRequest) {
   const sessao = await getServerSession(authOptions);
   if (!sessao) {
@@ -521,7 +531,7 @@ export async function GET(req: NextRequest) {
         }
 
         for (let c = 0; c < linha.length; c++) {
-          const val = String(linha[c] ?? '—');
+          const val = sanitizarTextoParaPdf(linha[c]);
           const cWidth = getColWidth(c);
           page.drawText(val, {
             x: getColX(c),

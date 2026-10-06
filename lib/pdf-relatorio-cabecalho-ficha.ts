@@ -18,6 +18,15 @@ export type InstituicaoRelatorioPdf = {
   cep: string | null;
 };
 
+export function sanitizarTextoParaPdf(val: any): string {
+  if (val === null || val === undefined) return '';
+  const str = String(val);
+  return str
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}]/gu, '')
+    .replace(/[^\x20-\x7E\xA0-\xFF\n\r\t]/g, ' ')
+    .trim();
+}
+
 function linhaEndereco(inst: InstituicaoRelatorioPdf): string {
   const partes = [
     inst.endereco,
@@ -27,6 +36,7 @@ function linhaEndereco(inst: InstituicaoRelatorioPdf): string {
   ].filter(Boolean) as string[];
   return partes.length ? partes.join(' — ') : 'Endereço da unidade não cadastrado';
 }
+
 
 /** Distância a partir do TOPO → coordenada Y (pdf-lib, origem em baixo). */
 function yFromTop(page: PDFPage, fromTop: number): number {
@@ -157,7 +167,7 @@ export async function drawCabecalhoEstiloFicha(
   const centerW = W - margin * 2 - logoSize - 14 - rightReservedW;
 
   let fromTop = topStart + 8;
-  const municipio = inst.nomeMunicipio?.trim() || 'Prefeitura Municipal / Secretaria de Saúde';
+  const municipio = sanitizarTextoParaPdf(inst.nomeMunicipio?.trim() || 'Prefeitura Municipal / Secretaria de Saúde');
   page.drawText(municipio.toUpperCase(), {
     x: centerX,
     y: yFromTop(page, fromTop),
@@ -168,7 +178,7 @@ export async function drawCabecalhoEstiloFicha(
   });
 
   fromTop += 13;
-  const nomeInst = inst.nomeInstituicao?.trim() || 'Sistema de Gestão Hospitalar - SGH';
+  const nomeInst = sanitizarTextoParaPdf(inst.nomeInstituicao?.trim() || 'Sistema de Gestão Hospitalar - SGH');
   page.drawText(nomeInst, {
     x: centerX,
     y: yFromTop(page, fromTop),
@@ -183,7 +193,7 @@ export async function drawCabecalhoEstiloFicha(
   if (inst.cnes) {
     endStr += ` — CNES: ${inst.cnes}`;
   }
-  page.drawText(endStr, {
+  page.drawText(sanitizarTextoParaPdf(endStr), {
     x: centerX,
     y: yFromTop(page, fromTop),
     size: 8,
@@ -196,7 +206,7 @@ export async function drawCabecalhoEstiloFicha(
   const rightX = W - margin;
   let rightFromTop = topStart + 10;
   if (opts.rightBoxMain || opts.rightBoxLabel) {
-    const mainTxt = opts.rightBoxMain || opts.rightBoxLabel || '';
+    const mainTxt = sanitizarTextoParaPdf(opts.rightBoxMain || opts.rightBoxLabel || '');
     const mainW = fontBold.widthOfTextAtSize(mainTxt, 9);
     page.drawText(mainTxt, {
       x: rightX - mainW,
@@ -209,7 +219,7 @@ export async function drawCabecalhoEstiloFicha(
   }
 
   if (opts.rightBoxSub) {
-    const subTxt = opts.rightBoxSub;
+    const subTxt = sanitizarTextoParaPdf(opts.rightBoxSub);
     const subW = font.widthOfTextAtSize(subTxt, 7.5);
     page.drawText(subTxt, {
       x: rightX - subW,
@@ -233,7 +243,7 @@ export async function drawCabecalhoEstiloFicha(
     color: grayBand,
   });
 
-  const faixa = opts.faixaTexto.toUpperCase();
+  const faixa = sanitizarTextoParaPdf(opts.faixaTexto).toUpperCase();
   const faixaW = fontBold.widthOfTextAtSize(faixa, 10);
   page.drawText(faixa, {
     x: margin + (W - margin * 2 - faixaW) / 2,

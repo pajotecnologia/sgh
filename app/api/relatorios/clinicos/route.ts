@@ -41,6 +41,16 @@ function formatarDataHoraBr(val: Date | string | null | undefined): string {
   return `${dia}/${mes}/${ano} ${hora}:${min}`
 }
 
+function sanitizarTextoParaPdf(val: any): string {
+  if (val === null || val === undefined) return '—'
+  const str = String(val)
+  return str
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}]/gu, '')
+    .replace(/[^\x20-\x7E\xA0-\xFF\n\r\t]/g, ' ')
+    .trim() || '—'
+}
+
+
 function parseFiltroDatas(dataInicio?: string | null, dataFim?: string | null) {
   let gte: Date | undefined
   let lte: Date | undefined
@@ -604,7 +614,7 @@ export async function GET(req: NextRequest) {
       dadosLinhas = mapped.map((m) => [
         m.numeroAtendimento,
         m.nomePaciente,
-        m.turno === 'DIA' ? '☀️ Dia' : '🌙 Noite',
+        m.turno === 'DIA' ? 'Dia' : 'Noite',
         formatarDataBr(m.dataReferencia),
         m.estadoGeral.length > 25 ? m.estadoGeral.substring(0, 22) + '...' : m.estadoGeral,
         m.profissional,
@@ -1004,7 +1014,7 @@ export async function GET(req: NextRequest) {
         }
 
         for (let c = 0; c < linha.length; c++) {
-          const val = String(linha[c] ?? '—')
+          const val = sanitizarTextoParaPdf(linha[c])
           const cWidth = getColWidth(c)
           page.drawText(val, {
             x: getColX(c),
