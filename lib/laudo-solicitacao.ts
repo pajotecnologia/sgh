@@ -141,7 +141,9 @@ export async function carregarDadosLaudoSolicitacao(
 
   const procedimentoSolicitadoPadrao =
     salvo?.procedimentoSolicitado?.trim() ||
-    (diagTexto ? `Continuidade Assistencial / Procedimento Clínico em ${diagTexto}` : '')
+    atendimento.laudoInternacao?.descricaoProcedimento ||
+    fichaInternacaoDados.procedimento ||
+    (diagTexto ? `Continuidade Assistencial / Tratamento Clínico em ${diagTexto}` : 'Continuidade Assistencial e Suporte Clínico Hospitalar')
 
   const nomeAcompanhantePadrao =
     salvo?.nomeAcompanhante?.trim() ||
@@ -156,7 +158,7 @@ export async function carregarDadosLaudoSolicitacao(
       ? `Solicitação médica fundamentada na evolução clínica do paciente com diagnóstico de ${diagTexto}, necessitando de suporte e continuidade da assistência hospitalar especializada.`
       : atendimento.triagem?.queixaPrincipal
       ? `Solicitação médica referente à admissão por: ${atendimento.triagem.queixaPrincipal}.`
-      : '')
+      : 'Paciente em regime de internação hospitalar necessitando de continuidade da assistência médica, monitorização clínica e execução de procedimentos indicados.')
 
   const prefill: LaudoSolicitacaoPrefill = {
     id: salvo?.id,
@@ -168,7 +170,7 @@ export async function carregarDadosLaudoSolicitacao(
 
     // 1. Identificação Topo
     nomeHospital: salvo?.nomeHospital?.trim() || instituicao.nomeInstituicao,
-    cnpjHospital: salvo?.cnpjHospital?.trim() || instituicao.cnpj || '',
+    cnpjHospital: salvo?.cnpjHospital?.trim() || instituicao.cnpj || '10.428.188/0001-08',
     nomePaciente: salvo?.nomePaciente?.trim() || nomePaciente,
     numeroAih: salvo?.numeroAih?.trim() || fichaInternacaoDados.numeroAih || fichaInternacaoDados.aih || atendimento.numeroAtendimento,
     procedimentoAnterior: salvo?.procedimentoAnterior?.trim() || procedimentoAnteriorPadrao,
@@ -177,7 +179,7 @@ export async function carregarDadosLaudoSolicitacao(
       salvo?.nomeMedicoSolicitante?.trim() ||
       atendimento.medico?.nome?.trim() ||
       usuario?.nome?.trim() ||
-      '',
+      'Dr(a). Plantonista / Responsável',
     crmMedicoSolicitante:
       salvo?.crmMedicoSolicitante?.trim() ||
       atendimento.medico?.crm?.trim() ||

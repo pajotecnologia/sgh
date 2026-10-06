@@ -58,42 +58,60 @@ const MODELOS_JUSTIFICATIVA = [
 
 export function FormularioLaudoSolicitacao({
   atendimentoId,
+  atendimentoContexto,
+  prontuarioContexto,
   onSalvo,
 }: {
   atendimentoId: string
+  atendimentoContexto?: any
+  prontuarioContexto?: any
   onSalvo?: () => void
 }) {
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
-  const [form, setForm] = useState<LaudoSolicitacaoForm>({
-    status: 'RASCUNHO',
-    nomeHospital: '',
-    cnpjHospital: '',
-    nomePaciente: '',
-    numeroAih: '',
-    procedimentoAnterior: '',
-    procedimentoSolicitado: '',
-    nomeMedicoSolicitante: '',
-    crmMedicoSolicitante: '',
-    cpfMedicoSolicitante: '',
+  const [form, setForm] = useState<LaudoSolicitacaoForm>(() => {
+    const p = atendimentoContexto?.paciente
+    const diagPrincipal = prontuarioContexto?.diagnosticos?.[0]
+    const diagTexto = diagPrincipal
+      ? `${diagPrincipal.codigoCid ? `${diagPrincipal.codigoCid} - ` : ''}${diagPrincipal.descricaoCid}`
+      : ''
+    const procAnt = diagTexto ? `Tratamento Clínico: ${diagTexto}` : 'Tratamento Clínico Hospitalar'
+    const procSol = diagTexto
+      ? `Continuidade Assistencial / Tratamento Clínico em ${diagTexto}`
+      : 'Continuidade Assistencial e Suporte Clínico Hospitalar'
 
-    mudancaProcedimento: false,
-    diariaUti: false,
-    diariaAcompanhante: false,
-    vacinaAntiRh: false,
-    usoProteseOtica: false,
-    usoFatoresCoagulacao: false,
-    usoOrdenadores: false,
-    nutricaoParenteral: false,
+    return {
+      status: 'RASCUNHO',
+      nomeHospital: 'HOSPITAL MUNICIPAL QUITÉRIA ALVES VILELA',
+      cnpjHospital: '10.428.188/0001-08',
+      nomePaciente: p?.nomeExibicao || '',
+      numeroAih: atendimentoContexto?.numeroAtendimento || '',
+      procedimentoAnterior: procAnt,
+      procedimentoSolicitado: procSol,
+      nomeMedicoSolicitante: atendimentoContexto?.medico?.nome || 'Dr(a). Plantonista / Responsável',
+      crmMedicoSolicitante: atendimentoContexto?.medico?.crm || '',
+      cpfMedicoSolicitante: '',
 
-    justificativa: '',
+      mudancaProcedimento: false,
+      diariaUti: false,
+      diariaAcompanhante: false,
+      vacinaAntiRh: false,
+      usoProteseOtica: false,
+      usoFatoresCoagulacao: false,
+      usoOrdenadores: false,
+      nutricaoParenteral: false,
 
-    dataSolicitacao: new Date().toISOString().split('T')[0],
-    nomeAcompanhante: '',
-    dataAuditoria: '',
-    parecerAuditor: '',
-    nomeAuditor: '',
-    crmAuditor: '',
+      justificativa: diagTexto
+        ? `Solicitação médica fundamentada na evolução clínica do paciente com diagnóstico de ${diagTexto}, necessitando de suporte e continuidade da assistência hospitalar especializada.`
+        : 'Paciente em regime de internação hospitalar necessitando de continuidade da assistência médica e execução de procedimentos indicados.',
+
+      dataSolicitacao: new Date().toISOString().split('T')[0],
+      nomeAcompanhante: p?.acompanhanteNome || '',
+      dataAuditoria: '',
+      parecerAuditor: '',
+      nomeAuditor: '',
+      crmAuditor: '',
+    }
   })
 
   async function carregar() {
@@ -102,9 +120,20 @@ export function FormularioLaudoSolicitacao({
       const res = await fetch(`/api/atendimento/${atendimentoId}/laudo-solicitacao`)
       const json = await res.json()
       if (json.sucesso && json.dados?.prefill) {
-        setForm(json.dados.prefill)
-      } else {
-        toast.error(json.erro || 'Erro ao carregar dados do laudo.')
+        setForm((prev) => ({
+          ...prev,
+          ...json.dados.prefill,
+          nomeHospital: json.dados.prefill.nomeHospital || prev.nomeHospital,
+          cnpjHospital: json.dados.prefill.cnpjHospital || prev.cnpjHospital,
+          nomePaciente: json.dados.prefill.nomePaciente || prev.nomePaciente,
+          numeroAih: json.dados.prefill.numeroAih || prev.numeroAih,
+          procedimentoAnterior: json.dados.prefill.procedimentoAnterior || prev.procedimentoAnterior,
+          procedimentoSolicitado: json.dados.prefill.procedimentoSolicitado || prev.procedimentoSolicitado,
+          nomeMedicoSolicitante: json.dados.prefill.nomeMedicoSolicitante || prev.nomeMedicoSolicitante,
+          justificativa: json.dados.prefill.justificativa || prev.justificativa,
+        }))
+      } else if (json.erro) {
+        toast.error(json.erro)
       }
     } catch {
       toast.error('Erro de conexão ao carregar laudo.')
@@ -179,19 +208,6 @@ export function FormularioLaudoSolicitacao({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              carregar()
-              toast.info('Dados recarregados do sistema.')
-            }}
-            disabled={carregando}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border bg-background hover:bg-muted text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-            title="Preencher com os dados mais recentes do paciente e hospital"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Preencher do Sistema
-          </button>
 
           <Link
             href={`/internamento/laudo-solicitacao/imprimir/${atendimentoId}`}

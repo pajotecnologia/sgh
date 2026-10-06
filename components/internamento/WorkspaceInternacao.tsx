@@ -452,6 +452,8 @@ export function WorkspaceInternacao({
         {abaAtual === 'LAUDO_MEDICO' ? (
           <FormularioLaudoSolicitacao
             atendimentoId={atendimentoId}
+            atendimentoContexto={atendimento}
+            prontuarioContexto={prontuario}
             onSalvo={() => carregar({ silencioso: true })}
           />
         ) : null}
