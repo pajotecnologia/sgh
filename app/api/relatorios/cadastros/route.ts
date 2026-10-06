@@ -445,12 +445,15 @@ export async function GET(req: NextRequest) {
     y -= titleSize + 12;
 
     const totalLargura = pageW - PAGE_MARGIN * 2;
-    const getColWidth = (c: number) => {
-      if (largurasColunas && largurasColunas[c] != null) {
-        return largurasColunas[c];
-      }
-      return totalLargura / colunas.length;
-    };
+    let largurasFinais: number[] = [];
+    if (largurasColunas && largurasColunas.length === colunas.length) {
+      const soma = largurasColunas.reduce((acc, curr) => acc + curr, 0);
+      largurasFinais = largurasColunas.map((w) => (w / soma) * totalLargura);
+    } else {
+      largurasFinais = colunas.map(() => totalLargura / colunas.length);
+    }
+
+    const getColWidth = (c: number) => largurasFinais[c] ?? (totalLargura / colunas.length);
 
     const getColX = (colIdx: number) => {
       let x = PAGE_MARGIN;

@@ -256,9 +256,8 @@ export async function GET(req: NextRequest) {
 
     // 3. INTERNAMENTO / FICHA HOSPITALAR
     else if (tipo === 'internamento') {
-      titulo = 'Relatório de Pacientes Internados e Fichas Hospitalares'
-      colunas = ['Atendimento', 'Paciente', 'Leito', 'Ala/Setor', 'Médico Resp.', 'Status', 'Data Admissão']
-      largurasColunas = [80, 130, 65, 80, 95, 55, 65]
+      colunas = ['Atendimento', 'Paciente', 'Leito', 'Ala/Setor', 'Médico Resp.', 'Status', 'Data']
+      largurasColunas = [85, 120, 50, 75, 95, 50, 55]
 
       const fichas = await prisma.fichaInternacaoAlta.findMany({
         where: {
@@ -929,12 +928,15 @@ export async function GET(req: NextRequest) {
     y -= titleSize + 12
 
     const totalLargura = pageW - PAGE_MARGIN * 2
-    const getColWidth = (c: number) => {
-      if (largurasColunas && largurasColunas[c] != null) {
-        return largurasColunas[c]
-      }
-      return totalLargura / colunas.length
+    let largurasFinais: number[] = []
+    if (largurasColunas && largurasColunas.length === colunas.length) {
+      const soma = largurasColunas.reduce((acc, curr) => acc + curr, 0)
+      largurasFinais = largurasColunas.map((w) => (w / soma) * totalLargura)
+    } else {
+      largurasFinais = colunas.map(() => totalLargura / colunas.length)
     }
+
+    const getColWidth = (c: number) => largurasFinais[c] ?? (totalLargura / colunas.length)
 
     const getColX = (colIdx: number) => {
       let x = PAGE_MARGIN

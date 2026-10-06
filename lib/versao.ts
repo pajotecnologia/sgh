@@ -2,9 +2,9 @@
 // Informações centralizadas de versão e build do sistema SGH
 // Gerado automaticamente por scripts/atualizar-versao.mjs
 
-export const VERSAO_SGH = 'v2.6.30';
-export const VERSAO_NUMERO = '2.6.30';
+export const VERSAO_SGH = 'v2.6.31';
+export const VERSAO_NUMERO = '2.6.31';
 export const BUILD_SGH = 'build 26.10';
-export const BUILD_COMPLETO_SGH = 'build 26.10.06-1157';
+export const BUILD_COMPLETO_SGH = 'build 26.10.06-1201';
 export const NOME_VERSAO = 'Plataforma Hospitalar Integrada SGH';
 export const COPYRIGHT_SGH = 'PAJO Tecnologia';
