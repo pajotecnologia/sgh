@@ -423,47 +423,48 @@ function fichaParaForm(ficha: FichaCcihModel): FichaCcihForm {
 
 function mesclarFormularioCcih(base: FormularioCcihNotificacao, salvo: FormularioCcihNotificacao): FormularioCcihNotificacao {
   const vazio = formularioCcihVazio()
-  const proc = mesclarSecaoJson(base.procedimentos_risco_realizados!, salvo.procedimentos_risco_realizados)
-  proc.npt = proc.npt || proc.npt_nutricao_parenteral
-  proc.npt_nutricao_parenteral = proc.npt_nutricao_parenteral || proc.npt
+  const procBase = base.procedimentos_risco_realizados ?? vazio.procedimentos_risco_realizados!
+  const procSalvo = salvo.procedimentos_risco_realizados ?? {}
+  const proc = mesclarSecaoJson(procBase, procSalvo)
+  proc.npt = proc.npt || proc.npt_nutricao_parenteral || false
+  proc.npt_nutricao_parenteral = proc.npt_nutricao_parenteral || proc.npt || false
+
+  const pacSalvo = salvo.paciente_internacao ?? ({} as Partial<NonNullable<FormularioCcihNotificacao['paciente_internacao']>>)
+  const pacBase = base.paciente_internacao ?? vazio.paciente_internacao!
 
   return {
-    controle_interno: mesclarSecaoJson(base.controle_interno!, salvo.controle_interno),
-    hospital: salvo.hospital?.trim() ? salvo.hospital : base.hospital,
+    controle_interno: mesclarSecaoJson(base.controle_interno ?? vazio.controle_interno!, salvo.controle_interno),
+    hospital: salvo.hospital?.trim() ? salvo.hospital : (base.hospital ?? ''),
     hospital_unidade: {
-      ...mesclarSecaoJson(base.hospital_unidade!, salvo.hospital_unidade),
+      ...mesclarSecaoJson(base.hospital_unidade ?? vazio.hospital_unidade!, salvo.hospital_unidade),
       clinica_servico:
         salvo.hospital_unidade?.clinica_servico?.trim() ||
-        salvo.paciente_internacao.clinica?.trim() ||
-        base.hospital_unidade?.clinica_servico,
+        pacSalvo.clinica?.trim() ||
+        base.hospital_unidade?.clinica_servico || '',
       andar_ala:
         salvo.hospital_unidade?.andar_ala?.trim() ||
-        salvo.paciente_internacao.andar?.trim() ||
-        base.hospital_unidade?.andar_ala,
+        pacSalvo.andar?.trim() ||
+        base.hospital_unidade?.andar_ala || '',
       enfermaria_leito:
-        salvo.hospital_unidade?.enfermaria_leito?.trim() || base.hospital_unidade?.enfermaria_leito,
+        salvo.hospital_unidade?.enfermaria_leito?.trim() || base.hospital_unidade?.enfermaria_leito || '',
     },
-    data_notificacao: salvo.data_notificacao?.trim() ? salvo.data_notificacao : base.data_notificacao,
-    medico_responsavel: mesclarSecaoJson(base.medico_responsavel!, salvo.medico_responsavel),
+    data_notificacao: salvo.data_notificacao?.trim() ? salvo.data_notificacao : (base.data_notificacao ?? ''),
+    medico_responsavel: mesclarSecaoJson(base.medico_responsavel ?? vazio.medico_responsavel!, salvo.medico_responsavel),
     paciente_internacao: {
-      ...mesclarSecaoJson(base.paciente_internacao, salvo.paciente_internacao),
-      idade: salvo.paciente_internacao.idade ?? base.paciente_internacao.idade,
-      idade_unidade: salvo.paciente_internacao.idade_unidade?.trim()
-        ? salvo.paciente_internacao.idade_unidade
-        : base.paciente_internacao.idade_unidade,
-      nome_mae: salvo.paciente_internacao.nome_mae?.trim()
-        ? salvo.paciente_internacao.nome_mae
-        : base.paciente_internacao.nome_mae,
-      obito: mesclarSecaoJson(base.paciente_internacao.obito!, salvo.paciente_internacao.obito),
+      ...mesclarSecaoJson(pacBase, pacSalvo),
+      idade: pacSalvo.idade ?? pacBase.idade,
+      idade_unidade: pacSalvo.idade_unidade?.trim() || pacBase.idade_unidade || 'anos',
+      nome_mae: pacSalvo.nome_mae?.trim() || pacBase.nome_mae || '',
+      obito: mesclarSecaoJson(pacBase.obito ?? vazio.paciente_internacao!.obito!, pacSalvo.obito),
     },
-    dados_cirurgicos: mesclarSecaoJson(base.dados_cirurgicos!, salvo.dados_cirurgicos),
+    dados_cirurgicos: mesclarSecaoJson(base.dados_cirurgicos ?? vazio.dados_cirurgicos!, salvo.dados_cirurgicos),
     dados_obstetricos: {
-      ...mesclarSecaoJson(base.dados_obstetricos!, salvo.dados_obstetricos),
+      ...mesclarSecaoJson(base.dados_obstetricos ?? vazio.dados_obstetricos!, salvo.dados_obstetricos),
       bolsa_rota: mesclarSecaoJson(vazio.dados_obstetricos!.bolsa_rota!, salvo.dados_obstetricos?.bolsa_rota),
     },
     procedimentos_risco_realizados: proc,
     infeccao_notificada: {
-      ...mesclarSecaoJson(base.infeccao_notificada!, salvo.infeccao_notificada),
+      ...mesclarSecaoJson(base.infeccao_notificada ?? vazio.infeccao_notificada!, salvo.infeccao_notificada),
       infeccao_opcao: salvo.infeccao_notificada?.infeccao_opcao?.trim()
         ? salvo.infeccao_notificada.infeccao_opcao
         : base.infeccao_notificada?.infeccao_opcao ?? '',
@@ -475,14 +476,14 @@ function mesclarFormularioCcih(base: FormularioCcihNotificacao, salvo: Formulari
       apresenta_infeccao:
         salvo.infeccao_notificada?.infeccao_opcao
           ? salvo.infeccao_notificada.infeccao_opcao !== 'NAO'
-          : (salvo.infeccao_notificada?.apresenta_infeccao ?? base.infeccao_notificada?.apresenta_infeccao),
+          : (salvo.infeccao_notificada?.apresenta_infeccao ?? base.infeccao_notificada?.apresenta_infeccao ?? false),
       localizacao_topografica: mesclarSecaoJson(
-        base.infeccao_notificada!.localizacao_topografica!,
+        (base.infeccao_notificada ?? vazio.infeccao_notificada!).localizacao_topografica!,
         salvo.infeccao_notificada?.localizacao_topografica
       ),
     },
     uso_antimicrobianos: {
-      houve_uso: salvo.uso_antimicrobianos?.houve_uso ?? base.uso_antimicrobianos?.houve_uso,
+      houve_uso: salvo.uso_antimicrobianos?.houve_uso ?? base.uso_antimicrobianos?.houve_uso ?? false,
       uso_antimicrobiano: salvo.uso_antimicrobianos?.uso_antimicrobiano?.trim()
         ? salvo.uso_antimicrobianos.uso_antimicrobiano
         : base.uso_antimicrobianos?.uso_antimicrobiano ?? '',
@@ -492,21 +493,21 @@ function mesclarFormularioCcih(base: FormularioCcihNotificacao, salvo: Formulari
       medicamentos:
         salvo.uso_antimicrobianos?.medicamentos?.some((m) => m.tipo_nome?.trim() || m.nome_antimicrobiano?.trim())
           ? salvo.uso_antimicrobianos.medicamentos
-          : base.uso_antimicrobianos?.medicamentos,
+          : (base.uso_antimicrobianos?.medicamentos ?? []),
     },
     dados_cultura: {
-      ...mesclarSecaoJson(base.dados_cultura!, salvo.dados_cultura),
+      ...mesclarSecaoJson(base.dados_cultura ?? vazio.dados_cultura!, salvo.dados_cultura),
       germes: {
         germe_1: mesclarSecaoJson(
-          base.dados_cultura!.germes!.germe_1!,
+          base.dados_cultura?.germes?.germe_1 ?? germeVazio(),
           salvo.dados_cultura?.germes?.germe_1
         ),
         germe_2: mesclarSecaoJson(
-          base.dados_cultura!.germes!.germe_2!,
+          base.dados_cultura?.germes?.germe_2 ?? germeVazio(),
           salvo.dados_cultura?.germes?.germe_2
         ),
         germe_3: mesclarSecaoJson(
-          base.dados_cultura!.germes!.germe_3!,
+          base.dados_cultura?.germes?.germe_3 ?? germeVazio(),
           salvo.dados_cultura?.germes?.germe_3
         ),
       },

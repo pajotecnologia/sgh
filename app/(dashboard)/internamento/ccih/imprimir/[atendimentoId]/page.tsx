@@ -19,13 +19,18 @@ export default async function ImprimirFichaCcihPage({
 
   const { atendimentoId } = await params
 
-  const dados = await montarDadosFichaCcihImpressao(atendimentoId, {
-    nome: sessao.usuario.nome,
-    crm: sessao.usuario.crm,
-    role: sessao.usuario.role,
-  })
+  try {
+    const dados = await montarDadosFichaCcihImpressao(atendimentoId, {
+      nome: sessao.usuario.nome,
+      crm: sessao.usuario.crm,
+      role: sessao.usuario.role,
+    })
 
-  if (!dados) notFound()
+    if (!dados) notFound()
 
-  return <FichaCcihDocumento dados={dados} />
+    return <FichaCcihDocumento dados={dados} />
+  } catch (err) {
+    console.error('[ImprimirFichaCcihPage]', err)
+    notFound()
+  }
 }

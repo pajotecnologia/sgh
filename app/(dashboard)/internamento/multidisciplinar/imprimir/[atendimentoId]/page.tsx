@@ -19,13 +19,18 @@ export default async function ImprimirFichaMultidisciplinarPage({
 
   const { atendimentoId } = await params
 
-  const dados = await montarDadosFichaMultidisciplinarImpressao(atendimentoId, {
-    nome: sessao.usuario.nome,
-    crm: sessao.usuario.crm,
-    role: sessao.usuario.role,
-  })
+  try {
+    const dados = await montarDadosFichaMultidisciplinarImpressao(atendimentoId, {
+      nome: sessao.usuario.nome,
+      crm: sessao.usuario.crm,
+      role: sessao.usuario.role,
+    })
 
-  if (!dados) notFound()
+    if (!dados) notFound()
 
-  return <FichaMultidisciplinarDocumento dados={dados} />
+    return <FichaMultidisciplinarDocumento dados={dados} />
+  } catch (err) {
+    console.error('[ImprimirFichaMultidisciplinarPage]', err)
+    notFound()
+  }
 }

@@ -26,17 +26,22 @@ export default async function ImprimirLaudoSolicitacaoPage({
 
   const { atendimentoId } = await params
 
-  const resultado = await carregarDadosLaudoSolicitacao(atendimentoId, {
-    nome: sessao.usuario.nome,
-    crm: sessao.usuario.crm,
-  })
+  try {
+    const resultado = await carregarDadosLaudoSolicitacao(atendimentoId, {
+      nome: sessao.usuario.nome,
+      crm: sessao.usuario.crm,
+    })
 
-  if (!resultado) notFound()
+    if (!resultado) notFound()
 
-  return (
-    <LaudoSolicitacaoDocumento
-      dados={resultado.prefill}
-      instituicao={resultado.instituicao}
-    />
-  )
+    return (
+      <LaudoSolicitacaoDocumento
+        dados={resultado.prefill}
+        instituicao={resultado.instituicao}
+      />
+    )
+  } catch (err) {
+    console.error('[ImprimirLaudoSolicitacaoPage]', err)
+    notFound()
+  }
 }
