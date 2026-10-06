@@ -31,6 +31,7 @@ import { FormularioEvolucaoMultiprofissional } from '@/components/internamento/F
 import { FormularioInternacaoObstetrica } from '@/components/internamento/FormularioInternacaoObstetrica'
 import { FormularioBercario } from '@/components/internamento/FormularioBercario'
 import { FormularioSae } from '@/components/internamento/FormularioSae'
+import { FormularioLaudoSolicitacao } from '@/components/internamento/FormularioLaudoSolicitacao'
 import { AbaInstrucoesEnfermagem } from '@/components/internamento/AbaInstrucoesEnfermagem'
 import {
   type AbaInternacaoId,
@@ -273,7 +274,27 @@ export function WorkspaceInternacao({
                 <Users className="h-4 w-4" aria-hidden />
                 Imprimir multidisciplinar
               </Link>
+              <Link
+                href={`/internamento/laudo-solicitacao/imprimir/${atendimentoId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-sky-500/40 text-sm font-medium text-sky-800 dark:text-sky-200 hover:bg-sky-500/5"
+              >
+                <Stethoscope className="h-4 w-4" aria-hidden />
+                Laudo solicitação
+              </Link>
             </>
+          ) : null}
+          {modo === 'prontuario' ? (
+            <Link
+              href={`/internamento/laudo-solicitacao/imprimir/${atendimentoId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-sky-500/40 text-sm font-medium text-sky-800 dark:text-sky-200 hover:bg-sky-500/5"
+            >
+              <Stethoscope className="h-4 w-4" aria-hidden />
+              Laudo solicitação
+            </Link>
           ) : null}
           {encaminhamentoInternacaoId ? (
             <Link
@@ -414,11 +435,10 @@ export function WorkspaceInternacao({
           />
         ) : null}
 
-        {modo === 'prontuario' && abaAtual === 'LAUDO_MEDICO' ? (
-          <AbaEmDesenvolvimento
-            titulo="Laudo Médico"
-            descricao="Laudos e pareceres médicos complementares durante a internação."
-            icon={Stethoscope}
+        {abaAtual === 'LAUDO_MEDICO' ? (
+          <FormularioLaudoSolicitacao
+            atendimentoId={atendimentoId}
+            onSalvo={() => carregar({ silencioso: true })}
           />
         ) : null}
 

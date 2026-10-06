@@ -321,6 +321,7 @@ model Atendimento {
   prontuario        ProntuarioMedico?
   triagem           Triagem?
   laudoInternacao   LaudoInternacao?
+  laudoSolicitacao  LaudoSolicitacao?
   fichaInternacaoAlta       FichaInternacaoAlta?
   fichaCcih                 FichaCcih?
   fichaMultidisciplinar     FichaMultidisciplinar?
@@ -806,6 +807,52 @@ model LaudoInternacao {
   @@index([status])
   @@index([createdAt])
   @@map("laudos_internacao")
+}
+
+/// Laudo Médico para Solicitação (Mudança de Procedimento, Diária de UTI, Acompanhante, etc.)
+model LaudoSolicitacao {
+  id                         String                  @id @default(uuid())
+  atendimentoId              String                  @unique
+  status                     StatusLaudoSolicitacao  @default(RASCUNHO)
+  nomeHospital               String?
+  cnpjHospital               String?
+  nomePaciente               String?
+  numeroAih                  String?
+  procedimentoAnterior       String?
+  procedimentoSolicitado     String?
+  nomeMedicoSolicitante      String?
+  crmMedicoSolicitante       String?
+  cpfMedicoSolicitante       String?
+
+  /// Opções de solicitação (checkboxes)
+  mudancaProcedimento        Boolean                 @default(false)
+  diariaUti                  Boolean                 @default(false)
+  diariaAcompanhante         Boolean                 @default(false)
+  vacinaAntiRh               Boolean                 @default(false)
+  usoProteseOtica            Boolean                 @default(false)
+  usoFatoresCoagulacao       Boolean                 @default(false)
+  usoOrdenadores             Boolean                 @default(false)
+  nutricaoParenteral         Boolean                 @default(false)
+
+  /// Justificativa médica aberta
+  justificativa              String?                 @db.Text
+
+  /// Assinatura e auditoria
+  dataSolicitacao            DateTime?
+  nomeAcompanhante           String?
+  dataAuditoria              DateTime?
+  parecerAuditor             String?                 @db.Text
+  nomeAuditor                String?
+  crmAuditor                 String?
+
+  preenchidoPorId            String?
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+  atendimento                Atendimento             @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("laudos_solicitacao")
 }
 
 /// Folha de Internação e Alta Hospitalar (ficha municipal)
@@ -1723,6 +1770,14 @@ enum StatusLaudoInternacao {
   RASCUNHO
   SOLICITADO
   AUTORIZADO
+}
+
+/// Status do laudo médico para solicitação
+enum StatusLaudoSolicitacao {
+  RASCUNHO
+  EMITIDO
+  AUDITADO
+  CANCELADO
 }
 
 enum StatusFichaInternacaoAlta {

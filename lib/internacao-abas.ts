@@ -105,7 +105,7 @@ export const ABAS_PRONTUARIO: AbaConfig[] = [
   { id: 'FICHA_EVOLUCAO', label: 'Evolução Médica', icon: NotebookPen },
   { id: 'PRESCRICAO_ENFERMARIA', label: 'Prescrições', icon: Pill },
   { id: 'EXAMES', label: 'Exames', icon: FlaskConical },
-  { id: 'LAUDO_MEDICO', label: 'Laudo Médico', icon: Stethoscope },
+  { id: 'LAUDO_MEDICO', label: 'Laudo Solicitação', icon: Stethoscope },
 ]
 
 export const ABA_INTERNACAO_OBSTETRICA: AbaConfig = {
@@ -120,26 +120,16 @@ export const ABA_MEDICACAO_BERCARIO: AbaConfig = {
   icon: Baby,
 }
 
-
-
 export const ABAS_EVOLUCOES: AbaConfig[] = [
-
   { id: 'INTERNACAO_ALTA', label: 'Internação', icon: LogIn },
-
   { id: 'INSTRUCOES_ENFERMAGEM', label: 'Medicamentos', icon: Syringe },
-
   { id: 'CCIH', label: 'CCIH', icon: Shield },
-
   { id: 'SINAIS_VITAIS', label: 'Ficha Sinais Vitais', icon: Activity },
-
   { id: 'EVOLUCAO_DIURNA_NOTURNA', label: 'Evolução Noite/Dia', icon: SunMoon },
-
   { id: 'CONDICOES_ALTA', label: 'Condições de alta', icon: LogOut },
-
   { id: 'SAE', label: 'SAE', icon: ClipboardList },
-
   { id: 'MULTIDISCIPLINAR', label: 'Multidisciplinar', icon: Users },
-
+  { id: 'LAUDO_MEDICO', label: 'Laudo Solicitação', icon: Stethoscope },
 ]
 
 export const parseAbaInternacao = (valor?: string | null): AbaInternacaoId | null => {
