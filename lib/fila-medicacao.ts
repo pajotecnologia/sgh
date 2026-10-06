@@ -1,9 +1,10 @@
 import type { Prisma, StatusAtendimento } from '@prisma/client'
 
-/** Atendimentos no PS/ambulatorial com prescrição pendente de aplicação */
+/** Atendimentos no PS/ambulatorial/internação com prescrição pendente de aplicação */
 export const STATUS_MEDICACAO_ATIVOS: StatusAtendimento[] = [
   'AGUARDANDO_ATENDIMENTO',
   'EM_ATENDIMENTO',
+  'INTERNADO',
   'CONCLUIDO',
 ]
 

@@ -206,7 +206,8 @@ export async function obterPendenciasUsuario(usuarioId: string, role: Role): Pro
     medicacoesPendentes.forEach((item) => {
       const atend = item.prescricao.prontuario.atendimento
       const localizacao = atend.leito ? `Leito ${atend.leito.codigo}` : 'Pronto-Socorro'
-      const href = atend.leito
+      const isInternado = atend.status === 'INTERNADO' || Boolean(atend.leito)
+      const href = isInternado
         ? `/evolucoes/${atend.id}?aba=INSTRUCOES_ENFERMAGEM`
         : `/medicacao/${atend.id}`
 

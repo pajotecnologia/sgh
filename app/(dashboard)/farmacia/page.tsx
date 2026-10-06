@@ -197,23 +197,28 @@ export default async function PaginaFarmacia({ searchParams }: PageProps) {
 
 
 
+      const itemPresc = disp.item
+      const prescricao = itemPresc?.prescricao
+      const atendimento = prescricao?.atendimento
+      const paciente = atendimento?.paciente
+
       return {
         ...disp,
         item: {
-          ...disp.item,
+          ...itemPresc,
           prescricao: {
-            ...disp.item.prescricao,
+            ...prescricao,
             atendimento: {
-              ...disp.item.prescricao.atendimento,
-              paciente: enriquecerPacienteComNomeCompleto(disp.item.prescricao.atendimento.paciente),
+              ...atendimento,
+              paciente: paciente
+                ? enriquecerPacienteComNomeCompleto(paciente)
+                : { nomeExibicao: 'Paciente não identificado', nomeCriptografado: null },
             },
           },
         },
         saldoInfo,
       }
-
     })
-
   )
 
 
