@@ -18,14 +18,20 @@ export async function carregarDadosFichaMultidisciplinar(
   usuario: { nome: string; crm?: string | null; role: string }
 ): Promise<DadosFichaMultidisciplinar | null> {
   const atendimento = await prisma.atendimento.findFirst({
-    where: { id: atendimentoId, deletedAt: null },
+    where: {
+      deletedAt: null,
+      OR: [
+        { id: atendimentoId },
+        { numeroAtendimento: atendimentoId },
+      ],
+    },
     include: {
       ...includeAtendimentoInternacao,
       fichaMultidisciplinar: true,
     },
   })
 
-  if (!atendimento || atendimento.status !== 'INTERNADO') {
+  if (!atendimento) {
     return null
   }
 

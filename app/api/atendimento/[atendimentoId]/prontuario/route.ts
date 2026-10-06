@@ -48,6 +48,9 @@ export async function GET(
             sinaisVitais: true,
           },
         },
+        fichaInternacaoAlta: {
+          select: { id: true },
+        },
       },
     });
 
@@ -56,11 +59,18 @@ export async function GET(
     }
 
     const papelEnfermagem = ['ENFERMEIRO', 'TECNICO_ENFERMAGEM'].includes(sessao.usuario.role);
-    if (papelEnfermagem && atendimento.status !== 'INTERNADO') {
+    const statusPermitidoEnfermagem =
+      atendimento.status === 'INTERNADO' ||
+      atendimento.status === 'AGUARDANDO_INTERNACAO' ||
+      Boolean(atendimento.vaiInternar) ||
+      Boolean(atendimento.fichaInternacaoAlta) ||
+      Boolean(atendimento.leitoId);
+
+    if (papelEnfermagem && !statusPermitidoEnfermagem) {
       return NextResponse.json(
         {
           sucesso: false,
-          erro: 'Enfermagem: acesso ao prontuário permitido apenas para pacientes internados.',
+          erro: 'Enfermagem: acesso ao prontuário permitido para pacientes internados ou em internação.',
         },
         { status: 403 }
       );

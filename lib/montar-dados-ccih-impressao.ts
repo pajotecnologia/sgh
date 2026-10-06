@@ -143,7 +143,13 @@ export async function montarDadosFichaCcihImpressao(
   usuario: { nome: string; crm?: string | null; role: string }
 ): Promise<FichaCcihImpressaoDados | null> {
   const atendimento = await prisma.atendimento.findFirst({
-    where: { id: atendimentoId, deletedAt: null, status: 'INTERNADO' },
+    where: {
+      deletedAt: null,
+      OR: [
+        { id: atendimentoId },
+        { numeroAtendimento: atendimentoId },
+      ],
+    },
     include: includeAtendimento,
   })
 

@@ -80,7 +80,13 @@ export async function PUT(
 
   try {
     const atendimento = await prisma.atendimento.findFirst({
-      where: { id: atendimentoId, deletedAt: null, status: 'INTERNADO' },
+      where: {
+        deletedAt: null,
+        OR: [
+          { id: atendimentoId },
+          { numeroAtendimento: atendimentoId },
+        ],
+      },
       select: { id: true, fichaMultidisciplinar: { select: { id: true } } },
     })
 
@@ -88,7 +94,7 @@ export async function PUT(
       return NextResponse.json(
         {
           sucesso: false,
-          erro: 'Atendimento não encontrado ou paciente não está internado.',
+          erro: 'Atendimento não encontrado.',
         },
         { status: 404 }
       )
@@ -131,7 +137,7 @@ export async function PUT(
     } else {
       ficha = await prisma.fichaMultidisciplinar.create({
         data: {
-          atendimentoId,
+          atendimentoId: atendimento.id,
           ...dadosPrisma,
         },
       })

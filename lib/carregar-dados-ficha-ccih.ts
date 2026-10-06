@@ -24,14 +24,20 @@ export async function carregarDadosFichaCcih(
   usuario: { nome: string; crm?: string | null; role: string }
 ): Promise<DadosFichaCcih | null> {
   const atendimento = await prisma.atendimento.findFirst({
-    where: { id: atendimentoId, deletedAt: null },
+    where: {
+      deletedAt: null,
+      OR: [
+        { id: atendimentoId },
+        { numeroAtendimento: atendimentoId },
+      ],
+    },
     include: {
       ...includeAtendimentoInternacao,
       fichaCcih: true,
     },
   })
 
-  if (!atendimento || atendimento.status !== 'INTERNADO') {
+  if (!atendimento) {
     return null
   }
 

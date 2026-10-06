@@ -1,7 +1,6 @@
-// components/internamento/FichaCcihDocumento.tsx
-
 import type { ReactNode } from 'react'
 import type { FichaCcihImpressaoDados } from '@/lib/montar-dados-ccih-impressao'
+import type { FormularioCcihNotificacao } from '@/lib/validations/ccih'
 import { CabecalhoInstituicaoImpressao } from '@/components/print/CabecalhoInstituicaoImpressao'
 import { BotaoImprimirFicha } from '@/components/recepcao/BotaoImprimirFicha'
 
@@ -45,13 +44,13 @@ function simNao(v: boolean | undefined): string {
 }
 
 export function FichaCcihDocumento({ dados }: { dados: FichaCcihImpressaoDados }) {
-  const f = dados.formulario
-  const p = f.paciente_internacao
-  const cir = f.dados_cirurgicos
-  const obs = f.dados_obstetricos
-  const inf = f.infeccao_notificada
-  const anti = f.uso_antimicrobianos
-  const cult = f.dados_cultura
+  const f = dados?.formulario ?? ({} as Partial<FormularioCcihNotificacao>)
+  const p = f?.paciente_internacao ?? { nome: '' }
+  const cir = f?.dados_cirurgicos
+  const obs = f?.dados_obstetricos
+  const inf = f?.infeccao_notificada
+  const anti = f?.uso_antimicrobianos
+  const cult = f?.dados_cultura
 
   return (
     <div className="min-h-screen bg-white text-slate-900 p-6 print:p-4 max-w-[210mm] mx-auto">
@@ -88,28 +87,28 @@ export function FichaCcihDocumento({ dados }: { dados: FichaCcihImpressaoDados }
       </Bloco>
 
       <Bloco titulo="Paciente e internação">
-        <Linha rotulo="Nome" valor={p.nome} />
-        <Linha rotulo="Prontuário" valor={p.prontuario ?? ''} />
-        <Linha rotulo="Sexo" valor={p.sexo ?? ''} />
+        <Linha rotulo="Nome" valor={p?.nome ?? ''} />
+        <Linha rotulo="Prontuário" valor={p?.prontuario ?? ''} />
+        <Linha rotulo="Sexo" valor={p?.sexo ?? ''} />
         <Linha
           rotulo="Idade"
           valor={
-            p.idade != null
+            p?.idade != null
               ? `${p.idade} ${p.idade_unidade?.trim() || 'anos'}`
               : ''
           }
         />
-        <Linha rotulo="Nome da mãe" valor={p.nome_mae ?? ''} />
-        <Linha rotulo="Prontuário da mãe" valor={p.prontuario_mae ?? ''} />
-        <Linha rotulo="Clínica / setor" valor={p.clinica ?? f.hospital_unidade?.clinica_servico ?? ''} />
-        <Linha rotulo="Andar / ala" valor={p.andar ?? f.hospital_unidade?.andar_ala ?? ''} />
-        <Linha rotulo="Data da internação" valor={fmtDataBr(p.data_internacao)} />
-        <Linha rotulo="Alta em" valor={fmtDataBr(p.alta_em)} />
-        <Linha rotulo="Diagnóstico na admissão" valor={p.diagnostico ?? ''} />
-        <Linha rotulo="Houve óbito" valor={simNao(p.obito?.houve_obito)} />
-        <Linha rotulo="Óbito — data" valor={fmtDataBr(p.obito?.data)} />
-        <Linha rotulo="Óbito — causa" valor={p.obito?.causa ?? ''} />
-        <Linha rotulo="Causa relacionada à infecção" valor={simNao(p.obito?.causa_relacionada_infeccao)} />
+        <Linha rotulo="Nome da mãe" valor={p?.nome_mae ?? ''} />
+        <Linha rotulo="Prontuário da mãe" valor={p?.prontuario_mae ?? ''} />
+        <Linha rotulo="Clínica / setor" valor={p?.clinica ?? f.hospital_unidade?.clinica_servico ?? ''} />
+        <Linha rotulo="Andar / ala" valor={p?.andar ?? f.hospital_unidade?.andar_ala ?? ''} />
+        <Linha rotulo="Data da internação" valor={fmtDataBr(p?.data_internacao)} />
+        <Linha rotulo="Alta em" valor={fmtDataBr(p?.alta_em)} />
+        <Linha rotulo="Diagnóstico na admissão" valor={p?.diagnostico ?? ''} />
+        <Linha rotulo="Houve óbito" valor={simNao(p?.obito?.houve_obito)} />
+        <Linha rotulo="Óbito — data" valor={fmtDataBr(p?.obito?.data)} />
+        <Linha rotulo="Óbito — causa" valor={p?.obito?.causa ?? ''} />
+        <Linha rotulo="Causa relacionada à infecção" valor={simNao(p?.obito?.causa_relacionada_infeccao)} />
       </Bloco>
 
       <Bloco titulo="Dados cirúrgicos">

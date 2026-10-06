@@ -193,7 +193,13 @@ export async function montarDadosFichaMultidisciplinarImpressao(
   usuario: { nome: string; crm?: string | null; role: string }
 ): Promise<FichaMultidisciplinarImpressaoDados | null> {
   const atendimento = await prisma.atendimento.findFirst({
-    where: { id: atendimentoId, deletedAt: null, status: 'INTERNADO' },
+    where: {
+      deletedAt: null,
+      OR: [
+        { id: atendimentoId },
+        { numeroAtendimento: atendimentoId },
+      ],
+    },
     include: includeAtendimento,
   })
 
