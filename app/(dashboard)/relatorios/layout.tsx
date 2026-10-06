@@ -14,21 +14,5 @@ export default async function LayoutRelatorios({ children }: { children: React.R
   if (!sessao) redirect('/login')
   if (!ROLES_RELATORIOS.includes(sessao.usuario.role as any)) redirect('/acesso-negado')
 
-  return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="page-title flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
-          <BarChart3 className="h-7 w-7 text-primary" />
-          Relatórios Gerenciais e Cadastros
-        </h1>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          Exporte relatórios em PDF institucional ou CSV e consulte dados consolidados de todos os cadastros e atendimentos do sistema.
-        </p>
-      </div>
-
-      <SubmenuRelatorios />
-      
-      <div>{children}</div>
-    </div>
-  )
+  return <div className="w-full">{children}</div>
 }
