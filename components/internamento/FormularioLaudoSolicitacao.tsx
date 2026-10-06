@@ -17,6 +17,7 @@ import {
   Sparkles,
   ShieldCheck,
   CheckCircle2,
+  RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LaudoSolicitacaoPrefill } from '@/lib/laudo-solicitacao'
@@ -178,6 +179,20 @@ export function FormularioLaudoSolicitacao({
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              carregar()
+              toast.info('Dados recarregados do sistema.')
+            }}
+            disabled={carregando}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border bg-background hover:bg-muted text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            title="Preencher com os dados mais recentes do paciente e hospital"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Preencher do Sistema
+          </button>
+
           <Link
             href={`/internamento/laudo-solicitacao/imprimir/${atendimentoId}`}
             target="_blank"

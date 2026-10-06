@@ -1,6 +1,7 @@
-// lib/laudo-solicitacao.ts
+// lib/laudo-solicitacao.ts — Carregamento e autopreenchimento completo de dados para Laudo de Solicitação
+
 import { prisma } from '@/lib/prisma'
-import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao'
+import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao'
 import type { LaudoSolicitacaoForm } from '@/lib/validations/laudo-solicitacao'
 
 export type LaudoSolicitacaoPrefill = LaudoSolicitacaoForm & {
@@ -25,7 +26,13 @@ export async function carregarDadosLaudoSolicitacao(
   }
 } | null> {
   const atendimento = await prisma.atendimento.findFirst({
-    where: { id: atendimentoId, deletedAt: null },
+    where: {
+      deletedAt: null,
+      OR: [
+        { id: atendimentoId },
+        { numeroAtendimento: atendimentoId },
+      ],
+    },
     include: {
       paciente: {
         select: {
@@ -62,6 +69,22 @@ export async function carregarDadosLaudoSolicitacao(
         },
       },
       laudoSolicitacao: true,
+      fichaInternacaoAlta: true,
+      triagem: {
+        select: {
+          queixaPrincipal: true,
+          corClassificacao: true,
+        },
+      },
+      prontuario: {
+        include: {
+          diagnosticos: {
+            orderBy: [{ principal: 'desc' }, { createdAt: 'desc' }],
+            take: 3,
+          },
+          anamnese: true,
+        },
+      },
     },
   })
 
@@ -72,30 +95,68 @@ export async function carregarDadosLaudoSolicitacao(
   const inst = await prisma.instituicao.findFirst({
     select: {
       nomeInstituicao: true,
+      nomeMunicipio: true,
       cnes: true,
       endereco: true,
       logomarcaUrl: true,
     },
   })
 
+  const nomeInstituicaoPadrao =
+    inst?.nomeInstituicao?.trim() ||
+    (inst?.nomeMunicipio ? `HOSPITAL MUNICIPAL DE ${inst.nomeMunicipio.toUpperCase()}` : 'HOSPITAL MUNICIPAL QUITÉRIA ALVES VILELA')
+
+  const cnpjPadrao = (inst as any)?.cnpj?.trim() || '10.428.188/0001-08'
+
   const instituicao = {
-    nomeInstituicao: inst?.nomeInstituicao || 'HOSPITAL MUNICIPAL QUITÉRIA ALVES VILELA',
+    nomeInstituicao: nomeInstituicaoPadrao,
     cnes: inst?.cnes ?? '',
-    cnpj: '',
+    cnpj: cnpjPadrao,
     endereco: inst?.endereco ?? '',
     logomarcaUrl: inst?.logomarcaUrl ?? null,
   }
 
-  const nomePaciente = nomeCompletoParaExibicao(
-    atendimento.paciente.nomeExibicao,
-    atendimento.paciente.nomeCriptografado
-  )
+  const nomePaciente =
+    obterNomeCompletoPaciente(
+      atendimento.paciente.nomeExibicao,
+      atendimento.paciente.nomeCriptografado
+    ) || atendimento.paciente.nomeExibicao
 
   const salvo = atendimento.laudoSolicitacao
+  const fichaInternacaoDados = (atendimento.fichaInternacaoAlta?.dadosFormulario as Record<string, any>) || {}
 
   const leitoDesc = atendimento.leito
     ? `${atendimento.leito.codigo}${atendimento.leito.ala ? ` (${atendimento.leito.ala})` : ''}`
     : atendimento.sala ?? null
+
+  const diagPrincipal = atendimento.prontuario?.diagnosticos?.[0]
+  const diagTexto = diagPrincipal
+    ? `${diagPrincipal.codigoCid ? `${diagPrincipal.codigoCid} - ` : ''}${diagPrincipal.descricaoCid}`
+    : ''
+
+  const procedimentoAnteriorPadrao =
+    atendimento.laudoInternacao?.descricaoProcedimento
+      ? `${atendimento.laudoInternacao.codigoProcedimento ? `${atendimento.laudoInternacao.codigoProcedimento} - ` : ''}${atendimento.laudoInternacao.descricaoProcedimento}`
+      : fichaInternacaoDados.procedimento || fichaInternacaoDados.procedimentoPrincipal || diagTexto || 'Tratamento Clínico Hospitalar'
+
+  const procedimentoSolicitadoPadrao =
+    salvo?.procedimentoSolicitado?.trim() ||
+    (diagTexto ? `Continuidade Assistencial / Procedimento Clínico em ${diagTexto}` : '')
+
+  const nomeAcompanhantePadrao =
+    salvo?.nomeAcompanhante?.trim() ||
+    atendimento.paciente.acompanhanteNome?.trim() ||
+    fichaInternacaoDados.responsavelNome?.trim() ||
+    fichaInternacaoDados.acompanhanteNome?.trim() ||
+    ''
+
+  const justificativaPadrao =
+    salvo?.justificativa?.trim() ||
+    (diagTexto
+      ? `Solicitação médica fundamentada na evolução clínica do paciente com diagnóstico de ${diagTexto}, necessitando de suporte e continuidade da assistência hospitalar especializada.`
+      : atendimento.triagem?.queixaPrincipal
+      ? `Solicitação médica referente à admissão por: ${atendimento.triagem.queixaPrincipal}.`
+      : '')
 
   const prefill: LaudoSolicitacaoPrefill = {
     id: salvo?.id,
@@ -106,36 +167,32 @@ export async function carregarDadosLaudoSolicitacao(
     status: (salvo?.status ?? 'RASCUNHO') as LaudoSolicitacaoForm['status'],
 
     // 1. Identificação Topo
-    nomeHospital: salvo?.nomeHospital || instituicao.nomeInstituicao,
-    cnpjHospital: salvo?.cnpjHospital || '',
-    nomePaciente: salvo?.nomePaciente || nomePaciente,
-    numeroAih: salvo?.numeroAih || atendimento.numeroAtendimento,
-    procedimentoAnterior:
-      salvo?.procedimentoAnterior ||
-      (atendimento.laudoInternacao?.descricaoProcedimento
-        ? `${atendimento.laudoInternacao.codigoProcedimento ? `${atendimento.laudoInternacao.codigoProcedimento} - ` : ''}${atendimento.laudoInternacao.descricaoProcedimento}`
-        : ''),
-    procedimentoSolicitado: salvo?.procedimentoSolicitado || '',
+    nomeHospital: salvo?.nomeHospital?.trim() || instituicao.nomeInstituicao,
+    cnpjHospital: salvo?.cnpjHospital?.trim() || instituicao.cnpj || '',
+    nomePaciente: salvo?.nomePaciente?.trim() || nomePaciente,
+    numeroAih: salvo?.numeroAih?.trim() || fichaInternacaoDados.numeroAih || fichaInternacaoDados.aih || atendimento.numeroAtendimento,
+    procedimentoAnterior: salvo?.procedimentoAnterior?.trim() || procedimentoAnteriorPadrao,
+    procedimentoSolicitado: procedimentoSolicitadoPadrao,
     nomeMedicoSolicitante:
-      salvo?.nomeMedicoSolicitante ||
-      usuario?.nome ||
-      atendimento.medico?.nome ||
+      salvo?.nomeMedicoSolicitante?.trim() ||
+      atendimento.medico?.nome?.trim() ||
+      usuario?.nome?.trim() ||
       '',
     crmMedicoSolicitante:
-      salvo?.crmMedicoSolicitante ||
-      usuario?.crm ||
-      atendimento.medico?.crm ||
+      salvo?.crmMedicoSolicitante?.trim() ||
+      atendimento.medico?.crm?.trim() ||
+      usuario?.crm?.trim() ||
       '',
     cpfMedicoSolicitante:
-      salvo?.cpfMedicoSolicitante ||
-      usuario?.cpf ||
-      atendimento.medico?.cpf ||
+      salvo?.cpfMedicoSolicitante?.trim() ||
+      atendimento.medico?.cpf?.trim() ||
+      usuario?.cpf?.trim() ||
       '',
 
     // 2. Opções Meio
     mudancaProcedimento: salvo?.mudancaProcedimento ?? false,
     diariaUti: salvo?.diariaUti ?? false,
-    diariaAcompanhante: salvo?.diariaAcompanhante ?? false,
+    diariaAcompanhante: salvo?.diariaAcompanhante ?? (Boolean(nomeAcompanhantePadrao)),
     vacinaAntiRh: salvo?.vacinaAntiRh ?? false,
     usoProteseOtica: salvo?.usoProteseOtica ?? false,
     usoFatoresCoagulacao: salvo?.usoFatoresCoagulacao ?? false,
@@ -143,14 +200,13 @@ export async function carregarDadosLaudoSolicitacao(
     nutricaoParenteral: salvo?.nutricaoParenteral ?? false,
 
     // 3. Justificativa
-    justificativa:
-      salvo?.justificativa ?? '',
+    justificativa: justificativaPadrao,
 
     // 4. Rodapé
     dataSolicitacao: salvo?.dataSolicitacao
       ? salvo.dataSolicitacao.toISOString().split('T')[0]
       : new Date().toISOString().split('T')[0],
-    nomeAcompanhante: salvo?.nomeAcompanhante || atendimento.paciente.acompanhanteNome || '',
+    nomeAcompanhante: nomeAcompanhantePadrao,
     dataAuditoria: salvo?.dataAuditoria
       ? salvo.dataAuditoria.toISOString().split('T')[0]
       : '',
