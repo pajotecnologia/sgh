@@ -9,6 +9,7 @@ import {
   descricaoLeitoInternacao,
   mesclarSecaoJson,
 } from '@/lib/prefill-internamento'
+import { formatarDosePrescricao } from '@/lib/prescricao-ui'
 
 type AtendimentoCcih = AtendimentoInternacaoCtx
 
@@ -356,14 +357,19 @@ function schemaSafeFormulario(raw: unknown): FormularioCcihNotificacao {
 
   const antiRaw = (r.uso_antimicrobianos as Record<string, unknown>) ?? {}
   const medicamentos = Array.isArray(antiRaw.medicamentos)
-    ? (antiRaw.medicamentos as Record<string, unknown>[]).map((m) => ({
-        ...mesclarSecaoJson(base.uso_antimicrobianos!.medicamentos![0], m),
-        tipo_nome: String(m.tipo_nome ?? m.nome_antimicrobiano ?? ''),
-        nome_antimicrobiano: String(m.nome_antimicrobiano ?? m.tipo_nome ?? ''),
-        dose: String(m.dose ?? m.dose_posologia ?? ''),
-        dose_posologia: String(m.dose_posologia ?? m.dose ?? ''),
-      }))
-    : base.uso_antimicrobianos!.medicamentos
+    ? (antiRaw.medicamentos as Record<string, unknown>[]).map((m) => {
+        const tipoNome = String(m.tipo_nome ?? m.nome_antimicrobiano ?? '')
+        const dose = String(m.dose ?? m.dose_posologia ?? '')
+        return {
+          tipo_nome: tipoNome,
+          nome_antimicrobiano: tipoNome,
+          dose,
+          dose_posologia: dose,
+          data_inicio: String(m.data_inicio ?? ''),
+          data_termino: String(m.data_termino ?? ''),
+        }
+      })
+    : (base.uso_antimicrobianos?.medicamentos ?? [])
 
   return {
     controle_interno: mesclarSecaoJson(
@@ -432,8 +438,29 @@ function mesclarFormularioCcih(base: FormularioCcihNotificacao, salvo: Formulari
   const pacSalvo = salvo.paciente_internacao ?? ({} as Partial<NonNullable<FormularioCcihNotificacao['paciente_internacao']>>)
   const pacBase = base.paciente_internacao ?? vazio.paciente_internacao!
 
+  const ciBase = base.controle_interno ?? vazio.controle_interno!
+  const ciSalvo = salvo.controle_interno ?? {}
+  const controleInterno = {
+    numero_controle: ciSalvo.numero_controle?.trim() || ciBase.numero_controle || '',
+    numero_registro: ciSalvo.numero_registro?.trim() || ciBase.numero_registro || '',
+  }
+
+  const medBase = base.medico_responsavel ?? vazio.medico_responsavel!
+  const medSalvo = salvo.medico_responsavel ?? {}
+  const medicoResponsavel = {
+    nome: medSalvo.nome?.trim() || medBase.nome || '',
+    crm_carimbo: medSalvo.crm_carimbo?.trim() || medBase.crm_carimbo || '',
+    assinatura_carimbo_digital: medSalvo.assinatura_carimbo_digital?.trim() || medBase.assinatura_carimbo_digital || '',
+  }
+
+  const antiBase = base.uso_antimicrobianos ?? vazio.uso_antimicrobianos!
+  const antiSalvo = salvo.uso_antimicrobianos ?? {}
+  const temMedsSalvos = antiSalvo.medicamentos && antiSalvo.medicamentos.some((m) => m.tipo_nome?.trim() || m.nome_antimicrobiano?.trim())
+  const medicamentos = temMedsSalvos ? antiSalvo.medicamentos! : (antiBase.medicamentos ?? [])
+  const houveUso = antiSalvo.houve_uso != null ? antiSalvo.houve_uso : (antiBase.houve_uso || medicamentos.length > 0)
+
   return {
-    controle_interno: mesclarSecaoJson(base.controle_interno ?? vazio.controle_interno!, salvo.controle_interno),
+    controle_interno: controleInterno,
     hospital: salvo.hospital?.trim() ? salvo.hospital : (base.hospital ?? ''),
     hospital_unidade: {
       ...mesclarSecaoJson(base.hospital_unidade ?? vazio.hospital_unidade!, salvo.hospital_unidade),
@@ -449,12 +476,19 @@ function mesclarFormularioCcih(base: FormularioCcihNotificacao, salvo: Formulari
         salvo.hospital_unidade?.enfermaria_leito?.trim() || base.hospital_unidade?.enfermaria_leito || '',
     },
     data_notificacao: salvo.data_notificacao?.trim() ? salvo.data_notificacao : (base.data_notificacao ?? ''),
-    medico_responsavel: mesclarSecaoJson(base.medico_responsavel ?? vazio.medico_responsavel!, salvo.medico_responsavel),
+    medico_responsavel: medicoResponsavel,
     paciente_internacao: {
       ...mesclarSecaoJson(pacBase, pacSalvo),
+      nome: pacSalvo.nome?.trim() || pacBase.nome || '',
+      prontuario: pacSalvo.prontuario?.trim() || pacBase.prontuario || '',
+      sexo: pacSalvo.sexo?.trim() || pacBase.sexo || '',
       idade: pacSalvo.idade ?? pacBase.idade,
       idade_unidade: pacSalvo.idade_unidade?.trim() || pacBase.idade_unidade || 'anos',
       nome_mae: pacSalvo.nome_mae?.trim() || pacBase.nome_mae || '',
+      clinica: pacSalvo.clinica?.trim() || pacBase.clinica || '',
+      andar: pacSalvo.andar?.trim() || pacBase.andar || '',
+      data_internacao: pacSalvo.data_internacao?.trim() || pacBase.data_internacao || '',
+      diagnostico: pacSalvo.diagnostico?.trim() || pacBase.diagnostico || '',
       obito: mesclarSecaoJson(pacBase.obito ?? vazio.paciente_internacao!.obito!, pacSalvo.obito),
     },
     dados_cirurgicos: mesclarSecaoJson(base.dados_cirurgicos ?? vazio.dados_cirurgicos!, salvo.dados_cirurgicos),
@@ -483,17 +517,10 @@ function mesclarFormularioCcih(base: FormularioCcihNotificacao, salvo: Formulari
       ),
     },
     uso_antimicrobianos: {
-      houve_uso: salvo.uso_antimicrobianos?.houve_uso ?? base.uso_antimicrobianos?.houve_uso ?? false,
-      uso_antimicrobiano: salvo.uso_antimicrobianos?.uso_antimicrobiano?.trim()
-        ? salvo.uso_antimicrobianos.uso_antimicrobiano
-        : base.uso_antimicrobianos?.uso_antimicrobiano ?? '',
-      finalidade: salvo.uso_antimicrobianos?.finalidade?.trim()
-        ? salvo.uso_antimicrobianos.finalidade
-        : base.uso_antimicrobianos?.finalidade ?? '',
-      medicamentos:
-        salvo.uso_antimicrobianos?.medicamentos?.some((m) => m.tipo_nome?.trim() || m.nome_antimicrobiano?.trim())
-          ? salvo.uso_antimicrobianos.medicamentos
-          : (base.uso_antimicrobianos?.medicamentos ?? []),
+      houve_uso: houveUso,
+      uso_antimicrobiano: antiSalvo.uso_antimicrobiano?.trim() || antiBase.uso_antimicrobiano || '',
+      finalidade: antiSalvo.finalidade?.trim() || antiBase.finalidade || '',
+      medicamentos,
     },
     dados_cultura: {
       ...mesclarSecaoJson(base.dados_cultura ?? vazio.dados_cultura!, salvo.dados_cultura),
@@ -519,20 +546,63 @@ export function montarPrefillFichaCcih(
   atendimento: AtendimentoCcih,
   fichaExistente: FichaCcihModel | null,
   usuarioSessao: { nome: string; crm?: string | null; role: string },
-  instituicao?: { nomeInstituicao?: string | null } | null
+  instituicao?: { nomeInstituicao?: string | null; nomeMunicipio?: string | null; cnes?: string | null } | null
 ): FichaCcihPrefill {
   const id = identificacaoPacienteInternacao(atendimento)
   const hoje = format(new Date(), 'yyyy-MM-dd')
 
   const leitoDesc = descricaoLeitoInternacao(atendimento.leito)
+  const clinica = id.setorUnidade || atendimento.setor || 'Clínica Médica'
+  const andar = atendimento.leito?.ala || (atendimento.leito?.quarto ? `Quarto ${atendimento.leito.quarto}` : '')
+
+  const nomeHosp =
+    instituicao?.nomeInstituicao?.trim() ||
+    (instituicao?.nomeMunicipio ? `Hospital Municipal de ${instituicao.nomeMunicipio}` : 'Hospital Municipal')
+
+  const listaMeds: NonNullable<NonNullable<FormularioCcihNotificacao['uso_antimicrobianos']>['medicamentos']> = []
+  for (const prescricao of atendimento.prontuario?.prescricoes ?? []) {
+    for (const item of prescricao.itens ?? []) {
+      if (!item.nomeMedicamento?.trim()) continue
+      const doseFormatada = formatarDosePrescricao(
+        item.dose,
+        (item as { unidadeMedida?: string | null }).unidadeMedida
+      )
+      const posologia = [doseFormatada, item.via, item.frequencia].filter(Boolean).join(' - ')
+      listaMeds.push({
+        tipo_nome: item.nomeMedicamento.trim(),
+        nome_antimicrobiano: item.nomeMedicamento.trim(),
+        dose: doseFormatada || item.dose || '',
+        dose_posologia: posologia,
+        data_inicio: id.dataInternacao || hoje,
+        data_termino: '',
+      })
+    }
+  }
+
+  for (const mc of atendimento.paciente?.medicamentosCont ?? []) {
+    if (!mc.nome?.trim()) continue
+    const posologia = [mc.dose, mc.frequencia].filter(Boolean).join(' - ')
+    listaMeds.push({
+      tipo_nome: mc.nome.trim(),
+      nome_antimicrobiano: mc.nome.trim(),
+      dose: mc.dose ?? '',
+      dose_posologia: posologia,
+      data_inicio: id.dataInternacao || hoje,
+      data_termino: '',
+    })
+  }
 
   const baseForm: FormularioCcihNotificacao = {
     ...formularioCcihVazio(),
-    hospital: instituicao?.nomeInstituicao?.trim() ?? '',
+    controle_interno: {
+      numero_controle: id.numeroAtendimento,
+      numero_registro: id.numeroProntuario || id.numeroAtendimento,
+    },
+    hospital: nomeHosp,
     hospital_unidade: {
-      clinica_servico: id.setorUnidade,
-      andar_ala: atendimento.leito?.ala ?? '',
-      enfermaria_leito: leitoDesc,
+      clinica_servico: clinica,
+      andar_ala: andar || clinica,
+      enfermaria_leito: leitoDesc || 'Leito Geral',
     },
     data_notificacao: hoje,
     medico_responsavel: {
@@ -546,16 +616,21 @@ export function montarPrefillFichaCcih(
       sexo: sexoParaTexto(id.sexo),
       idade: calcularIdade(id.dataNascimento),
       idade_unidade: 'anos',
-      nome_mae: '',
+      nome_mae: (id as { nomeMae?: string }).nomeMae || (atendimento.paciente as { nomeMae?: string | null })?.nomeMae || '',
       prontuario_mae: '',
-      clinica: '',
-      andar: '',
+      clinica: clinica,
+      andar: andar,
       data_internacao: id.dataInternacao,
       alta_em: '',
       obito: { houve_obito: false, data: '', causa: '', causa_relacionada_infeccao: false },
       diagnostico: id.diagnosticoPrincipal,
     },
-    uso_antimicrobianos: formularioCcihVazio().uso_antimicrobianos!,
+    uso_antimicrobianos: {
+      houve_uso: listaMeds.length > 0,
+      uso_antimicrobiano: listaMeds.length > 0 ? 'SIM' : '',
+      finalidade: listaMeds.length > 0 ? 'Tratamento / Terapêutica' : '',
+      medicamentos: listaMeds,
+    },
     dados_cultura: {
       ...formularioCcihVazio().dados_cultura!,
       data_coleta: '',

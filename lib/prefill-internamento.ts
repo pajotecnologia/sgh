@@ -24,7 +24,8 @@ export function mesclarPrefill<T extends Record<string, unknown>>(base: T, salvo
   return out as T
 }
 
-export function mesclarSecaoJson<T extends Record<string, unknown>>(base: T, salvo: T | undefined | null): T {
+export function mesclarSecaoJson<T extends Record<string, unknown>>(base: T | undefined | null, salvo: T | undefined | null): T {
+  if (!base) return (salvo ?? {}) as T
   if (!salvo) return base
   const out = { ...base, ...salvo } as Record<string, unknown>
   for (const key of Object.keys(base)) {
@@ -99,6 +100,7 @@ type PacienteCtx = {
   nomeCompleto?: string | null
   dataNascimento: Date
   sexoBiologico: string
+  nomeMae?: string | null
   alergias?: { descricao: string; gravidade: string | null }[]
   medicamentosCont?: { nome: string; dose: string | null; frequencia: string | null }[]
 }
@@ -457,6 +459,7 @@ export function identificacaoPacienteInternacao(atendimento: AtendimentoCtx) {
     cidPrincipal: diag?.codigoCid ?? '',
     numeroAtendimento: atendimento.numeroAtendimento,
     atendimentoId: atendimento.id,
+    nomeMae: (atendimento.paciente as PacienteCtx)?.nomeMae ?? '',
   }
 }
 

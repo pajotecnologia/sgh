@@ -42,7 +42,7 @@ export async function carregarDadosFichaCcih(
   }
 
   const instituicao = await prisma.instituicao.findFirst({
-    select: { nomeInstituicao: true },
+    select: { nomeInstituicao: true, nomeMunicipio: true, cnes: true },
   })
 
   const prefill = montarPrefillFichaCcih(atendimento, atendimento.fichaCcih, usuario, instituicao)
