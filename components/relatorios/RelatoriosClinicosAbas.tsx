@@ -486,18 +486,16 @@ export function RelatorioLaudosMedicos() {
       titulo="Relatório de Laudos Médicos & Solicitações de Internação"
       descricao="Registro de laudos de solicitação de internação hospitalar, procedimentos autorizados e justificativas clínicas."
       icon={FileText}
-      linkModo="ficha-sus"
+      linkModo="laudo-solicitacao"
       metricasCards={[
         { label: 'Total Laudos Emitidos', valorKey: 'total', icon: FileText, cor: 'primary' },
-        { label: 'Laudos Concluídos', valorKey: 'concluidos', icon: FileCheck, cor: 'emerald' },
+        { label: 'Laudos Emitidos / Auditados', valorKey: 'emitidos', icon: FileCheck, cor: 'emerald' },
         { label: 'Em Análise / Rascunho', valorKey: 'rascunhos', icon: Activity, cor: 'amber' },
       ]}
       colunas={[
-        { key: 'numeroLaudo', header: 'Nº Laudo' },
         { key: 'numeroAtendimento', header: 'Atendimento' },
         { key: 'nomePaciente', header: 'Paciente' },
         { key: 'procedimento', header: 'Procedimento Solicitado' },
-        { key: 'cid10', header: 'CID-10' },
         { key: 'medicoSolicitante', header: 'Médico Solicitante' },
         {
           key: 'status',
@@ -505,20 +503,21 @@ export function RelatorioLaudosMedicos() {
           render: (r) => (
             <span
               className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                r.status === 'CONCLUIDO'
+                r.status === 'EMITIDO' || r.status === 'AUDITADO' || r.status === 'CONCLUIDO'
                   ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
                   : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
               }`}
             >
-              {r.status}
+              {r.status === 'EMITIDO' ? 'Emitido' : r.status === 'AUDITADO' ? 'Auditado' : r.status === 'RASCUNHO' ? 'Rascunho' : r.status}
             </span>
           ),
         },
       ]}
-      csvHeaders={['Nº Laudo', 'Atendimento', 'Paciente', 'Procedimento', 'CID-10', 'Médico', 'Status']}
-      csvRowMapper={(r) => [r.numeroLaudo, r.numeroAtendimento, r.nomePaciente, r.procedimento, r.cid10, r.medicoSolicitante, r.status]}
+      csvHeaders={['Atendimento', 'Paciente', 'Procedimento', 'Médico', 'Status']}
+      csvRowMapper={(r) => [r.numeroAtendimento, r.nomePaciente, r.procedimento, r.medicoSolicitante, r.status]}
       opcoesStatus={[
-        { valor: 'CONCLUIDO', label: 'Concluído' },
+        { valor: 'EMITIDO', label: 'Emitido' },
+        { valor: 'AUDITADO', label: 'Auditado' },
         { valor: 'RASCUNHO', label: 'Rascunho' },
       ]}
     />

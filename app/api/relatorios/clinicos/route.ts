@@ -822,10 +822,12 @@ export async function GET(req: NextRequest) {
       colunas = ['Atendimento', 'Paciente', 'Procedimento Solicitado', 'Médico Solicitante', 'Status', 'Data']
       largurasColunas = [80, 125, 125, 100, 45, 50]
 
+      const statusValido = status && ['RASCUNHO', 'EMITIDO', 'AUDITADO', 'CANCELADO'].includes(status) ? (status as any) : undefined
+
       const laudos = await prisma.laudoSolicitacao.findMany({
         where: {
           ...(filtroDataRange ? { createdAt: filtroDataRange } : {}),
-          ...(status ? { status: status as any } : {}),
+          ...(statusValido ? { status: statusValido } : {}),
         },
         include: {
           atendimento: {
@@ -863,11 +865,14 @@ export async function GET(req: NextRequest) {
       }
 
       payloadJson = mapped
+      const totalEmitidos = mapped.filter((m) => m.status === 'EMITIDO' || m.status === 'AUDITADO').length
       metricas = {
         total: mapped.length,
-        emitidos: mapped.filter((m) => m.status === 'EMITIDO' || m.status === 'AUDITADO').length,
+        emitidos: totalEmitidos,
+        concluidos: totalEmitidos,
         rascunhos: mapped.filter((m) => m.status === 'RASCUNHO').length,
       }
+
 
       dadosLinhas = mapped.map((m) => [
         m.numeroAtendimento,
