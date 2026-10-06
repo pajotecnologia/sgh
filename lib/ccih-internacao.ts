@@ -36,9 +36,15 @@ export const LABEL_CLASSIFICACAO_INFECCAO: Record<string, string> = {
   OUTRA: 'Outra',
 }
 
-function fmtData(d: Date | null | undefined): string {
+function fmtData(d: Date | string | null | undefined): string {
   if (!d) return ''
-  return format(new Date(d), 'yyyy-MM-dd')
+  const dt = typeof d === 'string' ? new Date(d.includes('T') ? d : `${d}T12:00:00`) : d
+  if (Number.isNaN(dt.getTime())) return typeof d === 'string' ? d : ''
+  try {
+    return format(dt, 'yyyy-MM-dd')
+  } catch {
+    return typeof d === 'string' ? d : ''
+  }
 }
 
 function sexoParaTexto(sexo: string | null | undefined): string {
@@ -50,9 +56,16 @@ function sexoParaTexto(sexo: string | null | undefined): string {
 
 function calcularIdade(dataNascimento: string | Date | null | undefined): number | null {
   if (!dataNascimento) return null
-  const dt = typeof dataNascimento === 'string' ? new Date(`${dataNascimento}T12:00:00`) : dataNascimento
+  const dt =
+    typeof dataNascimento === 'string'
+      ? new Date(dataNascimento.includes('T') ? dataNascimento : `${dataNascimento}T12:00:00`)
+      : dataNascimento
   if (Number.isNaN(dt.getTime())) return null
-  return differenceInYears(new Date(), dt)
+  try {
+    return Math.max(0, differenceInYears(new Date(), dt))
+  } catch {
+    return null
+  }
 }
 
 const germeVazio = () => ({ nome_microorganismo: '', antibiograma_sensibilidade: '' })

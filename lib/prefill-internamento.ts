@@ -171,12 +171,26 @@ export function dataInternacaoReferencia(atendimento: {
   updatedAt: Date
   prontuario: { encaminhamentos: { tipo: string; createdAt: Date }[] } | null
 }): Date {
-  const enc = atendimento.prontuario?.encaminhamentos.find((e) => e.tipo === 'INTERNACAO')
-  return enc ? new Date(enc.createdAt) : new Date(atendimento.updatedAt)
+  const enc = atendimento.prontuario?.encaminhamentos?.find((e) => e.tipo === 'INTERNACAO')
+  if (enc?.createdAt) {
+    const dEnc = new Date(enc.createdAt)
+    if (!Number.isNaN(dEnc.getTime())) return dEnc
+  }
+  if (atendimento.updatedAt) {
+    const dUp = new Date(atendimento.updatedAt)
+    if (!Number.isNaN(dUp.getTime())) return dUp
+  }
+  return new Date()
 }
 
 export function diasInternacaoAteHoje(atendimento: AtendimentoCtx): number {
-  return differenceInCalendarDays(new Date(), dataInternacaoReferencia(atendimento))
+  try {
+    const ref = dataInternacaoReferencia(atendimento)
+    const diff = differenceInCalendarDays(new Date(), ref)
+    return Math.max(1, Number.isNaN(diff) ? 1 : diff)
+  } catch {
+    return 1
+  }
 }
 
 export function diagnosticoPrincipalCtx(atendimento: AtendimentoCtx) {
@@ -407,16 +421,37 @@ export function funcaoProfissionalDefault(role: string): string | null {
 export function identificacaoPacienteInternacao(atendimento: AtendimentoCtx) {
   const dataInt = dataInternacaoReferencia(atendimento)
   const diag = diagnosticoPrincipalCtx(atendimento)
+  let dataNascStr = ''
+  if (atendimento.paciente?.dataNascimento) {
+    const dt = new Date(atendimento.paciente.dataNascimento)
+    if (!Number.isNaN(dt.getTime())) {
+      try {
+        dataNascStr = format(dt, 'yyyy-MM-dd')
+      } catch {
+        dataNascStr = ''
+      }
+    }
+  }
+
+  let dataIntStr = ''
+  if (dataInt && !Number.isNaN(dataInt.getTime())) {
+    try {
+      dataIntStr = format(dataInt, 'yyyy-MM-dd')
+    } catch {
+      dataIntStr = ''
+    }
+  }
+
   return {
     nomePaciente: nomePacienteInternacao(atendimento.paciente),
     numeroProntuario: atendimento.numeroAtendimento,
-    dataNascimento: format(new Date(atendimento.paciente.dataNascimento), 'yyyy-MM-dd'),
-    sexo: ['MASCULINO', 'FEMININO', 'INTERSEXO'].includes(atendimento.paciente.sexoBiologico)
+    dataNascimento: dataNascStr,
+    sexo: ['MASCULINO', 'FEMININO', 'INTERSEXO'].includes(atendimento.paciente?.sexoBiologico)
       ? atendimento.paciente.sexoBiologico
       : 'NAO_INFORMADO',
     setorUnidade: atendimento.setor ?? '',
     leitoDescricao: descricaoLeitoInternacao(atendimento.leito),
-    dataInternacao: format(dataInt, 'yyyy-MM-dd'),
+    dataInternacao: dataIntStr,
     diasInternacao: diasInternacaoAteHoje(atendimento),
     diagnosticoPrincipal: diag ? `${diag.codigoCid} — ${diag.descricaoCid}` : '',
     cidPrincipal: diag?.codigoCid ?? '',
@@ -426,7 +461,14 @@ export function identificacaoPacienteInternacao(atendimento: AtendimentoCtx) {
 }
 
 export function pacienteIdoso(atendimento: AtendimentoCtx): boolean {
-  return differenceInCalendarDays(new Date(), atendimento.paciente.dataNascimento) / 365.25 >= 60
+  if (!atendimento.paciente?.dataNascimento) return false
+  const dt = new Date(atendimento.paciente.dataNascimento)
+  if (Number.isNaN(dt.getTime())) return false
+  try {
+    return differenceInCalendarDays(new Date(), dt) / 365.25 >= 60
+  } catch {
+    return false
+  }
 }
 
 export type AtendimentoInternacaoCtx = AtendimentoCtx
