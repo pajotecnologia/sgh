@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
 
     if (tipo === 'pacientes') {
       titulo = 'Relatório de Cadastros de Pacientes';
-      colunas = ['Nome Completo', 'CPF / RG', 'Data Nasc.', 'Sexo', 'Convênio', 'Cadastro Em'];
+      colunas = ['Nome Completo', 'CPF / RG', 'Data Nasc.', 'Sexo', 'Convênio', 'Data'];
       largurasColunas = [180, 75, 60, 55, 85, 68];
       const pacientes = await prisma.paciente.findMany({
         where: {
@@ -110,7 +110,7 @@ export async function GET(req: NextRequest) {
       ]);
     } else if (tipo === 'profissionais') {
       titulo = 'Relatório de Profissionais e Usuários';
-      colunas = ['Nome', 'E-mail', 'Perfil / Role', 'CRM / COREN', 'Status', 'Cadastrado Em'];
+      colunas = ['Nome', 'E-mail', 'Perfil / Role', 'CRM / COREN', 'Status', 'Data'];
       largurasColunas = [125, 140, 85, 75, 45, 53];
       const usuarios = await prisma.usuario.findMany({
         where: {
@@ -152,7 +152,7 @@ export async function GET(req: NextRequest) {
       ]);
     } else if (tipo === 'clinicas') {
       titulo = 'Relatório de Cadastros de Clínicas';
-      colunas = ['Nome da Clínica', 'Descrição', 'Status', 'Leitos Vinculados', 'Cadastrada Em'];
+      colunas = ['Nome da Clínica', 'Descrição', 'Status', 'Leitos', 'Data'];
       largurasColunas = [140, 180, 55, 80, 68];
       const clinicas = await prisma.clinica.findMany({
         where: {

@@ -744,8 +744,8 @@ export async function GET(req: NextRequest) {
     // 10. MULTIDISCIPLINAR
     else if (tipo === 'multidisciplinar') {
       titulo = 'Relatório de Avaliações e Evoluções Multidisciplinares'
-      colunas = ['Atendimento', 'Paciente', 'Especialidade / Profissional', 'Resumo Avaliação', 'Data / Hora']
-      largurasColunas = [80, 140, 120, 140, 90]
+      colunas = ['Atendimento', 'Paciente', 'Especialidade / Profissional', 'Resumo Avaliação', 'Data']
+      largurasColunas = [80, 130, 110, 135, 65]
 
       const evolucoesMulti = await prisma.evolucaoMultiprofissional.findMany({
         where: {
@@ -802,15 +802,15 @@ export async function GET(req: NextRequest) {
         m.nomePaciente,
         `${m.categoria} - ${m.nomeProfissional}`,
         m.evolucao.length > 35 ? m.evolucao.substring(0, 32) + '...' : m.evolucao,
-        formatarDataHoraBr(m.dataHora),
+        formatarDataBr(m.dataHora),
       ])
     }
 
     // 11. LAUDO SOLICITAÇÃO
     else if (tipo === 'laudo-solicitacao') {
       titulo = 'Relatório de Laudos Médicos e Solicitações de Internação'
-      colunas = ['Nº Atendimento', 'Paciente', 'Procedimento Solicitado', 'Médico Solicitante', 'Status', 'Data Emissão']
-      largurasColunas = [80, 140, 140, 110, 60, 70]
+      colunas = ['Atendimento', 'Paciente', 'Procedimento Solicitado', 'Médico Solicitante', 'Status', 'Data']
+      largurasColunas = [80, 125, 125, 100, 45, 50]
 
       const laudos = await prisma.laudoSolicitacao.findMany({
         where: {
