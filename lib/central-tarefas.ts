@@ -206,6 +206,10 @@ export async function obterPendenciasUsuario(usuarioId: string, role: Role): Pro
     medicacoesPendentes.forEach((item) => {
       const atend = item.prescricao.prontuario.atendimento
       const localizacao = atend.leito ? `Leito ${atend.leito.codigo}` : 'Pronto-Socorro'
+      const href = atend.leito
+        ? `/evolucoes/${atend.id}?aba=INSTRUCOES_ENFERMAGEM`
+        : `/medicacao/${atend.id}`
+
       itens.push({
         id: `med-pend-${item.id}`,
         titulo: `Aplicação: ${item.nomeMedicamento} (${item.dose})`,
@@ -213,7 +217,7 @@ export async function obterPendenciasUsuario(usuarioId: string, role: Role): Pro
         categoria: 'ENFERMAGEM',
         prioridade: 'ALTA',
         tempoEsperaFormatado: calcularTempoDecorrido(item.createdAt),
-        href: `/enfermagem/${atend.id}`,
+        href,
       })
     })
 
@@ -253,7 +257,7 @@ export async function obterPendenciasUsuario(usuarioId: string, role: Role): Pro
         categoria: 'FARMACIA',
         prioridade: 'ALTA',
         tempoEsperaFormatado: calcularTempoDecorrido(presc.createdAt),
-        href: `/farmacia/triagem/${presc.id}`,
+        href: `/farmacia?status=AGUARDANDO_TRIAGEM`,
       })
     })
   }
