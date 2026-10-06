@@ -38,6 +38,9 @@ import {
   UserCircle,
   HelpCircle,
   Sparkles,
+  Syringe,
+  SunMoon,
+  UserCheck,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import type { Role, UsuarioSessao } from '@/types';
@@ -72,6 +75,16 @@ const ROLES_PRONTUARIO: Role[] = [
   'DIRETOR_CLINICO',
   'ENFERMEIRO',
   'TECNICO_ENFERMAGEM',
+  'RECEPCIONISTA',
+];
+
+const ROLES_RELATORIOS: Role[] = [
+  'ADMIN',
+  'DIRETOR_CLINICO',
+  'MEDICO',
+  'ENFERMEIRO',
+  'TECNICO_ENFERMAGEM',
+  'FARMACEUTICO',
   'RECEPCIONISTA',
 ];
 
@@ -183,16 +196,27 @@ const GRUPOS_NAVEGACAO: GrupoNav[] = [
       },
       {
         label: 'Relatórios & Indicadores',
-        href: '/relatorios/atendimentos',
+        href: '/relatorios/prontuario-medico',
         icon: BarChart3,
-        roles: ['ADMIN', 'DIRETOR_CLINICO', 'FARMACEUTICO'],
+        roles: ROLES_RELATORIOS,
         children: [
-          { label: 'Atendimentos', href: '/relatorios/atendimentos', icon: Calendar },
+          { label: 'Prontuário Médico', href: '/relatorios/prontuario-medico', icon: Stethoscope },
+          { label: 'Prontuário Enfermagem', href: '/relatorios/prontuario-enfermagem', icon: UserCheck },
+          { label: 'Internamento & Fichas', href: '/relatorios/internamento', icon: Building2 },
+          { label: 'Medicamentos & Apraz.', href: '/relatorios/medicamentos-instrucoes', icon: Syringe },
+          { label: 'CCIH & IRAS', href: '/relatorios/ccih', icon: Shield },
+          { label: 'Sinais Vitais & Balanço', href: '/relatorios/sinais-vitais', icon: Activity },
+          { label: 'Evolução Dia/Noite', href: '/relatorios/evolucao-turno', icon: SunMoon },
+          { label: 'Condições de Alta', href: '/relatorios/condicoes-alta', icon: LogOut },
+          { label: 'SAE Enfermagem', href: '/relatorios/sae', icon: ClipboardList },
+          { label: 'Multidisciplinar', href: '/relatorios/multidisciplinar', icon: Users },
+          { label: 'Laudos Médicos', href: '/relatorios/laudos-medicos', icon: FileText },
+          { label: 'Atendimentos Gerais', href: '/relatorios/atendimentos', icon: Calendar },
           { label: 'Pacientes', href: '/relatorios/pacientes', icon: Users },
           { label: 'Profissionais', href: '/relatorios/profissionais', icon: Stethoscope },
           { label: 'Clínicas', href: '/relatorios/clinicas', icon: Building2 },
           { label: 'Leitos', href: '/relatorios/leitos', icon: BedDouble },
-          { label: 'Medicamentos', href: '/relatorios/medicamentos', icon: Package },
+          { label: 'Medicamentos (Catálogo)', href: '/relatorios/medicamentos', icon: Package },
           { label: 'Fornecedores', href: '/relatorios/fornecedores', icon: Truck },
           { label: 'Prescrições Padrão', href: '/relatorios/prescricoes-padrao', icon: ClipboardList },
           { label: 'Origens de Pacientes', href: '/relatorios/origens', icon: Navigation },

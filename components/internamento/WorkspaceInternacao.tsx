@@ -33,6 +33,7 @@ import { FormularioBercario } from '@/components/internamento/FormularioBercario
 import { FormularioSae } from '@/components/internamento/FormularioSae'
 import { FormularioLaudoSolicitacao } from '@/components/internamento/FormularioLaudoSolicitacao'
 import { AbaInstrucoesEnfermagem } from '@/components/internamento/AbaInstrucoesEnfermagem'
+import { PainelPlantaoEnfermagem } from '@/components/internamento/PainelPlantaoEnfermagem'
 import {
   type AbaInternacaoId,
   type ModoWorkspaceInternacao,
@@ -375,6 +376,19 @@ export function WorkspaceInternacao({
           </div>
         </div>
       ) : null}
+
+      {modo === 'evolucoes' && (
+        <PainelPlantaoEnfermagem
+          atendimentoId={atendimentoId}
+          abaAtual={abaAtual}
+          onSelecionarAba={setAbaAtual}
+          prescricoes={prontuario.prescricoes}
+          dataInternacao={identificacao.dataInternacao || atendimento.updatedAt}
+          leitoDescricao={identificacao.leitoDescricao}
+          setorUnidade={identificacao.setorUnidade || atendimento.setor}
+          alergiasQtd={alergiasPaciente.length}
+        />
+      )}
 
       <div className="p-1.5 bg-muted/40 dark:bg-muted/20 rounded-xl border border-border">
         <div
