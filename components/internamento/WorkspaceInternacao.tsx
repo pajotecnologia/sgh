@@ -14,7 +14,6 @@ import {
   Users,
   AlertTriangle,
   HeartPulse,
-  ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao'
@@ -72,7 +71,6 @@ export function WorkspaceInternacao({
 
   const [abaAtual, setAbaAtual] = useState<AbaInternacaoId>(abaInicialValida)
   const [carregando, setCarregando] = useState(true)
-  const [menuDocsAberto, setMenuDocsAberto] = useState(false)
   const [dados, setDados] = useState<{
     atendimento: Record<string, unknown>
     prontuario: Record<string, unknown>
@@ -229,107 +227,17 @@ export function WorkspaceInternacao({
           <ArrowLeft className="h-4 w-4" aria-hidden />
           Voltar à lista
         </Link>
-        <div className="flex flex-wrap items-center justify-end gap-2 relative">
-          {(atendimento?.pacienteId || atendimento?.paciente?.id) && (
-            <Link
-              href={`/prontuario/paciente/${atendimento.pacienteId || atendimento.paciente.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-primary/40 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/15 transition-colors shadow-2xs"
-            >
-              <HeartPulse className="h-4 w-4" aria-hidden />
-              Histórico PEP
-            </Link>
-          )}
-
-          {/* Menu Unificado de Documentos e Impressões */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setMenuDocsAberto((prev) => !prev)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-border bg-card text-sm font-medium hover:bg-muted/70 transition-colors shadow-2xs text-foreground"
-              aria-expanded={menuDocsAberto}
-            >
-              <Printer className="h-4 w-4 text-muted-foreground" aria-hidden />
-              Documentos & Impressão
-              <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform duration-200', menuDocsAberto && 'rotate-180')} />
-            </button>
-
-            {menuDocsAberto && (
-              <>
-                <div
-                  className="fixed inset-0 z-20"
-                  onClick={() => setMenuDocsAberto(false)}
-                />
-                <div className="absolute right-0 top-full mt-1.5 w-60 rounded-xl border border-border bg-popover p-1.5 shadow-xl z-30 space-y-1 animate-in fade-in-50 zoom-in-95">
-                  <div className="px-2.5 py-1 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Fichas & Formulários
-                  </div>
-                  <Link
-                    href={`/recepcao/imprimir/${atendimento.numeroAtendimento}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setMenuDocsAberto(false)}
-                    className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-                  >
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    Ficha de Recepção
-                  </Link>
-                  <Link
-                    href={`/internamento/ficha-alta/${atendimentoId}`}
-                    onClick={() => setMenuDocsAberto(false)}
-                    className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-                  >
-                    <FileText className="h-4 w-4 text-violet-500" />
-                    Ficha Hospitalar / Alta
-                  </Link>
-                  <Link
-                    href={`/internamento/laudo-solicitacao/imprimir/${atendimentoId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setMenuDocsAberto(false)}
-                    className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-                  >
-                    <Stethoscope className="h-4 w-4 text-sky-500" />
-                    Laudo de Solicitação
-                  </Link>
-                  <Link
-                    href={`/internamento/ccih/imprimir/${atendimentoId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setMenuDocsAberto(false)}
-                    className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-                  >
-                    <Shield className="h-4 w-4 text-amber-500" />
-                    Ficha CCIH / Notificação
-                  </Link>
-                  <Link
-                    href={`/internamento/multidisciplinar/imprimir/${atendimentoId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setMenuDocsAberto(false)}
-                    className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-                  >
-                    <Users className="h-4 w-4 text-indigo-500" />
-                    Avaliação Multidisciplinar
-                  </Link>
-                  {encaminhamentoInternacaoId && (
-                    <Link
-                      href={`/atendimento/encaminhamento/imprimir/${encaminhamentoInternacaoId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setMenuDocsAberto(false)}
-                      className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors border-t border-border mt-1 pt-1.5"
-                    >
-                      <Printer className="h-4 w-4 text-emerald-500" />
-                      Solicitação Médica
-                    </Link>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+        {(atendimento?.pacienteId || atendimento?.paciente?.id) && (
+          <Link
+            href={`/prontuario/paciente/${atendimento.pacienteId || atendimento.paciente.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-primary/40 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/15 transition-colors shadow-2xs"
+          >
+            <HeartPulse className="h-4 w-4" aria-hidden />
+            Histórico Longitudinal (PEP)
+          </Link>
+        )}
       </div>
 
       <div className="bg-card border border-border rounded-xl p-5 flex flex-wrap gap-6 items-start shadow-sm">
