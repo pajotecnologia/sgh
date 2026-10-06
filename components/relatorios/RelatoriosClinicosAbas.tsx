@@ -130,7 +130,7 @@ export function RelatorioInternamento() {
       titulo="Relatório de Internações e Fichas Hospitalares"
       descricao="Gestão de pacientes internados, ocupação de leitos, admissões hospitalares e fichas de internação."
       icon={Building2}
-      linkModo="evolucoes"
+      linkModo="ficha-hospitalar"
       metricasCards={[
         { label: 'Total Internações', valorKey: 'total', icon: Building2, cor: 'primary' },
         { label: 'Fichas Concluídas', valorKey: 'concluidos', icon: FileCheck, cor: 'emerald' },
@@ -227,7 +227,7 @@ export function RelatorioCcih() {
       titulo="Relatório de Notificações CCIH — IRAS & Dispositivos"
       descricao="Vigilância epidemiológica hospitalar, infecções relacionadas à assistência, culturas e tempo de dispositivos."
       icon={Shield}
-      linkModo="evolucoes"
+      linkModo="ccih"
       metricasCards={[
         { label: 'Total Notificações', valorKey: 'total', icon: Shield, cor: 'primary' },
         { label: 'Notificações Concluídas', valorKey: 'concluidos', icon: FileCheck, cor: 'emerald' },
@@ -486,7 +486,7 @@ export function RelatorioLaudosMedicos() {
       titulo="Relatório de Laudos Médicos & Solicitações de Internação"
       descricao="Registro de laudos de solicitação de internação hospitalar, procedimentos autorizados e justificativas clínicas."
       icon={FileText}
-      linkModo="prontuario"
+      linkModo="ficha-sus"
       metricasCards={[
         { label: 'Total Laudos Emitidos', valorKey: 'total', icon: FileText, cor: 'primary' },
         { label: 'Laudos Concluídos', valorKey: 'concluidos', icon: FileCheck, cor: 'emerald' },

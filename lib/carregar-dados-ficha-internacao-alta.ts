@@ -50,11 +50,13 @@ const includeAtendimento = {
       nomeProfissional: true,
     },
   },
+  leito: { select: { codigo: true, ala: true, quarto: true, tipo: true } },
   fichaMultidisciplinar: { select: { enfermagem: true } },
   fichaInternacaoAlta: true,
 }
 
 export type DadosFichaInternacaoAlta = {
+  atendimentoId: string
   prefill: FichaInternacaoAltaPrefill
   ficha: {
     id: string
@@ -66,6 +68,24 @@ export type DadosFichaInternacaoAlta = {
     numeroAtendimento: string
     statusAtendimento: string
   }
+  leito?: {
+    codigo: string
+    ala: string
+    quarto: string | null
+    tipo: string
+  } | null
+  instituicao?: {
+    nomeInstituicao?: string | null
+    nomeMunicipio?: string | null
+    endereco?: string | null
+    bairro?: string | null
+    cidade?: string | null
+    estado?: string | null
+    cep?: string | null
+    cnes?: string | null
+    codigoIbgeMunicipio?: string | null
+    logomarcaUrl?: string | null
+  } | null
 }
 
 export async function carregarDadosFichaInternacaoAlta(
@@ -76,7 +96,6 @@ export async function carregarDadosFichaInternacaoAlta(
     where: {
       id: atendimentoId,
       deletedAt: null,
-      status: { in: ['AGUARDANDO_INTERNACAO', 'INTERNADO'] },
     },
     include: includeAtendimento,
   })
@@ -84,7 +103,18 @@ export async function carregarDadosFichaInternacaoAlta(
   if (!atendimento) return null
 
   const instituicao = await prisma.instituicao.findFirst({
-    select: { nomeInstituicao: true },
+    select: {
+      nomeInstituicao: true,
+      nomeMunicipio: true,
+      endereco: true,
+      bairro: true,
+      cidade: true,
+      estado: true,
+      cep: true,
+      cnes: true,
+      codigoIbgeMunicipio: true,
+      logomarcaUrl: true,
+    },
   })
 
   const prefill = montarPrefillFichaInternacaoAlta(
@@ -97,6 +127,7 @@ export async function carregarDadosFichaInternacaoAlta(
   const ficha = atendimento.fichaInternacaoAlta
 
   return {
+    atendimentoId: atendimento.id,
     prefill,
     ficha: ficha
       ? { id: ficha.id, status: ficha.status, updatedAt: ficha.updatedAt }
@@ -109,5 +140,8 @@ export async function carregarDadosFichaInternacaoAlta(
       numeroAtendimento: atendimento.numeroAtendimento,
       statusAtendimento: atendimento.status,
     },
+    leito: atendimento.leito,
+    instituicao,
   }
 }
+

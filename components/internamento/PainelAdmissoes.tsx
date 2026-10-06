@@ -685,16 +685,16 @@ export function PainelAdmissoes() {
                             </Link>
                           ) : (
                             <Link
-                              href={`/internamento/ficha-alta/${item.atendimentoId}`}
+                              href={`/internamento/ficha-alta/imprimir/${item.atendimentoId}`}
                               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-violet-400/50 text-violet-700 dark:text-violet-300 text-sm font-semibold hover:bg-violet-50 dark:hover:bg-violet-950/30 transition-colors"
                               aria-label={`Ficha hospitalar de ${item.nomePaciente}`}
                             >
-                              <ClipboardList className="h-4 w-4" aria-hidden />
+                              <Printer className="h-4 w-4" aria-hidden />
                               Ficha hospitalar
                             </Link>
                           )}
                           <Link
-                            href={`/internamento/ficha/${item.atendimentoId}`}
+                            href={`/internamento/imprimir/${item.atendimentoId}`}
                             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-primary/40 text-primary text-sm font-semibold hover:bg-primary/5 transition-colors"
                             aria-label={`Ficha SUS de ${item.nomePaciente}`}
                           >
@@ -828,14 +828,24 @@ export function PainelAdmissoes() {
                                 Ficha obstétrica
                               </Link>
                             ) : (
-                              <Link
-                                href={`/internamento/ficha-alta/${item.atendimentoId}`}
-                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-violet-400/50 text-violet-700 dark:text-violet-300 text-sm font-semibold hover:bg-violet-50 dark:hover:bg-violet-950/30 transition-colors"
-                                aria-label={`Ficha hospitalar de ${item.nomePaciente}`}
-                              >
-                                <ClipboardList className="h-4 w-4" aria-hidden />
-                                {item.statusFicha ? 'Editar ficha' : 'Preencher ficha'}
-                              </Link>
+                              <div className="flex items-center gap-2">
+                                <Link
+                                  href={`/internamento/ficha-alta/imprimir/${item.atendimentoId}`}
+                                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-violet-400/50 text-violet-700 dark:text-violet-300 text-sm font-semibold hover:bg-violet-50 dark:hover:bg-violet-950/30 transition-colors"
+                                  aria-label={`Imprimir ficha hospitalar de ${item.nomePaciente}`}
+                                >
+                                  <Printer className="h-4 w-4" aria-hidden />
+                                  Imprimir ficha
+                                </Link>
+                                <Link
+                                  href={`/internamento/ficha-alta/${item.atendimentoId}`}
+                                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-foreground text-sm font-medium hover:bg-muted/60 transition-colors"
+                                  aria-label={`Editar ficha hospitalar de ${item.nomePaciente}`}
+                                >
+                                  <ClipboardList className="h-4 w-4" aria-hidden />
+                                  {item.statusFicha ? 'Editar' : 'Preencher'}
+                                </Link>
+                              </div>
                             )}
                           </div>
                         </div>

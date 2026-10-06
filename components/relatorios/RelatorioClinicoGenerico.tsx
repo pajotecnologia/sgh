@@ -41,7 +41,7 @@ export interface RelatorioClinicoGenericoProps {
   csvRowMapper: (row: any) => (string | number | null | undefined)[]
   filtroTurnoDisponivel?: boolean
   opcoesStatus?: { valor: string; label: string }[]
-  linkModo?: 'prontuario' | 'evolucoes'
+  linkModo?: 'prontuario' | 'evolucoes' | 'ficha-hospitalar' | 'ficha-sus' | 'ccih'
 }
 
 export function RelatorioClinicoGenerico({
@@ -314,6 +314,12 @@ export function RelatorioClinicoGenerico({
                   const urlLink =
                     linkModo === 'prontuario'
                       ? `/prontuario/${targetAtendId}`
+                      : linkModo === 'ficha-hospitalar'
+                      ? `/internamento/ficha-alta/imprimir/${targetAtendId}`
+                      : linkModo === 'ficha-sus'
+                      ? `/internamento/imprimir/${targetAtendId}`
+                      : linkModo === 'ccih'
+                      ? `/internamento/ccih/imprimir/${targetAtendId}`
                       : `/evolucoes/${targetAtendId}`
 
                   return (

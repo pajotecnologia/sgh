@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
-import { ArrowLeft, ClipboardList } from 'lucide-react'
+import { ArrowLeft, ClipboardList, Printer } from 'lucide-react'
 import { authOptions } from '@/lib/auth'
 import { carregarDadosFichaInternacaoAlta } from '@/lib/carregar-dados-ficha-internacao-alta'
 import { FormularioFichaInternacaoAlta } from '@/components/internamento/FormularioFichaInternacaoAlta'
@@ -31,13 +31,26 @@ export default async function PaginaFichaInternacaoAlta({
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 pb-24 w-full min-w-0 px-1 sm:px-0">
-      <Link
-        href="/internamento/admissoes"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Voltar às admissões
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href="/internamento/admissoes"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden />
+          Voltar às admissões
+        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/internamento/ficha-alta/imprimir/${atendimentoId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/40 text-sm font-semibold text-primary hover:bg-primary/5 transition-colors"
+          >
+            <Printer className="h-4 w-4" aria-hidden />
+            Imprimir ficha
+          </Link>
+        </div>
+      </div>
 
       <header className="bg-card border border-border rounded-xl p-5 shadow-sm">
         <div className="flex items-start gap-3">
