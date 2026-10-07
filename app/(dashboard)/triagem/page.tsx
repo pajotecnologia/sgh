@@ -214,7 +214,7 @@ export default async function PaginaTriagem({
 
         <div className="lg:col-span-2">
           <div className="bg-card border border-border rounded-lg p-3 shadow-sm">
-            <FilaTriagem podeCharmar={podeChamar} compacto titulo="Fila pós-triagem" />
+            <FilaTriagem podeCharmar={podeChamar} compacto titulo="Fila pós-triagem" mostrarProximoPaciente={podeChamar} />
           </div>
         </div>
       </div>
