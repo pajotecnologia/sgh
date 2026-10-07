@@ -3,8 +3,9 @@
 // Fila de triagem com atualização em tempo real via Pusher + polling de fallback
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { RefreshCw, Users } from 'lucide-react';
+import { ArrowRight, RefreshCw, Users } from 'lucide-react';
 import { CardPacienteEspera } from './CardPacienteEspera';
 import { ModalChamarPaciente } from './ModalChamarPaciente';
 import { getPusherCliente, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher';
@@ -46,6 +47,7 @@ interface FilaTriagemProps {
   compacto?: boolean;
   mostrarLinkAtendimento?: boolean;
   titulo?: string;
+  mostrarProximoPaciente?: boolean;
 }
 
 export function FilaTriagem({
@@ -53,7 +55,9 @@ export function FilaTriagem({
   compacto = false,
   mostrarLinkAtendimento = false,
   titulo = 'Fila de Espera',
+  mostrarProximoPaciente = false,
 }: FilaTriagemProps) {
+  const router = useRouter();
   const [fila, setFila] = useState<PacienteNaFila[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [filtro, setFiltro] = useState<string>('TODOS');
@@ -135,14 +139,28 @@ export function FilaTriagem({
           )}
         </div>
 
-        <button
+        <div className="flex items-center gap-1.5 shrink-0">
+          {mostrarProximoPaciente && fila.length > 0 && filtro === 'TODOS' && (
+            <button
+              type="button"
+              onClick={() => router.push(`/atendimento/${fila[0].atendimentoId}`)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold rounded-md bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm"
+              aria-label={`Atender próximo paciente: ${fila[0].nomePaciente}`}
+              title={`Atender próximo: ${fila[0].nomePaciente}`}
+            >
+              <ArrowRight className="h-3 w-3" />
+              Próximo paciente
+            </button>
+          )}
+          <button
           onClick={() => carregarFila()}
           className="flex items-center gap-1 px-2 py-1 text-[10px] border border-border rounded-md hover:bg-muted transition-colors shrink-0"
           aria-label="Atualizar fila"
         >
           <RefreshCw className="h-3 w-3" />
           Atualizar
-        </button>
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-1 flex-wrap">
