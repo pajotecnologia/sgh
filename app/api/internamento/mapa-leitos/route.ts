@@ -17,7 +17,7 @@ const ROLES_PERMITIDOS = [
 export async function GET(req: NextRequest) {
   try {
     const sessao = await getServerSession(authOptions)
-    if (!sessao) {
+    if (!sessao?.usuario?.id || !sessao.usuario.role) {
       return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 })
     }
 
