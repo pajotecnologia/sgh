@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { BedDouble } from 'lucide-react'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { MapaLeitosVisual } from '@/components/internamento/MapaLeitosVisual'
 
 export const metadata: Metadata = {
@@ -23,6 +24,7 @@ const ROLES_PERMITIDOS = [
 export default async function PaginaMapaLeitos() {
   const sessao = await getServerSession(authOptions)
   if (!sessao) redirect('/login')
+  await exigirPermissaoMenu('mapa-leitos')
   if (!ROLES_PERMITIDOS.includes(sessao.usuario.role)) redirect('/acesso-negado')
 
   return (
