@@ -11,7 +11,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const sessao = await getServerSession(authOptions);
-  if (sessao?.usuario.role !== 'ADMIN') {
+  if (sessao?.usuario?.role !== 'ADMIN') {
     return NextResponse.json({ sucesso: false, erro: 'Acesso negado.' }, { status: 403 });
   }
 
@@ -20,6 +20,7 @@ export async function PATCH(
   try {
     const body = await req.json();
     const { nome, email, role, ativo, senha, crm, coren } = body as Record<string, unknown>;
+    const rolesValidos = new Set<Role>(['ADMIN', 'MEDICO', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM', 'RECEPCIONISTA', 'DIRETOR_CLINICO', 'FARMACEUTICO']);
 
     const existente = await prisma.usuario.findFirst({
       where: { id, deletedAt: null },
@@ -38,15 +39,21 @@ export async function PATCH(
     }
 
     const senhaNova = typeof senha === 'string' && senha.trim().length > 0 ? senha.trim() : null;
+    if (senhaNova && (senhaNova.length < 8 || !/[a-zA-Z]/.test(senhaNova) || !/[\d\W]/.test(senhaNova))) {
+      return NextResponse.json({ sucesso: false, erro: 'A nova senha deve ter pelo menos 8 caracteres, contendo letras e números ou símbolos.' }, { status: 400 });
+    }
     const senhaHash = senhaNova ? await hash(senhaNova, 12) : undefined;
 
     const roleVal = typeof role === 'string' ? (role as Role) : existente.role;
+    if (!rolesValidos.has(roleVal)) {
+      return NextResponse.json({ sucesso: false, erro: 'Perfil de acesso inválido.' }, { status: 400 });
+    }
 
     await prisma.usuario.update({
       where: { id },
       data: {
-        ...(typeof nome === 'string' ? { nome } : {}),
-        ...(typeof email === 'string' ? { email: email.toLowerCase() } : {}),
+        ...(typeof nome === 'string' && nome.trim() ? { nome: nome.trim() } : {}),
+        ...(typeof email === 'string' && email.trim() ? { email: email.trim().toLowerCase() } : {}),
         ...(typeof role === 'string' ? { role: roleVal } : {}),
         ...(typeof ativo === 'boolean' ? { ativo } : {}),
         ...(senhaHash ? { senhaHash } : {}),

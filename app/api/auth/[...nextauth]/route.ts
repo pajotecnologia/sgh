@@ -41,9 +41,17 @@ async function authHandler(req: NextRequest, context: { params: Promise<{ nextau
           data.url = `${origin}${path}`;
         }
 
+        const headers = new Headers(res.headers);
+        // O corpo pode mudar ao incluir a URL. Nunca reutilize Content-Length/ETag
+        // do payload original, pois isso pode truncar a resposta JSON do login.
+        headers.delete('content-length');
+        headers.delete('content-encoding');
+        headers.delete('etag');
+
         return new Response(JSON.stringify(data), {
           status: res.status,
-          headers: res.headers,
+          statusText: res.statusText,
+          headers,
         });
       }
     } catch {

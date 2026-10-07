@@ -59,6 +59,32 @@ INSERT INTO "usuarios" (
   ),
   (
     gen_random_uuid(),
+    'tecnico@hospital.com',
+    '$2b$12$RQ1l2kkph3.trODYjNmlTusntoEydkB9KKGVhAWDzM0lU5ED7G3O.',
+    'Tec. Marcos Oliveira',
+    'TECNICO_ENFERMAGEM',
+    NULL,
+    'COREN-SP 789012',
+    true,
+    false,
+    NOW(),
+    NOW()
+  ),
+  (
+    gen_random_uuid(),
+    'farmacia@hospital.com',
+    '$2b$12$RQ1l2kkph3.trODYjNmlTusntoEydkB9KKGVhAWDzM0lU5ED7G3O.',
+    'Farm. Fernanda Alves',
+    'FARMACEUTICO',
+    NULL,
+    NULL,
+    true,
+    false,
+    NOW(),
+    NOW()
+  ),
+  (
+    gen_random_uuid(),
     'diretor@hospital.com',
     '$2b$12$RQ1l2kkph3.trODYjNmlTusntoEydkB9KKGVhAWDzM0lU5ED7G3O.',
     'Dr. Roberto Faria',

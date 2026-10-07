@@ -4,11 +4,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { hash } from 'bcryptjs';
+import type { Role } from '@prisma/client';
 import type { ApiResponse } from '@/types';
 
 export async function GET() {
   const sessao = await getServerSession(authOptions);
-  if (sessao?.usuario.role !== 'ADMIN') {
+  if (sessao?.usuario?.role !== 'ADMIN') {
     return NextResponse.json({ sucesso: false, erro: 'Acesso negado.' }, { status: 403 });
   }
 
@@ -35,33 +36,41 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const sessao = await getServerSession(authOptions);
-  if (sessao?.usuario.role !== 'ADMIN') {
+  if (sessao?.usuario?.role !== 'ADMIN') {
     return NextResponse.json({ sucesso: false, erro: 'Acesso negado.' }, { status: 403 });
   }
 
   try {
     const body = await req.json();
-    const { nome, email, senha, role, crm, coren } = body;
+    const { nome, email, senha, role, crm, coren } = body as Record<string, unknown>;
+    const nomeNormalizado = typeof nome === 'string' ? nome.trim() : '';
+    const emailNormalizado = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const senhaNormalizada = typeof senha === 'string' ? senha.trim() : '';
+    const rolesValidos = new Set<Role>(['ADMIN', 'MEDICO', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM', 'RECEPCIONISTA', 'DIRETOR_CLINICO', 'FARMACEUTICO']);
 
-    if (!nome || !email || !senha || !role) {
-      return NextResponse.json({ sucesso: false, erro: 'Campos obrigatórios ausentes.' }, { status: 400 });
+    if (!nomeNormalizado || !emailNormalizado || !senhaNormalizada || typeof role !== 'string') {
+      return NextResponse.json({ sucesso: false, erro: 'Nome, e-mail, senha e perfil são obrigatórios.' }, { status: 400 });
+    }
+    if (!rolesValidos.has(role as Role)) {
+      return NextResponse.json({ sucesso: false, erro: 'Perfil de acesso inválido.' }, { status: 400 });
+    }
+    if (senhaNormalizada.length < 8 || !/[a-zA-Z]/.test(senhaNormalizada) || !/[\d\W]/.test(senhaNormalizada)) {
+      return NextResponse.json({ sucesso: false, erro: 'A senha deve ter pelo menos 8 caracteres, contendo letras e números ou símbolos.' }, { status: 400 });
     }
 
-    const emailExistente = await prisma.usuario.findUnique({ where: { email: email.toLowerCase() } });
+    const emailExistente = await prisma.usuario.findUnique({ where: { email: emailNormalizado } });
     if (emailExistente) {
       return NextResponse.json({ sucesso: false, erro: 'Este e-mail já está cadastrado.' }, { status: 409 });
     }
 
-    const senhaHash = await hash(senha, 12);
-
     const novoUsuario = await prisma.usuario.create({
       data: {
-        nome,
-        email: email.toLowerCase(),
-        senhaHash,
-        role,
-        crm: role === 'MEDICO' ? crm : null,
-        coren: (role === 'ENFERMEIRO' || role === 'TECNICO_ENFERMAGEM') ? coren : null,
+        nome: nomeNormalizado,
+        email: emailNormalizado,
+        senhaHash: await hash(senhaNormalizada, 12),
+        role: role as Role,
+        crm: role === 'MEDICO' && typeof crm === 'string' ? crm.trim() || null : null,
+        coren: (role === 'ENFERMEIRO' || role === 'TECNICO_ENFERMAGEM') && typeof coren === 'string' ? coren.trim() || null : null,
       },
     });
 
