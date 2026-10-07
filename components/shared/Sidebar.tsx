@@ -290,7 +290,7 @@ export function Sidebar({ usuario }: SidebarProps) {
       }).filter((item) => {
         if (!permitido(item.label, item.href, item.roles)) return false;
         // Um grupo pai com filhos só aparece quando ao menos um filho continua acessível.
-        if (item.children?.length === 0 && item.label !== 'Cadastros' && item.label !== 'Relatórios & Indicadores') return false;
+        if (item.children && item.children.length === 0) return false;
         return true;
       });
       return { ...grupo, itens: itensFiltrados };
