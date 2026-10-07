@@ -31,7 +31,7 @@ Sistema hospitalar completo para unidades de urgência/emergência e internaçã
 | Internamento | `/internamento` | ✅ Admissões, mapa visual de leitos, evolução por turno, sinais vitais 24h, SAE, multidisciplinar, CCIH |
 | Farmácia hospitalar | `/farmacia` | ✅ Catálogo, lotes (FEFO), entrada por NF-e (XML), dispensação, matriz de interações |
 | Prontuário eletrônico (PEP) | `/prontuario` | ✅ Busca de atendimentos + histórico longitudinal por paciente |
-| Central de Tarefas | `/dashboard` | ✅ Pendências clínicas em tempo real por perfil (Médico, Enfermagem, Farmácia) |
+| Central de Tarefas | `/dashboard` | ✅ Pendências clínicas em tempo real por perfil (Médico, Enfermagem, Farmácia) |\n| Minha Fila | `/minha-fila` | ✅ Fila operacional individual com prioridade e próxima ação |
 | Gestão de Segurança | `/seguranca/sessoes` | ✅ MFA (TOTP nativo) + gestão e revogação remota de sessões |
 | Auditoria (LGPD) | `/auditoria` | ✅ Logs imutáveis, filtros, exportação CSV e solicitações de titulares |
 | Relatórios Gerenciais | `/relatorios` | ✅ Dashboards, taxa de ocupação de leitos, exportações CSV/PDF |
@@ -46,7 +46,7 @@ Para documentação aprofundada de engenharia e operação, consulte os manuais 
 - [**Segurança e LGPD**](file:///docs/security.md) — Criptografia AES-256-GCM, MFA, rate limit e sessões.
 - [**Modelagem de Dados**](file:///docs/database.md) — Schema relacional Prisma e entidades.
 - [**Backup e Restauração**](file:///docs/backup-restore.md) — Procedimentos operacionais e disaster recovery.
-- [**Roadmap**](file:///docs/roadmap.md) — Evoluções concluídas e planejamento futuro.
+- [**Roadmap**](file:///docs/roadmap.md) — Evoluções concluídas e planejamento futuro.\n- [**Evolução UX Operacional**](file:///docs/evolucao-ux-operacional.md) — Minha Fila, busca global, responsividade e próximas etapas de produtividade.
 
 ---
 
@@ -141,7 +141,7 @@ As permissões são verificadas no middleware (proteção de rotas) e em cada en
 
 ---
 
-## O que falta / próximos passos
+## O que falta / próximos passos\n\n### UX operacional — evolução 2.7\n- [x] Minha Fila integrada à Central de Tarefas.\n- [x] Resumo da próxima ação no dashboard.\n- [x] Busca global de navegação com Ctrl+K.\n- [ ] Busca clínica real por paciente/prontuário com auditoria.\n- [ ] Ação Próximo paciente por perfil.\n- [ ] Dashboard operacional específico por perfil.\n- [ ] Linha do tempo longitudinal do paciente.\n
 
 ### Segurança e produção
 - [ ] **MFA/TOTP** — o schema já tem `mfaSecret`/`mfaAtivo`, mas o fluxo de ativação e verificação no login ainda não está implementado.
