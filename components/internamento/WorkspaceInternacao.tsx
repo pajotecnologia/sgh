@@ -326,7 +326,7 @@ export function WorkspaceInternacao({
       {modo === 'evolucoes' && (
         <PainelPlantaoEnfermagem
           atendimentoId={atendimentoId}
-          abaAtual={abaAtual}
+          abaAtual={abaExibida}
           onSelecionarAba={setAbaAtual}
           prescricoes={prontuario.prescricoes}
           dataInternacao={identificacao.dataInternacao || atendimento.updatedAt}
