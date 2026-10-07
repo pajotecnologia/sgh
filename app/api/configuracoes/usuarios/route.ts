@@ -36,7 +36,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const sessao = await getServerSession(authOptions);
-  if (sessao?.usuario.role !== 'ADMIN') {
+  if (sessao?.usuario?.role !== 'ADMIN') {
     return NextResponse.json({ sucesso: false, erro: 'Acesso negado.' }, { status: 403 });
   }
 
@@ -56,8 +56,6 @@ export async function POST(req: NextRequest) {
     }
     if (senhaNormalizada.length < 8 || !/[a-zA-Z]/.test(senhaNormalizada) || !/[\d\W]/.test(senhaNormalizada)) {
       return NextResponse.json({ sucesso: false, erro: 'A senha deve ter pelo menos 8 caracteres, contendo letras e números ou símbolos.' }, { status: 400 });
-    }
-      return NextResponse.json({ sucesso: false, erro: 'Campos obrigatórios ausentes.' }, { status: 400 });
     }
 
     const emailExistente = await prisma.usuario.findUnique({ where: { email: emailNormalizado } });
