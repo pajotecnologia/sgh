@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { prisma } from '@/lib/prisma'
 import { Building2, PlusCircle } from 'lucide-react'
 
@@ -10,6 +11,7 @@ export const metadata: Metadata = { title: 'Clínicas' }
 
 export default async function PaginaClinicas() {
   const sessao = await getServerSession(authOptions)
+  await exigirPermissaoMenu('cadastros-clinicas')
   if (!sessao) redirect('/login')
   if (sessao.usuario.role !== 'ADMIN') redirect('/acesso-negado')
 
