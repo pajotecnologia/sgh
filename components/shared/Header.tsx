@@ -9,7 +9,6 @@ import { Bell, Menu, Sparkles } from 'lucide-react';
 import { BuscaGlobal } from '@/components/shared/BuscaGlobal';
 import type { UsuarioSessao } from '@/types';
 import { useDashboardNav } from '@/components/shared/dashboard-nav-context';
-import { SeletorTema } from '@/components/shared/SeletorTema';
 import { ModalNovidadesVersao } from '@/components/shared/ModalNovidadesVersao';
 import { VERSAO_SGH, BUILD_SGH } from '@/lib/versao';
 import { labelAbaInternacao, parseAbaInternacao } from '@/lib/internacao-abas';
