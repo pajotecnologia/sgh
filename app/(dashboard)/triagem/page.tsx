@@ -1,7 +1,8 @@
 // app/(dashboard)/triagem/page.tsx — Fila de triagem em tempo real
 import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu';
 import { FilaTriagem } from '@/components/triagem/FilaTriagem';
 import { FilaAguardandoTriagem } from '@/components/triagem/FilaAguardandoTriagem';
 import { prisma } from '@/lib/prisma';
@@ -31,6 +32,7 @@ export default async function PaginaTriagem({
   )
 
   const sessao = await getServerSession(authOptions);
+  await exigirPermissaoMenu('triagem')
   const role = sessao?.usuario.role;
 
   const hoje = new Date();
