@@ -144,19 +144,74 @@ export function FormularioBercario({ atendimentoId }: { atendimentoId: string })
     )
   }
 
+  const nomeRnSugerido = identificacao.nome ? `RN de ${identificacao.nome}` : 'Recém-Nascido'
+  const pesoRn = campos['rn_peso'] || campos['peso_nascimento'] || ''
+  const apgar1 = campos['rn_apgar1'] || ''
+  const apgar5 = campos['rn_apgar5'] || ''
+  const sexoRn = campos['rn_sexo'] || 'Não informado'
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-pink-500/30 bg-pink-500/5 px-4 py-3 text-sm">
         <Baby className="h-5 w-5 text-pink-600 shrink-0" aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-foreground">Ficha Médica de Berçário</p>
+          <p className="font-semibold text-foreground">Ficha Médica de Berçário — Linha Materno-Infantil</p>
           <p className="text-muted-foreground text-xs mt-0.5">
-            {identificacao.nome}
+            Mãe: <strong>{identificacao.nome || 'Não informada'}</strong>
             {identificacao.leito ? ` · Leito ${identificacao.leito}` : ''}
-            {identificacao.prontuario ? ` · Prontuário ${identificacao.prontuario}` : ''}
+            {identificacao.prontuario ? ` · Prontuário Mãe ${identificacao.prontuario}` : ''}
           </p>
         </div>
       </div>
+
+      {/* Card de Vínculo Mãe-Filho & Atalho Prontuário do Recém-Nascido */}
+      <section className="bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950/30 dark:to-purple-950/30 border border-pink-200 dark:border-pink-900 rounded-xl p-5 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-pink-200 dark:border-pink-900/60 pb-3">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-pink-700 dark:text-pink-300">
+              Vínculo Materno-Infantil (RN)
+            </span>
+            <h4 className="text-base font-bold text-foreground mt-0.5">
+              {nomeRnSugerido}
+            </h4>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href={`/recepcao/novo?nomeMae=${encodeURIComponent(identificacao.nome)}&origem=bercario`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-pink-600 text-white text-xs font-semibold hover:bg-pink-700 shadow-sm transition-colors"
+            >
+              <Baby className="h-4 w-4" />
+              Gerar Prontuário do Recém-Nascido (RN)
+            </a>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="bg-background/80 rounded-lg p-2.5 border border-border">
+            <span className="text-muted-foreground block text-[11px]">Sexo do RN</span>
+            <span className="font-semibold text-foreground capitalize">{sexoRn}</span>
+          </div>
+          <div className="bg-background/80 rounded-lg p-2.5 border border-border">
+            <span className="text-muted-foreground block text-[11px]">Peso ao Nascer</span>
+            <span className="font-semibold text-foreground">{pesoRn ? `${pesoRn} g` : 'A preencher'}</span>
+          </div>
+          <div className="bg-background/80 rounded-lg p-2.5 border border-border">
+            <span className="text-muted-foreground block text-[11px]">Índice de APGAR</span>
+            <span className="font-semibold text-foreground">
+              {apgar1 || apgar5 ? `1º min: ${apgar1 || '—'} / 5º min: ${apgar5 || '—'}` : 'A preencher'}
+            </span>
+          </div>
+          <div className="bg-background/80 rounded-lg p-2.5 border border-border">
+            <span className="text-muted-foreground block text-[11px]">Status do Vínculo</span>
+            <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-400">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              Vinculado à Mãe
+            </span>
+          </div>
+        </div>
+      </section>
 
       {SECOES_BERCARIO.map(renderSecao)}
 

@@ -363,7 +363,8 @@
     overflow: visible !important;
     flex: none !important;
   }
-  .dashboard-content {
+  .dashboard-content,
+  #conteudo-principal {
     padding: 0 !important;
     height: auto !important;
     min-height: 0 !important;
@@ -375,10 +376,29 @@
   .ficha-urgencia {
     display: block !important;
     overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .ficha-pagina {
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
   .ficha-print-page-1 {
     page-break-after: always !important;
     break-after: page !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  .ficha-print-page-2 {
+    page-break-before: always !important;
+    break-before: page !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
   }
 
   /* Laudo SUS de internação — impressão */
@@ -422,9 +442,9 @@
   table { font-size: 9pt; }
   th, td { padding: 4pt 8pt !important; }
 
-  /* Página A4 */
+  /* Página A4 com margem calibrada para 2 páginas */
   @page {
-    size: A4;
-    margin: 15mm 20mm;
+    size: A4 portrait;
+    margin: 8mm 10mm;
   }
 }

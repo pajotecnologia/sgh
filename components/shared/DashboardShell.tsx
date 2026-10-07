@@ -18,7 +18,10 @@ export function DashboardShell({
 
   if (isPrintPage) {
     return (
-      <main id="conteudo-principal" className="min-h-screen bg-background text-foreground">
+      <main
+        id="conteudo-principal"
+        className="h-screen w-full overflow-y-auto overflow-x-hidden bg-slate-100 dark:bg-background text-foreground print:h-auto print:overflow-visible print:bg-white print:p-0"
+      >
         {children}
       </main>
     );

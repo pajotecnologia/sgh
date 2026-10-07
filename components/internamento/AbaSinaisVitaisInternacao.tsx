@@ -2,7 +2,18 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Activity, Loader2, Save, Eye, Clock } from 'lucide-react'
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
+  ReferenceLine,
+} from 'recharts'
+import { Activity, Loader2, Save, Eye, Clock, TrendingUp, Table, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -143,21 +154,102 @@ export function AbaSinaisVitaisInternacao({ atendimentoId }: { atendimentoId: st
   const totalPerdas = somaGrid(perdas)
   const balanco = totalGanhos - totalPerdas
 
+  const [modoVisualizacao, setModoVisualizacao] = useState<'grade' | 'grafico'>('grade')
+
+  const dadosGrafico = HORAS_FICHA_SINAIS.map((h) => {
+    const horaStr = String(h)
+    const tempRaw = controle['TEMPERATURA']?.[horaStr]?.replace(',', '.')
+    const temp = tempRaw ? parseFloat(tempRaw) : null
+
+    const pulsoRaw = controle['PULSO']?.[horaStr]?.replace(',', '.')
+    const pulso = pulsoRaw ? parseFloat(pulsoRaw) : null
+
+    const satRaw = controle['SATURACAO']?.[horaStr]?.replace(',', '.')
+    const sat = satRaw ? parseFloat(satRaw) : null
+
+    const respRaw = controle['RESPIRACAO']?.[horaStr]?.replace(',', '.')
+    const resp = respRaw ? parseFloat(respRaw) : null
+
+    const hgtRaw = controle['HGT']?.[horaStr]?.replace(',', '.')
+    const hgt = hgtRaw ? parseFloat(hgtRaw) : null
+
+    const paRaw = controle['PRESSAO_ARTERIAL']?.[horaStr] ?? ''
+    let paSis: number | null = null
+    let paDia: number | null = null
+    if (paRaw.includes('/') || paRaw.includes('x') || paRaw.includes('X')) {
+      const partes = paRaw.split(/[/xX]/)
+      const s = parseFloat(partes[0].trim())
+      const d = parseFloat(partes[1]?.trim())
+      if (!isNaN(s)) paSis = s < 30 ? s * 10 : s
+      if (!isNaN(d)) paDia = d < 30 ? d * 10 : d
+    }
+
+    return {
+      hora: `${h}h`,
+      temperatura: temp && !isNaN(temp) ? temp : undefined,
+      pulso: pulso && !isNaN(pulso) ? pulso : undefined,
+      saturacao: sat && !isNaN(sat) ? sat : undefined,
+      respiracao: resp && !isNaN(resp) ? resp : undefined,
+      hgt: hgt && !isNaN(hgt) ? hgt : undefined,
+      paSistolica: paSis ?? undefined,
+      paDiastolica: paDia ?? undefined,
+    }
+  })
+
+  const temperaturasValidas = dadosGrafico.map((d) => d.temperatura).filter((v): v is number => v !== undefined)
+  const maxTemp = temperaturasValidas.length > 0 ? Math.max(...temperaturasValidas) : null
+  const temFebre = maxTemp !== null && maxTemp >= 37.8
+
+  const spo2Validas = dadosGrafico.map((d) => d.saturacao).filter((v): v is number => v !== undefined)
+  const minSpO2 = spo2Validas.length > 0 ? Math.min(...spo2Validas) : null
+  const temHipoxia = minSpO2 !== null && minSpO2 < 93
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-sky-500/30 bg-sky-500/5 px-4 py-3 text-sm">
         <Activity className="h-5 w-5 text-sky-600 shrink-0" aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-foreground">Ficha de Sinais Vitais — controle horário</p>
+          <p className="font-semibold text-foreground">Ficha de Sinais Vitais — controle horário 24h</p>
           <p className="text-muted-foreground text-xs mt-0.5">
             {nomePaciente}
             {leitoDescricao ? ` · Leito ${leitoDescricao}` : ''}
             {numeroProntuario ? ` · Prontuário ${numeroProntuario}` : ''}
           </p>
         </div>
-        <div className="flex items-end gap-2">
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Seletor de Modo Grade / Gráfico */}
+          <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+            <button
+              type="button"
+              onClick={() => setModoVisualizacao('grade')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
+                modoVisualizacao === 'grade'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <Table className="h-3.5 w-3.5" />
+              Grade 24h
+            </button>
+            <button
+              type="button"
+              onClick={() => setModoVisualizacao('grafico')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
+                modoVisualizacao === 'grafico'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <TrendingUp className="h-3.5 w-3.5" />
+              Curva Térmica & Gráfico
+            </button>
+          </div>
+
           <div>
-            <label className="text-xs font-medium text-foreground">Data</label>
+            <label className="sr-only">Data</label>
             <input
               type="date"
               value={dataReferencia}
@@ -165,18 +257,107 @@ export function AbaSinaisVitaisInternacao({ atendimentoId }: { atendimentoId: st
                 setDataReferencia(e.target.value)
                 carregar(e.target.value)
               }}
-              className="mt-1 block border border-input rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="block border border-input rounded-lg px-3 py-1.5 text-xs bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
               aria-label="Data da ficha"
             />
           </div>
         </div>
       </div>
 
-      <section className="bg-card border border-border rounded-xl p-4 overflow-x-auto">
-        <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground mb-3">
-          Controle horário
-        </h3>
-        <table className="border-collapse text-xs min-w-max">
+      {/* Alertas clínicos de tendências */}
+      {(temFebre || temHipoxia) && (
+        <div className="flex flex-wrap gap-3">
+          {temFebre && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs font-medium">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
+              <span>Pico febril registrado nas 24h: <strong>{maxTemp?.toFixed(1)} °C</strong> (Atenção CCIH/Vigilância)</span>
+            </div>
+          )}
+          {temHipoxia && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-300 text-xs font-medium">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+              <span>Queda de saturação registrada: <strong>{minSpO2}% SpO₂</strong></span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Visão Gráfica de Curva Térmica e Sinais Vitais */}
+      {modoVisualizacao === 'grafico' && (
+        <div className="space-y-4">
+          <section className="bg-card border border-border rounded-xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wide text-foreground">
+                  Curva Térmica e Pulso (24 Horas)
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Monitoramento contínuo de temperatura corporal (°C) e frequência cardíaca (bpm)
+                </p>
+              </div>
+              {maxTemp !== null && (
+                <span className={cn(
+                  'px-2.5 py-1 rounded-full text-xs font-semibold',
+                  temFebre ? 'bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-200' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200'
+                )}>
+                  Pico: {maxTemp.toFixed(1)} °C
+                </span>
+              )}
+            </div>
+
+            <div className="h-64 w-full pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={dadosGrafico} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                  <XAxis dataKey="hora" tick={{ fontSize: 11 }} />
+                  <YAxis yAxisId="temp" domain={[34, 41]} tick={{ fontSize: 11 }} unit="°C" />
+                  <YAxis yAxisId="pulso" orientation="right" domain={[40, 160]} tick={{ fontSize: 11 }} unit="bpm" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '8px', border: '1px solid #ddd', fontSize: '12px' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+                  <ReferenceLine yAxisId="temp" y={37.8} label={{ value: 'Febre (37.8°C)', fill: '#dc2626', fontSize: 10 }} stroke="#dc2626" strokeDasharray="4 4" />
+                  <Line yAxisId="temp" type="monotone" dataKey="temperatura" name="Temperatura (°C)" stroke="#ea580c" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} connectNulls />
+                  <Line yAxisId="pulso" type="monotone" dataKey="pulso" name="Pulso / FC (bpm)" stroke="#7c3aed" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+
+          <section className="bg-card border border-border rounded-xl p-5 space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-foreground">
+              Pressão Arterial e Saturação de O₂
+            </h3>
+            <div className="h-64 w-full pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={dadosGrafico} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                  <XAxis dataKey="hora" tick={{ fontSize: 11 }} />
+                  <YAxis yAxisId="pa" domain={[40, 200]} tick={{ fontSize: 11 }} unit="mmHg" />
+                  <YAxis yAxisId="sat" orientation="right" domain={[80, 100]} tick={{ fontSize: 11 }} unit="%" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '8px', border: '1px solid #ddd', fontSize: '12px' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+                  <ReferenceLine yAxisId="sat" y={93} label={{ value: 'Alerta SpO₂ (93%)', fill: '#d97706', fontSize: 10 }} stroke="#d97706" strokeDasharray="4 4" />
+                  <Line yAxisId="pa" type="monotone" dataKey="paSistolica" name="PA Sistólica (mmHg)" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                  <Line yAxisId="pa" type="monotone" dataKey="paDiastolica" name="PA Diastólica (mmHg)" stroke="#16a34a" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                  <Line yAxisId="sat" type="monotone" dataKey="saturacao" name="SpO₂ (%)" stroke="#06b6d4" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* Visão Grade 24h */}
+      {modoVisualizacao === 'grade' && (
+        <>
+          <section className="bg-card border border-border rounded-xl p-4 overflow-x-auto">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground mb-3">
+              Controle horário
+            </h3>
+            <table className="border-collapse text-xs min-w-max">
           <thead>
             <tr>
               <th className="sticky left-0 z-10 bg-card border border-border px-2 py-1 text-left font-semibold min-w-[8rem]">
@@ -308,6 +489,8 @@ export function AbaSinaisVitaisInternacao({ atendimentoId }: { atendimentoId: st
           </span>
         </div>
       </section>
+        </>
+      )}
 
       <button
         type="button"

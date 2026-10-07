@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Loader2, Save, Shield, Printer, Send, Plus, Trash2 } from 'lucide-react'
+import { Loader2, Save, Shield, Printer, Send, Plus, Trash2, AlertTriangle, Activity } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { FichaCcihPrefill } from '@/lib/ccih-internacao'
 import { LABEL_STATUS_FICHA_CCIH, formularioCcihVazio } from '@/lib/ccih-internacao'
@@ -261,6 +261,47 @@ export function FormularioFichaCcih({ atendimentoId }: { atendimentoId: string }
           {LABEL_STATUS_FICHA_CCIH[dados.status] ?? dados.status}
         </span>
       </div>
+
+      {/* Painel de Vigilância Ativa da CCIH */}
+      <section className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-900 rounded-xl p-4 space-y-2.5 text-xs">
+        <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold uppercase tracking-wider">
+          <Activity className="h-4 w-4 text-amber-600 shrink-0" />
+          <span>Painel de Vigilância Epidemiológica Ativa</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div className="bg-background/80 rounded-lg p-2.5 border border-border">
+            <span className="text-muted-foreground block text-[11px]">Tempo de Internação</span>
+            <span className={cn('font-bold', (meta.diasInternacao ?? 0) >= 7 ? 'text-amber-600' : 'text-foreground')}>
+              {meta.diasInternacao != null ? `${meta.diasInternacao} dia(s)` : 'Admissão recente'}
+            </span>
+          </div>
+          <div className="bg-background/80 rounded-lg p-2.5 border border-border">
+            <span className="text-muted-foreground block text-[11px]">Dispositivos Invasivos</span>
+            <span className="font-bold text-foreground">
+              {[
+                proc.cateterismo_venoso && 'CVC',
+                proc.cateterismo_vesical && 'SVD',
+                proc.assistencia_ventilatoria && 'VM',
+                proc.traqueostomia && 'TQT',
+              ].filter(Boolean).join(', ') || 'Nenhum ativo'}
+            </span>
+          </div>
+          <div className="bg-background/80 rounded-lg p-2.5 border border-border">
+            <span className="text-muted-foreground block text-[11px]">Antimicrobianos</span>
+            <span className={cn('font-bold', (f.uso_antimicrobianos?.medicamentos?.length ?? 0) > 0 ? 'text-purple-600' : 'text-foreground')}>
+              {f.uso_antimicrobianos?.medicamentos?.length
+                ? `${f.uso_antimicrobianos.medicamentos.length} prescrito(s)`
+                : 'Sem registro'}
+            </span>
+          </div>
+          <div className="bg-background/80 rounded-lg p-2.5 border border-border">
+            <span className="text-muted-foreground block text-[11px]">Status IRAS</span>
+            <span className={cn('font-bold', inf.houve_infeccao === 'SIM' ? 'text-red-600' : 'text-emerald-600')}>
+              {inf.houve_infeccao === 'SIM' ? '⚠️ Infecção Notificada' : 'Em Monitoramento'}
+            </span>
+          </div>
+        </div>
+      </section>
 
       <section className={sectionCls}>
         <SecaoTitulo titulo="Controle interno e hospital" />
