@@ -65,7 +65,7 @@ export function FormularioCondicoesAlta({
   const { data: sessao } = useSession()
   const [carregando, setCarregando] = useState(true)
   const [enviando, setEnviando] = useState(false)
-  const [status, setStatus] = useState<FichaInternacaoAltaForm['status']>('RASCUNHO')
+  const [statusAlta, setStatusAlta] = useState<FichaInternacaoAltaForm['statusAlta']>('RASCUNHO')
   const [nomePaciente, setNomePaciente] = useState('')
 
   const posInicial = camposPosInternacaoVazios()
@@ -99,7 +99,7 @@ export function FormularioCondicoesAlta({
           return
         }
         const prefill = json.dados.prefill as FichaInternacaoAltaPrefill
-        setStatus(prefill.status ?? 'RASCUNHO')
+        setStatusAlta(prefill.statusAlta ?? 'RASCUNHO')
         setNomePaciente(prefill.nome ?? '')
         setAltaCurado(prefill.altaCurado ?? false)
         setAltaMelhorado(prefill.altaMelhorado ?? false)
@@ -126,7 +126,9 @@ export function FormularioCondicoesAlta({
     carregar()
   }, [atendimentoId])
 
-  async function salvar(statusSalvar: FichaInternacaoAltaForm['status']) {
+  const prefillStatus = 'CONCLUIDA' as FichaInternacaoAltaForm['status']
+
+  async function salvar(statusSalvar: FichaInternacaoAltaForm['statusAlta']) {
     setEnviando(true)
     try {
       const res = await fetch(`/api/atendimento/${atendimentoId}/ficha-internacao-alta`, {
@@ -134,7 +136,8 @@ export function FormularioCondicoesAlta({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           secaoSalvar: 'ALTA',
-          status: statusSalvar,
+          status: prefillStatus ?? 'CONCLUIDA',
+          statusAlta: statusSalvar,
           nome: nomePaciente || 'Paciente',
           ...camposPosInternacaoVazios(),
           altaCurado,
@@ -162,7 +165,7 @@ export function FormularioCondicoesAlta({
         toast.error(json.erro ?? 'Erro ao salvar condições de alta.')
         return
       }
-      setStatus(statusSalvar)
+      setStatusAlta(statusSalvar)
 
       if (statusSalvar === 'CONCLUIDA') {
         const statusDestino = obito
@@ -218,7 +221,7 @@ export function FormularioCondicoesAlta({
   const podeConcluirAlta = ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'].includes(sessao?.usuario?.role ?? '')
 
   const statusLabel =
-    status === 'CONCLUIDA' ? 'Concluída' : status === 'EM_ANDAMENTO' ? 'Em andamento' : 'Rascunho'
+    statusAlta === 'CONCLUIDA' ? 'Concluída' : statusAlta === 'EM_ANDAMENTO' ? 'Em andamento' : 'Rascunho'
 
   return (
     <div className="space-y-4">
