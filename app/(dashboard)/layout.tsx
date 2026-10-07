@@ -23,8 +23,8 @@ export default async function DashboardLayout({
 }) {
   const sessao = await getServerSession(authOptions);
 
-  if (!sessao) {
-    redirect('/login');
+  if (!sessao?.usuario?.id || !sessao.usuario.role || !sessao.usuario.nome || !sessao.usuario.email) {
+    redirect('/login?reason=session');
   }
 
   return <DashboardShell usuario={sessao.usuario}>{children}</DashboardShell>;
