@@ -77,7 +77,7 @@ export function FormularioTriagem({
     handleSubmit,
     setValue,
     watch,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<RegistrarTriagemForm>({
     resolver: zodResolver(schemaRegistrarTriagem),
     defaultValues: {
@@ -111,6 +111,30 @@ export function FormularioTriagem({
   const estadoConscienciaSinais = watch('estadoConscienciaSinais') ?? []
   const irradiacaoDorSites = watch('irradiacaoDorSites') ?? []
   const mostrarCamposDor = categoriaQueixa === 'dor'
+
+  const camposProgresso = [
+    Boolean(corSelecionada),
+    Boolean(categoriaQueixa),
+    Boolean(watch('queixaPrincipal')?.trim()),
+    Boolean(watch('tempoQueixa')?.trim()),
+    Boolean(watch('sinaisVitais.paSistolica') || watch('sinaisVitais.paDiastolica')),
+    Boolean(watch('sinaisVitais.frequenciaCardiaca')),
+    Boolean(watch('sinaisVitais.temperatura')),
+    Boolean(watch('sinaisVitais.spo2')),
+  ]
+  const progressoPercentual = Math.round(
+    (camposProgresso.filter(Boolean).length / camposProgresso.length) * 100
+  )
+
+  useEffect(() => {
+    if (!isDirty || triagemConcluida) return
+    const avisarSaida = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', avisarSaida)
+    return () => window.removeEventListener('beforeunload', avisarSaida)
+  }, [isDirty, triagemConcluida])
 
   useEffect(() => {
     const p = triagemInicial?.sinaisVitais?.peso
@@ -285,6 +309,37 @@ export function FormularioTriagem({
         </div>
         {corSelecionada ? (
           <BadgeManchester cor={corSelecionada} size="lg" className="shrink-0" />
+        ) : null}
+      </div>
+
+      {/* Progresso e proteção contra perda acidental */}
+      <div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-3" aria-live="polite">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Progresso da triagem</p>
+            <p className="text-xs text-muted-foreground">
+              O preenchimento é preservado enquanto você permanece nesta tela.
+            </p>
+          </div>
+          <span className="text-sm font-bold text-primary">{progressoPercentual}%</span>
+        </div>
+        <div
+          className="h-2 overflow-hidden rounded-full bg-muted"
+          role="progressbar"
+          aria-valuenow={progressoPercentual}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Progresso da triagem: ${progressoPercentual}%`}
+        >
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-300"
+            style={{ width: `${progressoPercentual}%` }}
+          />
+        </div>
+        {isDirty ? (
+          <p className="text-[11px] text-amber-700 dark:text-amber-300">
+            Alterações ainda não salvas. Ao tentar fechar ou recarregar a página, o navegador solicitará confirmação.
+          </p>
         ) : null}
       </div>
 
