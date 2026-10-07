@@ -238,20 +238,29 @@ export const authOptions: NextAuthOptions = {
 
     // Enriquecer a sessão com dados do JWT
     async session({ session, token }) {
-      if (token.sessaoValida === false) {
+      // Tokens antigos/incompletos não devem produzir uma sessão parcialmente válida.
+      if (
+        token.sessaoValida === false ||
+        typeof token.id !== 'string' ||
+        typeof token.email !== 'string' ||
+        typeof token.nome !== 'string' ||
+        !token.id ||
+        !token.email ||
+        !token.nome ||
+        !token.role
+      ) {
         return { ...session, usuario: undefined } as unknown as Session;
       }
-      if (token.id && token.email && token.role) {
-        session.usuario = {
-          id: token.id,
-          nome: token.nome,
-          email: token.email,
-          role: token.role,
-          crm: token.crm,
-          coren: token.coren,
-          sessaoId: token.sessaoId,
-        };
-      }
+
+      session.usuario = {
+        id: token.id,
+        nome: token.nome,
+        email: token.email,
+        role: token.role,
+        crm: token.crm,
+        coren: token.coren,
+        sessaoId: token.sessaoId,
+      };
       return session;
     },
 
