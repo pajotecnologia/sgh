@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { prisma } from '@/lib/prisma'
 import { FileUp, PlusCircle } from 'lucide-react'
 
@@ -18,6 +19,7 @@ const LABEL_TIPO: Record<string, string> = {
 export default async function PaginaSaidasFarmacia() {
   const sessao = await getServerSession(authOptions)
   if (!sessao) redirect('/login')
+  await exigirPermissaoMenu('farmacia-saidas')
   if (!ROLES.includes(sessao.usuario.role as (typeof ROLES)[number])) redirect('/acesso-negado')
 
   const saidas = await prisma.tbFarmaciaSaida.findMany({

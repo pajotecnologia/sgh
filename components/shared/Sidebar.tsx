@@ -5,7 +5,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Activity,
   Users,
@@ -48,6 +48,7 @@ import { cn } from '@/lib/utils';
 import { useDashboardNav } from '@/components/shared/dashboard-nav-context';
 import { VERSAO_SGH } from '@/lib/versao';
 import { SeletorTema } from '@/components/shared/SeletorTema';
+import { MENU_PERMISSOES, permissaoPadrao } from '@/lib/permissoes-menu';
 
 interface SubItemNav {
   label: string;
@@ -244,6 +245,20 @@ export function Sidebar({ usuario }: SidebarProps) {
     Cadastros: pathname.startsWith('/cadastros'),
     'Relatórios & Indicadores': pathname.startsWith('/relatorios'),
   });
+  const [permissoes, setPermissoes] = useState<Record<string, boolean> | null>(null);
+
+  useEffect(() => {
+    let ativo = true;
+    fetch('/api/permissoes/me')
+      .then((res) => res.json())
+      .then((json) => {
+        if (ativo && json.sucesso && json.dados) setPermissoes(json.dados);
+      })
+      .catch(() => {
+        // Mantém o RBAC legado como fallback caso a consulta de permissões esteja indisponível.
+      });
+    return () => { ativo = false; };
+  }, [usuario.id]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -259,18 +274,28 @@ export function Sidebar({ usuario }: SidebarProps) {
     setExpandidos((p) => ({ ...p, [label]: !p[label] }));
   };
 
-  const gruposFiltrados = useMemo(() => {
+  const permitido = (label: string, href: string, roles?: Role[]) => {
+    if (roles && !roles.includes(usuario.role)) return false;
+    const item = MENU_PERMISSOES.find((x) => x.label === label && x.href === href);
+    if (!item) return true;
+    if (permissoes) return permissoes[item.chave] !== false;
+    return permissaoPadrao(item.chave, usuario.role);
+  };
+
+  const gruposFiltrados = (() => {
     return GRUPOS_NAVEGACAO.map((grupo) => {
-      const itensFiltrados = grupo.itens.filter((item) => {
-        if (!item.roles) return true;
-        return item.roles.includes(usuario.role);
+      const itensFiltrados = grupo.itens.map((item) => {
+        const filhos = item.children?.filter((sub) => permitido(sub.label, sub.href, sub.roles));
+        return { ...item, children: filhos };
+      }).filter((item) => {
+        if (!permitido(item.label, item.href, item.roles)) return false;
+        // Um grupo pai com filhos só aparece quando ao menos um filho continua acessível.
+        if (item.children && item.children.length === 0) return false;
+        return true;
       });
-      return {
-        ...grupo,
-        itens: itensFiltrados,
-      };
+      return { ...grupo, itens: itensFiltrados };
     }).filter((grupo) => grupo.itens.length > 0);
-  }, [usuario.role]);
+  })();
 
   const labelRole: Record<Role, string> = {
     ADMIN: 'Administrador',

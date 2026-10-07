@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { prisma } from '@/lib/prisma'
 import { BedDouble, PlusCircle } from 'lucide-react'
 import { FiltroLeitosClient } from '@/components/cadastros/FiltroLeitosClient'
@@ -27,6 +28,7 @@ export default async function PaginaLeitos({
   searchParams: Promise<{ q?: string; status?: string; tipo?: string; ativo?: string }>
 }) {
   const sessao = await getServerSession(authOptions)
+  await exigirPermissaoMenu('cadastros-leitos')
   if (!sessao) redirect('/login')
   if (sessao.usuario.role !== 'ADMIN') redirect('/acesso-negado')
 

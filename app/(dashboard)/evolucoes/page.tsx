@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { NotebookPen } from 'lucide-react'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { carregarListaInternados, ROLES_LISTA_INTERNADOS } from '@/lib/internacao-lista'
 import { ListaPacientesInternados } from '@/components/internamento/ListaPacientesInternados'
 import { parsePaginacao } from '@/lib/paginacao'
@@ -24,6 +25,7 @@ export default async function PaginaEvolucoes({
 }) {
   const sessao = await getServerSession(authOptions)
   if (!sessao) redirect('/login')
+  await exigirPermissaoMenu('prontuario-enfermagem')
   if (!ROLES_LISTA_INTERNADOS.includes(sessao.usuario.role)) {
     redirect('/acesso-negado')
   }

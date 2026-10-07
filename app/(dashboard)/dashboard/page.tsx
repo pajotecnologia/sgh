@@ -2,6 +2,7 @@
 import type { Metadata } from 'next'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import {
   Users,
   ClipboardList,
@@ -31,6 +32,7 @@ export default async function PaginaDashboard({
 }) {
   const params = await searchParams
   const sessao = await getServerSession(authOptions)
+  await exigirPermissaoMenu('dashboard')
   const periodo = resolverPeriodo(params.periodo)
   const [stats, pendenciasIniciais] = await Promise.all([
     obterEstatisticasDashboard(periodo),

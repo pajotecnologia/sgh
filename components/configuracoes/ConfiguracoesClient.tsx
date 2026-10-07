@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { Building2, MapPin, Upload, Image as ImageIcon, Loader2, Plus, Trash2, Tag, Volume2, Palette, Settings2, Mail, Pencil, LayoutPanelLeft, Video, Sparkles, ShieldCheck, KeyRound, DoorOpen, Check, RotateCcw, Users } from 'lucide-react';
 import { textoCadastroMaiusculo } from '@/lib/cadastro-maiusculo';
+import { PermissoesUsuarios } from '@/components/configuracoes/PermissoesUsuarios';
 import { cn } from '@/lib/utils';
 import type { MidiaPainelRotativa, ConfigPainelExibicao } from '@/lib/painel-config';
 import { CONFIG_PAINEL_PADRAO, inferirTipoMidiaPainel, tipoMidiaDeArquivo, validarUrlMidiaPainel } from '@/lib/painel-config';
@@ -68,7 +69,7 @@ export function ConfiguracoesClient() {
   const inputMidiaPainelRef = useRef<HTMLInputElement>(null);
 
   const [abaAtiva, setAbaAtiva] = useState<
-    'INSTITUICAO' | 'SALAS' | 'ORIGENS' | 'USUARIOS' | 'PAINEL' | 'SMTP' | 'SEGURANCA'
+    'INSTITUICAO' | 'SALAS' | 'ORIGENS' | 'USUARIOS' | 'PERMISSOES' | 'PAINEL' | 'SMTP' | 'SEGURANCA'
   >('INSTITUICAO');
   
   const [instituicao, setInstituicao] = useState<Instituicao>({
@@ -832,6 +833,18 @@ export function ConfiguracoesClient() {
           </button>
           <button
             type="button"
+            onClick={() => setAbaAtiva('PERMISSOES')}
+            className={cn(
+              "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+              abaAtiva === 'PERMISSOES'
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 hover:border-border"
+            )}
+          >
+            <ShieldCheck className="h-4 w-4 shrink-0" /> Permissões
+          </button>
+          <button
+            type="button"
             onClick={() => setAbaAtiva('PAINEL')}
             className={cn(
               "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer",
@@ -1363,7 +1376,10 @@ export function ConfiguracoesClient() {
           </div>
         )}
 
-        {/* ABA: PAINEL */}
+        {/* ABA: PERMISSOES */}
+        {abaAtiva === 'PERMISSOES' && <PermissoesUsuarios />}
+
+                {/* ABA: PAINEL */}
         {abaAtiva === 'PAINEL' && (
           <div className="space-y-6 w-full min-w-0 max-w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/80">

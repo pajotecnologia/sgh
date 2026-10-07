@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { prisma } from '@/lib/prisma'
 import { Package } from 'lucide-react'
 import { TabelaListagemMedicamentos } from '@/components/farmacia/TabelaListagemMedicamentos'
@@ -12,6 +13,7 @@ const ROLES = ['ADMIN', 'FARMACEUTICO'] as const
 
 export default async function PaginaCadastrosMedicamentos() {
   const sessao = await getServerSession(authOptions)
+  await exigirPermissaoMenu('cadastros-medicamentos')
   if (!sessao) redirect('/login')
   if (!ROLES.includes(sessao.usuario.role as (typeof ROLES)[number])) redirect('/acesso-negado')
 

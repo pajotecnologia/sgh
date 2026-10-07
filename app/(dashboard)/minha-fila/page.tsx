@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { Clock3, ListTodo } from 'lucide-react'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { obterPendenciasUsuario } from '@/lib/central-tarefas'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
@@ -12,6 +13,7 @@ export const metadata: Metadata = { title: 'Minha Fila' }
 export default async function MinhaFilaPage() {
   const sessao = await getServerSession(authOptions)
   if (!sessao) redirect('/login')
+  await exigirPermissaoMenu('minha-fila')
 
   const dados = await obterPendenciasUsuario(sessao.usuario.id, sessao.usuario.role)
 

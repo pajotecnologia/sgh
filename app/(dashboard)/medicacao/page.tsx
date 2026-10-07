@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { prisma } from '@/lib/prisma'
 import { Pill } from 'lucide-react'
 import { NavegacaoAbasMedicacao } from '@/components/medicacao/NavegacaoAbasMedicacao'
@@ -39,6 +40,7 @@ type PageProps = {
 export default async function PaginaMedicacao({ searchParams }: PageProps) {
   const sessao = await getServerSession(authOptions)
   if (!sessao) redirect('/login')
+  await exigirPermissaoMenu('medicacao-ps')
   if (!['ADMIN', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM'].includes(sessao.usuario.role)) {
     redirect('/acesso-negado')
   }

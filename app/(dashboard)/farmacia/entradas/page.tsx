@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { prisma } from '@/lib/prisma'
 import { FileDown, PlusCircle } from 'lucide-react'
 
@@ -13,6 +14,7 @@ const ROLES = ['ADMIN', 'FARMACEUTICO'] as const
 export default async function PaginaEntradasFarmacia() {
   const sessao = await getServerSession(authOptions)
   if (!sessao) redirect('/login')
+  await exigirPermissaoMenu('farmacia-entradas')
   if (!ROLES.includes(sessao.usuario.role as (typeof ROLES)[number])) redirect('/acesso-negado')
 
   const entradas = await prisma.tbFarmaciaEntradaNf.findMany({

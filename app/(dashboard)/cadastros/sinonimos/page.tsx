@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { prisma } from '@/lib/prisma'
 import { Tags } from 'lucide-react'
 import { GestaoSinonimosFarmacia } from '@/components/farmacia/GestaoSinonimosFarmacia'
@@ -12,6 +13,7 @@ const ROLES = ['ADMIN', 'FARMACEUTICO'] as const
 
 export default async function PaginaCadastrosSinonimos() {
   const sessao = await getServerSession(authOptions)
+  await exigirPermissaoMenu('cadastros-sinonimos')
   if (!sessao) redirect('/login')
   if (!ROLES.includes(sessao.usuario.role as (typeof ROLES)[number])) redirect('/acesso-negado')
 

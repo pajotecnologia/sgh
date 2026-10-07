@@ -49,9 +49,31 @@ model Usuario {
   triagensRealizadas       Triagem[]                 @relation("TriadorRef")
   tokensRedefinicaoSenha   TokenRedefinicaoSenha[]
   prontuariosEncerrados    ProntuarioMedico[]         @relation("ProntuarioEncerradoPor")
+  permissoes               PermissaoUsuario[]
 
   @@index([email])
   @@map("usuarios")
+}
+
+
+/**
+ * Overrides de acesso por usuário.
+ * Ausência de registro = usa o padrão definido pela função/cargo.
+ * Registro explícito = sobrescreve o padrão somente para aquela chave.
+ */
+model PermissaoUsuario {
+  id         String   @id @default(uuid())
+  usuarioId  String
+  chave      String
+  permitido  Boolean  @default(true)
+  criadoEm   DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, chave])
+  @@index([usuarioId])
+  @@index([chave, permitido])
+  @@map("permissoes_usuarios")
 }
 
 /// Sessões autenticadas e dispositivos confiáveis.

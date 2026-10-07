@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { prisma } from '@/lib/prisma'
 import { Shield, Download } from 'lucide-react'
 
@@ -10,6 +11,7 @@ export const metadata: Metadata = { title: 'Auditoria' }
 export default async function PaginaAuditoria({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sessao = await getServerSession(authOptions)
   if (!sessao) redirect('/login')
+  await exigirPermissaoMenu('auditoria')
   if (!['ADMIN','DIRETOR_CLINICO'].includes(sessao.usuario.role)) redirect('/acesso-negado')
   const p = await searchParams
   const page = Math.max(1, Number(p.page ?? '1') || 1); const pageSize = 50
