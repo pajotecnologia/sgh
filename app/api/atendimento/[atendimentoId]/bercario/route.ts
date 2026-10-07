@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { schemaFichaBercario } from '@/lib/validations/obstetricia'
+import { atendimentoObstetricoPermitido } from '@/lib/obstetricia'
 import { prontuarioEstaEncerrado } from '@/lib/atendimento-prontuario'
 import {
   includeAtendimentoInternacao,
@@ -51,6 +52,13 @@ export async function GET(
       return NextResponse.json(
         { sucesso: false, erro: 'Atendimento não encontrado ou paciente não está internado.' },
         { status: 404 }
+      )
+    }
+
+    if (!atendimentoObstetricoPermitido(atendimento.obstetrico, atendimento.paciente.sexoBiologico)) {
+      return NextResponse.json(
+        { sucesso: false, erro: 'Dados de berçário disponíveis somente para atendimento obstétrico de paciente do sexo biológico feminino.' },
+        { status: 403 }
       )
     }
 
@@ -103,13 +111,24 @@ export async function PUT(
 
     const atendimento = await prisma.atendimento.findFirst({
       where: { id: atendimentoId, deletedAt: null, status: 'INTERNADO' },
-      select: { id: true },
+      select: {
+        id: true,
+        obstetrico: true,
+        paciente: { select: { sexoBiologico: true } },
+      },
     })
 
     if (!atendimento) {
       return NextResponse.json(
         { sucesso: false, erro: 'Atendimento não encontrado ou paciente não está internado.' },
         { status: 404 }
+      )
+    }
+
+    if (!atendimentoObstetricoPermitido(atendimento.obstetrico, atendimento.paciente.sexoBiologico)) {
+      return NextResponse.json(
+        { sucesso: false, erro: 'Dados de berçário disponíveis somente para atendimento obstétrico de paciente do sexo biológico feminino.' },
+        { status: 403 }
       )
     }
 
