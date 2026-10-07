@@ -3,12 +3,14 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { Users } from 'lucide-react'
 
 export const metadata: Metadata = { title: 'Profissionais' }
 
 export default async function PaginaProfissionais() {
   const sessao = await getServerSession(authOptions)
+  await exigirPermissaoMenu('cadastros-usuarios')
   if (!sessao) redirect('/login')
   if (sessao.usuario.role !== 'ADMIN') redirect('/acesso-negado')
 
