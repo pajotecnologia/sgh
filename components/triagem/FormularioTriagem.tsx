@@ -428,32 +428,92 @@ export function FormularioTriagem({
       <section className="bg-card border border-border p-6 rounded-xl shadow-sm">
         <SectionTitle num={2} title="Sinais Vitais" icon={Activity} />
 
-        <div className="mb-5 rounded-xl border border-border bg-muted/20 p-4">
-          <label className="text-sm font-medium flex items-center justify-between mb-3">
-            <span>Escala de dor (EVA)</span>
-            <span
-              className={cn(
-                'font-bold text-xl tabular-nums',
-                escalaDorVal > 7 ? 'text-red-500' : escalaDorVal > 3 ? 'text-amber-500' : 'text-green-600'
-              )}
-            >
-              {escalaDorVal}
-              <span className="text-xs text-muted-foreground font-normal"> / 10</span>
-            </span>
-          </label>
-          <input
-            type="range"
-            min={0}
-            max={10}
-            step={1}
-            {...register('sinaisVitais.escalaDor', { valueAsNumber: true })}
-            className="w-full accent-primary h-2 bg-muted rounded-lg appearance-none cursor-pointer"
-          />
-          <div className="flex justify-between text-[10px] text-muted-foreground mt-2 font-semibold uppercase">
-            <span>Sem dor</span>
-            <span>Moderada</span>
-            <span>Intensa</span>
+        <div className="mb-5 rounded-xl border border-border bg-muted/20 p-4 space-y-4">
+          <div>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <p className="text-sm font-semibold">Avaliação da dor</p>
+                <p className="text-xs text-muted-foreground">Escala e características da dor ficam reunidas no mesmo bloco.</p>
+              </div>
+              <span
+                className={cn(
+                  'font-bold text-xl tabular-nums',
+                  escalaDorVal > 7 ? 'text-red-500' : escalaDorVal > 3 ? 'text-amber-500' : 'text-green-600'
+                )}
+              >
+                {escalaDorVal}
+                <span className="text-xs text-muted-foreground font-normal"> / 10</span>
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              {...register('sinaisVitais.escalaDor', { valueAsNumber: true })}
+              className="w-full accent-primary h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+              aria-label="Escala de dor de 0 a 10"
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground mt-2 font-semibold uppercase">
+              <span>Sem dor</span>
+              <span>Moderada</span>
+              <span>Intensa</span>
+            </div>
           </div>
+
+          {mostrarCamposDor ? (
+            <div className="pt-4 border-t border-border space-y-4">
+              <p className="text-sm font-semibold text-foreground">Detalhes da dor</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Tipo de dor torácica</label>
+                  <select {...register('tipoDorToracica')} className={inputText()}>
+                    <option value="">Selecione...</option>
+                    <option value="NORMAL">Normal / sem dor</option>
+                    <option value="QUEIMACAO">Queimação</option>
+                    <option value="APERTO">Aperto</option>
+                    <option value="PONTADA">Pontada</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Localização</label>
+                  <input
+                    {...register('localizacaoDor', registerTextoCadastro)}
+                    className={inputText()}
+                    placeholder="EX: PRECORDIAL"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Duração</label>
+                  <input
+                    {...register('duracaoDor', registerTextoCadastro)}
+                    className={inputText()}
+                    placeholder="EX: 3 HORAS"
+                  />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-2">Irradiação (marque conforme aplicável)</p>
+                <div className="flex flex-wrap gap-2">
+                  {IRRADIACAO_DOR_SITE_KEYS.map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => toggleIrradiacaoSite(key)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                        irradiacaoDorSites.includes(key)
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border hover:bg-muted'
+                      )}
+                    >
+                      {IRRADIACAO_DOR_SITE_LABELS[key]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -621,63 +681,11 @@ export function FormularioTriagem({
           </div>
         </div>
 
-        {mostrarCamposDor ? (
-          <div className="pt-5 border-t border-border space-y-4">
-            <p className="text-sm font-semibold text-foreground">Detalhes da dor</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Tipo de dor torácica</label>
-                <select {...register('tipoDorToracica')} className={inputText()}>
-                  <option value="">Selecione...</option>
-                  <option value="NORMAL">Normal / sem dor</option>
-                  <option value="QUEIMACAO">Queimação</option>
-                  <option value="APERTO">Aperto</option>
-                  <option value="PONTADA">Pontada</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Localização</label>
-                <input
-                  {...register('localizacaoDor', registerTextoCadastro)}
-                  className={inputText()}
-                  placeholder="EX: PRECORDIAL"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Duração</label>
-                <input
-                  {...register('duracaoDor', registerTextoCadastro)}
-                  className={inputText()}
-                  placeholder="EX: 3 HORAS"
-                />
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-medium mb-2">Irradiação (marque conforme aplicável)</p>
-              <div className="flex flex-wrap gap-2">
-                {IRRADIACAO_DOR_SITE_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => toggleIrradiacaoSite(key)}
-                    className={cn(
-                      'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-                      irradiacaoDorSites.includes(key)
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border hover:bg-muted'
-                    )}
-                  >
-                    {IRRADIACAO_DOR_SITE_LABELS[key]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : (
+        {!mostrarCamposDor ? (
           <p className="text-xs text-muted-foreground pt-2 border-t border-border">
-            Selecione a categoria <strong>Dor</strong> na queixa principal para exibir campos específicos de dor.
+            Selecione a categoria <strong>Dor</strong> na queixa principal para exibir os detalhes da dor.
           </p>
-        )}
+        ) : null}
       </section>
 
       {/* 5 — Manchester: classificação (último passo antes de salvar) */}
