@@ -5,12 +5,11 @@
 
 import { useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Bell, HelpCircle, Menu, Sparkles, BookOpen } from 'lucide-react';
+import { Bell, Menu, Sparkles } from 'lucide-react';
 import { BuscaGlobal } from '@/components/shared/BuscaGlobal';
 import type { UsuarioSessao } from '@/types';
 import { useDashboardNav } from '@/components/shared/dashboard-nav-context';
 import { SeletorTema } from '@/components/shared/SeletorTema';
-import { ModalManualSistema } from '@/components/shared/ModalManualSistema';
 import { ModalNovidadesVersao } from '@/components/shared/ModalNovidadesVersao';
 import { VERSAO_SGH, BUILD_SGH } from '@/lib/versao';
 import { labelAbaInternacao, parseAbaInternacao } from '@/lib/internacao-abas';
@@ -44,7 +43,6 @@ export function Header({ usuario }: HeaderProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { mobileOpen, setMobileOpen } = useDashboardNav();
-  const [manualAberto, setManualAberto] = useState(false);
   const [versaoAberta, setVersaoAberta] = useState(false);
 
   const abaEvolucoes = pathname.startsWith('/evolucoes')
@@ -69,7 +67,8 @@ export function Header({ usuario }: HeaderProps) {
           <Menu className="h-5 w-5" />
         </button>
 
-        <div className="flex-1 min-w-0 flex items-center gap-3">\n          <BuscaGlobal />
+        <div className="flex-1 min-w-0 flex items-center gap-3">
+          <BuscaGlobal />
           <h1 className="text-sm font-semibold text-foreground truncate">{titulo}</h1>
         </div>
 
@@ -88,20 +87,6 @@ export function Header({ usuario }: HeaderProps) {
             <span className="text-[9px] text-muted-foreground/80">{BUILD_SGH}</span>
             <Sparkles className="h-3 w-3 text-amber-500 opacity-60 group-hover:opacity-100 transition-opacity ml-0.5" />
           </button>
-
-          {/* Botão de Ajuda / Manual do Sistema */}
-          <Link
-            href="/ajuda"
-            className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs font-medium"
-            aria-label="Manual e Ajuda do Sistema"
-            title="Manual e Ajuda do Sistema"
-            id="btn-ajuda-sistema"
-          >
-            <HelpCircle className="h-4.5 w-4.5 text-primary" />
-            <span className="hidden lg:inline">Manual</span>
-          </Link>
-
-          <SeletorTema compacto />
 
           {/* Botão de notificações */}
           <button
@@ -137,8 +122,6 @@ export function Header({ usuario }: HeaderProps) {
         </div>
       </header>
 
-      {/* Modal do Manual Completo do Sistema */}
-      <ModalManualSistema open={manualAberto} onOpenChange={setManualAberto} />
       {/* Modal de Novidades da Versão */}
       <ModalNovidadesVersao open={versaoAberta} onOpenChange={setVersaoAberta} />
     </>
