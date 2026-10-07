@@ -20,3 +20,28 @@ WHERE "status" = 'CONCLUIDA'
     OR "dadosFormulario"->>'motivoTransferencia' = 'true'
     OR "dadosFormulario"->>'motivoIndisciplina' = 'true'
   );
+
+-- Corrige registros antigos já encerrados na ficha de alta, retirando-os da lista de ativos.
+UPDATE "leitos" l
+SET "status" = 'DISPONIVEL'
+WHERE l."id" IN (
+  SELECT a."leitoId"
+  FROM "atendimentos" a
+  INNER JOIN "fichas_internacao_alta" f ON f."atendimentoId" = a."id"
+  WHERE a."status" = 'INTERNADO'
+    AND f."statusAlta" = 'CONCLUIDA'
+    AND a."leitoId" IS NOT NULL
+);
+
+UPDATE "atendimentos" a
+SET
+  "status" = CASE
+    WHEN f."dadosFormulario"->>'obito' = 'true' THEN 'OBITO'::"StatusAtendimento"
+    WHEN f."dadosFormulario"->>'motivoTransferencia' = 'true' THEN 'TRANSFERIDO'::"StatusAtendimento"
+    ELSE 'ALTA'::"StatusAtendimento"
+  END,
+  "leitoId" = NULL
+FROM "fichas_internacao_alta" f
+WHERE f."atendimentoId" = a."id"
+  AND a."status" = 'INTERNADO'
+  AND f."statusAlta" = 'CONCLUIDA';
