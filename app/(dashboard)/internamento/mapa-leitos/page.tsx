@@ -23,7 +23,7 @@ const ROLES_PERMITIDOS = [
 
 export default async function PaginaMapaLeitos() {
   const sessao = await getServerSession(authOptions)
-  if (!sessao) redirect('/login')
+  if (!sessao?.usuario?.id || !sessao.usuario.role) redirect('/login?reason=session')
   await exigirPermissaoMenu('mapa-leitos')
   if (!ROLES_PERMITIDOS.includes(sessao.usuario.role)) redirect('/acesso-negado')
 
