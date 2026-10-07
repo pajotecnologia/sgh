@@ -623,15 +623,17 @@ export function FormularioTriagem({
 
         {mostrarCamposDor ? (
           <div className="pt-5 border-t border-border space-y-4">
-            <p className="text-sm font-semibold text-foreground">Detalhes da dor</p>
+            <p className="text-sm font-semibold text-foreground">Caracterização da dor</p>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Registre as características clínicas sem repetir o tempo de evolução informado na queixa principal.
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Tipo de dor torácica</label>
+                <label className="text-sm font-medium mb-1.5 block">Característica da dor</label>
                 <select {...register('tipoDorToracica')} className={inputText()}>
                   <option value="">Selecione...</option>
-                  <option value="NORMAL">Normal / sem dor</option>
                   <option value="QUEIMACAO">Queimação</option>
-                  <option value="APERTO">Aperto</option>
+                  <option value="APERTO">Aperto / pressão</option>
                   <option value="PONTADA">Pontada</option>
                 </select>
               </div>
@@ -640,15 +642,7 @@ export function FormularioTriagem({
                 <input
                   {...register('localizacaoDor', registerTextoCadastro)}
                   className={inputText()}
-                  placeholder="EX: PRECORDIAL"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Duração</label>
-                <input
-                  {...register('duracaoDor', registerTextoCadastro)}
-                  className={inputText()}
-                  placeholder="EX: 3 HORAS"
+                  placeholder="EX: PRECORDIAL, ABDOME, MEMBRO INFERIOR"
                 />
               </div>
             </div>
