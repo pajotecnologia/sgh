@@ -97,13 +97,18 @@ export function mesclarFichaPorSecao(
     for (const chave of CAMPOS_POS_INTERNACAO) {
       pos[chave] = existente[chave] ?? posVazio[chave as keyof typeof posVazio]
     }
-    return { ...novo, ...pos } as FichaInternacaoAltaForm
+    return {
+      ...novo,
+      statusAlta: existente.statusAlta ?? 'RASCUNHO',
+      ...pos,
+    } as FichaInternacaoAltaForm
   }
 
   return {
     ...existente,
     ...novo,
-    status: novo.status ?? existente.status ?? 'RASCUNHO',
+    status: existente.status ?? 'RASCUNHO',
+    statusAlta: novo.statusAlta ?? existente.statusAlta ?? 'RASCUNHO',
     nome: novo.nome || existente.nome || '',
     evolucoes: existente.evolucoes ?? posVazio.evolucoes,
   } as FichaInternacaoAltaForm
@@ -361,6 +366,7 @@ function fichaSalvaParaPrefill(ficha: FichaInternacaoAlta): FichaInternacaoAltaP
   const dados = (ficha.dadosFormulario ?? {}) as Partial<FichaInternacaoAltaForm>
   return {
     status: ficha.status as FichaInternacaoAltaForm['status'],
+    statusAlta: ficha.statusAlta as FichaInternacaoAltaForm['statusAlta'],
     registroNumero: dados.registroNumero ?? ficha.numeroProntuario ?? '',
     dataInternacao: dados.dataInternacao ?? '',
     horaInternacao: dados.horaInternacao ?? '',
@@ -519,9 +525,10 @@ export function dadosFichaInternacaoAltaParaPrisma(
   dados: FichaInternacaoAltaForm,
   preenchidoPorId?: string
 ): Omit<Prisma.FichaInternacaoAltaUncheckedCreateInput, 'atendimentoId'> {
-  const { status, nome, registroNumero, ...resto } = dados
+  const { status, statusAlta, nome, registroNumero, ...resto } = dados
   return {
     status,
+    statusAlta,
     nomePaciente: nome,
     numeroProntuario: registroNumero || null,
     dadosFormulario: { ...resto, nome, registroNumero } as Prisma.InputJsonValue,
