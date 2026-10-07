@@ -120,15 +120,20 @@ $$\text{Paciente} \to \text{Recepção} \to \text{Triagem Manchester} \to \text{
 
 ---
 
-## 10. Fase 4: Faturamento SUS (BPA/AIH), Padrão ANS TISS/TUSS & Acreditação ONA
+## 10. Fase removida do roadmap: Faturamento
 
-- **Arquivos:** [`lib/faturamento-hospitalar.ts`](file:///lib/faturamento-hospitalar.ts), [`lib/indicadores-acreditacao.ts`](file:///lib/indicadores-acreditacao.ts).
-- **Recursos:**
-  - **Faturamento SUS:** Espelho de AIH (diárias de UTI e clínica) e BPA.
-  - **Saúde Suplementar:** Geração de XML no padrão ANS TISS com procedimentos mapeados na tabela TUSS.
-  - **Indicadores de Qualidade ONA/JCI:** Média de Permanência (MP), Densidade de Infecção Hospitalar (IRAS/CCIH) por 1.000 pacientes-dia, Giro de Leito e Taxa de Mortalidade Institucional.
+> **Decisão de produto — 2026-10-07:** o SGH será direcionado inicialmente para a **rede pública de saúde**. O módulo de faturamento hospitalar não faz parte do roadmap atual.
 
----
+A documentação histórica mantém o registro de que existiram estudos/implementações relacionados a AIH, BPA, TISS/TUSS e indicadores de acreditação, mas essas funcionalidades **não devem ser consideradas prioridade de desenvolvimento, integração ou evolução do produto**.
+
+Ficam fora do escopo atual:
+- Faturamento SUS (AIH/BPA).
+- Faturamento de convênios.
+- TISS/TUSS voltado a cobrança.
+- Módulos financeiros de cobrança hospitalar.
+
+O foco passa a ser assistência, gestão operacional, regulação, segurança do paciente, PEP, indicadores públicos, LGPD e interoperabilidade com serviços oficiais.
+
 
 ## 11. Fase 5: Interoperabilidade HL7 FHIR R4
 
