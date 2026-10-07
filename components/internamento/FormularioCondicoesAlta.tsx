@@ -65,6 +65,7 @@ export function FormularioCondicoesAlta({
   const { data: sessao } = useSession()
   const [carregando, setCarregando] = useState(true)
   const [enviando, setEnviando] = useState(false)
+  const [statusFicha, setStatusFicha] = useState<FichaInternacaoAltaForm['status']>('RASCUNHO')
   const [statusAlta, setStatusAlta] = useState<FichaInternacaoAltaForm['statusAlta']>('RASCUNHO')
   const [nomePaciente, setNomePaciente] = useState('')
 
@@ -99,6 +100,7 @@ export function FormularioCondicoesAlta({
           return
         }
         const prefill = json.dados.prefill as FichaInternacaoAltaPrefill
+        setStatusFicha(prefill.status ?? 'RASCUNHO')
         setStatusAlta(prefill.statusAlta ?? 'RASCUNHO')
         setNomePaciente(prefill.nome ?? '')
         setAltaCurado(prefill.altaCurado ?? false)
@@ -126,8 +128,6 @@ export function FormularioCondicoesAlta({
     carregar()
   }, [atendimentoId])
 
-  const prefillStatus = 'CONCLUIDA' as FichaInternacaoAltaForm['status']
-
   async function salvar(statusSalvar: FichaInternacaoAltaForm['statusAlta']) {
     setEnviando(true)
     try {
@@ -136,7 +136,7 @@ export function FormularioCondicoesAlta({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           secaoSalvar: 'ALTA',
-          status: prefillStatus ?? 'CONCLUIDA',
+          status: statusFicha,
           statusAlta: statusSalvar,
           nome: nomePaciente || 'Paciente',
           ...camposPosInternacaoVazios(),
