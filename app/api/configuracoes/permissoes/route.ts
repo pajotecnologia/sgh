@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import type { Session } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { MENU_PERMISSOES, permissaoPadrao } from '@/lib/permissoes-menu'
 import { normalizarPermissoes, obterPermissoesEfetivas, salvarPermissoesUsuario } from '@/lib/permissoes-usuario'
 import type { Role } from '@prisma/client'
 
-function admin(sessao: Awaited<ReturnType<typeof getServerSession>>) {
+function admin(sessao: Session | null) {
   return sessao?.usuario?.role === 'ADMIN'
 }
 

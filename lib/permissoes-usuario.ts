@@ -3,6 +3,9 @@ import 'server-only'
 import type { Role } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { MENU_PERMISSOES, permissaoPadrao, type ChavePermissao } from '@/lib/permissoes-menu'
+import { normalizarPermissoes } from '@/lib/permissoes-usuario-utils'
+
+export { normalizarPermissoes } from '@/lib/permissoes-usuario-utils'
 
 export async function obterPermissoesEfetivas(usuarioId: string, role: Role) {
   if (role === 'ADMIN') {
@@ -70,19 +73,3 @@ export async function salvarPermissoesUsuario(
   return obterPermissoesEfetivas(usuarioId, role)
 }
 
-export function normalizarPermissoes(
-  valor: unknown
-): Partial<Record<ChavePermissao, boolean>> {
-  if (!valor || typeof valor !== 'object' || Array.isArray(valor)) return {}
-
-  const resultado: Partial<Record<ChavePermissao, boolean>> = {}
-  const permitidas = new Set(MENU_PERMISSOES.map((item) => item.chave))
-
-  for (const [chave, permitido] of Object.entries(valor as Record<string, unknown>)) {
-    if (permitidas.has(chave as ChavePermissao) && typeof permitido === 'boolean') {
-      resultado[chave as ChavePermissao] = permitido
-    }
-  }
-
-  return resultado
-}
