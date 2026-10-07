@@ -51,10 +51,21 @@ export function CentralTarefasPendencias({ dadosIniciais }: { dadosIniciais?: Pe
   }, [])
 
   useEffect(() => {
-    if (!dadosIniciais) {
-      recarregar()
+    if (dadosIniciais) {
+      setDados(dadosIniciais)
+      setCriticasAnteriores(dadosIniciais.criticas)
+      setUltimaAtualizacao(new Date())
+      return
     }
+    recarregar()
   }, [dadosIniciais, recarregar])
+
+  useEffect(() => {
+    const intervalo = window.setInterval(() => {
+      void recarregar()
+    }, 30000)
+    return () => window.clearInterval(intervalo)
+  }, [recarregar])
 
   if (!dados && carregando) {
     return (
