@@ -36,6 +36,7 @@ import {
   Tags,
   Calendar,
   Navigation,
+  HelpCircle,
   UserCircle,
   Sparkles,
   Syringe,
@@ -491,6 +492,17 @@ export function Sidebar({ usuario }: SidebarProps) {
               )}
             >
               <ShieldCheck className="h-4 w-4" />
+            </Link>
+
+            <Link
+              href="/ajuda"
+              title="Manual do Sistema & Ajuda"
+              className={cn(
+                'flex items-center justify-center p-2 rounded-lg hover:bg-slate-800 hover:text-white transition-colors',
+                pathname === '/ajuda' && 'bg-slate-800 text-primary font-bold'
+              )}
+            >
+              <HelpCircle className="h-4 w-4" />
             </Link>
 
             <button
