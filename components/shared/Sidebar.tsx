@@ -37,17 +37,16 @@ import {
   Calendar,
   Navigation,
   UserCircle,
-  HelpCircle,
   Sparkles,
   Syringe,
-  SunMoon,
   UserCheck,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import type { Role, UsuarioSessao } from '@/types';
 import { cn } from '@/lib/utils';
 import { useDashboardNav } from '@/components/shared/dashboard-nav-context';
-import { VERSAO_SGH, BUILD_SGH } from '@/lib/versao';
+import { VERSAO_SGH } from '@/lib/versao';
+import { SeletorTema } from '@/components/shared/SeletorTema';
 
 interface SubItemNav {
   label: string;
@@ -494,17 +493,6 @@ export function Sidebar({ usuario }: SidebarProps) {
               <ShieldCheck className="h-4 w-4" />
             </Link>
 
-            <Link
-              href="/ajuda"
-              title="Manual do Sistema & Ajuda"
-              className={cn(
-                'flex items-center justify-center p-2 rounded-lg hover:bg-slate-800 hover:text-white transition-colors',
-                pathname === '/ajuda' && 'bg-slate-800 text-primary font-bold'
-              )}
-            >
-              <HelpCircle className="h-4 w-4" />
-            </Link>
-
             <button
               type="button"
               title="Encerrar Sessão"
@@ -520,6 +508,11 @@ export function Sidebar({ usuario }: SidebarProps) {
             >
               <LogOut className="h-4 w-4" />
             </button>
+          </div>
+
+          {/* Aparência do sistema */}
+          <div className="flex items-center justify-center">
+            <SeletorTema />
           </div>
 
           {/* Botão Recolher/Expandir Sidebar Desktop */}
