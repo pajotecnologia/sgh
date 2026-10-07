@@ -35,7 +35,7 @@ export function BuscaGlobal() {
   const resultados = ATALHOS.filter((item) => {
     const q = termo.trim().toLowerCase()
     if (!q) return true
-    return \`\${item.titulo} \${item.descricao} \${item.keywords}\`.includes(q)
+    return \`${item.titulo} ${item.descricao} ${item.keywords}\`.includes(q)
   })
 
   const navegar = (href: string) => {
