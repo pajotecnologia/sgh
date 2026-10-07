@@ -539,6 +539,7 @@ export function ConfiguracoesClient() {
     { value: 'TECNICO_ENFERMAGEM', label: 'Técnico de Enfermagem' },
     { value: 'RECEPCIONISTA', label: 'Recepcionista' },
     { value: 'DIRETOR_CLINICO', label: 'Diretor Clínico' },
+    { value: 'FARMACEUTICO', label: 'Farmacêutico' },
   ];
 
   // --- INSTITUICAO ---
