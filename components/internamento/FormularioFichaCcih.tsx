@@ -296,8 +296,8 @@ export function FormularioFichaCcih({ atendimentoId }: { atendimentoId: string }
           </div>
           <div className="bg-background/80 rounded-lg p-2.5 border border-border">
             <span className="text-muted-foreground block text-[11px]">Status IRAS</span>
-            <span className={cn('font-bold', inf.houve_infeccao === 'SIM' ? 'text-red-600' : 'text-emerald-600')}>
-              {inf.houve_infeccao === 'SIM' ? '⚠️ Infecção Notificada' : 'Em Monitoramento'}
+            <span className={cn('font-bold', (inf.infeccao_opcao && inf.infeccao_opcao !== 'NAO' || inf.apresenta_infeccao) ? 'text-red-600' : 'text-emerald-600')}>
+              {(inf.infeccao_opcao && inf.infeccao_opcao !== 'NAO' || inf.apresenta_infeccao) ? '⚠️ Infecção Notificada' : 'Em Monitoramento'}
             </span>
           </div>
         </div>
