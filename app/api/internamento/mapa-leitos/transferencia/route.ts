@@ -16,7 +16,7 @@ const ROLES_TRANSFERENCIA = ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO', 'ENFERMEIRO']
 export async function POST(req: NextRequest) {
   try {
     const sessao = await getServerSession(authOptions)
-    if (!sessao) {
+    if (!sessao?.usuario?.id || !sessao.usuario.role) {
       return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 })
     }
 

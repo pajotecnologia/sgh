@@ -7,7 +7,7 @@ import type { ChavePermissao } from '@/lib/permissoes-menu'
 
 export async function exigirPermissaoMenu(chave: ChavePermissao) {
   const sessao = await getServerSession(authOptions)
-  if (!sessao) redirect('/login')
+  if (!sessao?.usuario?.id || !sessao.usuario.role) redirect('/login?reason=session')
 
   const permitido = await temPermissaoUsuario(
     sessao.usuario.id,

@@ -15,7 +15,7 @@ const ROLES = ['ADMIN', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM', 'RECEPCIONISTA', 'ME
 
 export default async function PaginaAdmissoesEnfermagem() {
   const sessao = await getServerSession(authOptions)
-  if (!sessao) redirect('/login')
+  if (!sessao?.usuario?.id || !sessao.usuario.role) redirect('/login?reason=session')
   await exigirPermissaoMenu('admissoes')
   if (!ROLES.includes(sessao.usuario.role)) redirect('/acesso-negado')
 

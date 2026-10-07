@@ -74,7 +74,7 @@ export const MENU_PERMISSOES: ItemPermissao[] = [
   { chave: 'triagem', label: 'Triagem (Manchester)', href: '/triagem', grupo: 'Atendimento & Clínica', rolesPadrao: ['ADMIN', 'ENFERMEIRO', 'MEDICO'] },
   { chave: 'atendimento-medico', label: 'Atendimento Médico', href: '/atendimento', grupo: 'Atendimento & Clínica', rolesPadrao: ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'] },
   { chave: 'medicacao-ps', label: 'Medicação (PS)', href: '/medicacao', grupo: 'Atendimento & Clínica', rolesPadrao: ['ADMIN', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM'] },
-  { chave: 'admissoes', label: 'Admissões', href: '/internamento/admissoes', grupo: 'Atendimento & Clínica', rolesPadrao: ['ADMIN', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM', 'RECEPCIONISTA'] },
+  { chave: 'admissoes', label: 'Admissões', href: '/internamento/admissoes', grupo: 'Atendimento & Clínica', rolesPadrao: ['ADMIN', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM', 'RECEPCIONISTA', 'MEDICO', 'DIRETOR_CLINICO'] },
   { chave: 'mapa-leitos', label: 'Mapa de Leitos', href: '/internamento/mapa-leitos', grupo: 'Atendimento & Clínica', rolesPadrao: ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM', 'RECEPCIONISTA', 'FARMACEUTICO'] },
   { chave: 'prontuario-medico', label: 'Prontuário Médico', href: '/prontuario', grupo: 'Atendimento & Clínica', rolesPadrao: PRONTUARIO },
   { chave: 'prontuario-enfermagem', label: 'Prontuário Enfermagem', href: '/evolucoes', grupo: 'Atendimento & Clínica', rolesPadrao: PRONTUARIO },

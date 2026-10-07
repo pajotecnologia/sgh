@@ -13,7 +13,7 @@ const ROLES = ['ADMIN', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM', 'RECEPCIONISTA', 'ME
 
 export async function GET() {
   const sessao = await getServerSession(authOptions)
-  if (!sessao) {
+  if (!sessao?.usuario?.id || !sessao.usuario.role) {
     return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 })
   }
   if (!ROLES.includes(sessao.usuario.role as (typeof ROLES)[number])) {
