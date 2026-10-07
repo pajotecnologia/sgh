@@ -5,7 +5,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Activity,
   Users,
@@ -282,7 +282,7 @@ export function Sidebar({ usuario }: SidebarProps) {
     return permissaoPadrao(item.chave, usuario.role);
   };
 
-  const gruposFiltrados = useMemo(() => {
+  const gruposFiltrados = (() => {
     return GRUPOS_NAVEGACAO.map((grupo) => {
       const itensFiltrados = grupo.itens.map((item) => {
         const filhos = item.children?.filter((sub) => permitido(sub.label, sub.href, sub.roles));
@@ -295,7 +295,7 @@ export function Sidebar({ usuario }: SidebarProps) {
       });
       return { ...grupo, itens: itensFiltrados };
     }).filter((grupo) => grupo.itens.length > 0);
-  }, [usuario.role, permissoes]);
+  })();
 
   const labelRole: Record<Role, string> = {
     ADMIN: 'Administrador',
