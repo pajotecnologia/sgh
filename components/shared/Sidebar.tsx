@@ -23,6 +23,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   LayoutDashboard,
+  ListTodo,
   NotebookTabs,
   UserPlus,
   NotebookPen,
@@ -96,6 +97,11 @@ const GRUPOS_NAVEGACAO: GrupoNav[] = [
         label: 'Dashboard',
         href: '/dashboard',
         icon: LayoutDashboard,
+      },
+      {
+        label: 'Minha Fila',
+        href: '/minha-fila',
+        icon: ListTodo,
       },
       {
         label: 'Recepção',
