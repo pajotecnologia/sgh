@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Bell, HelpCircle, Menu, Sparkles, BookOpen } from 'lucide-react';
+import { BuscaGlobal } from '@/components/shared/BuscaGlobal';
 import type { UsuarioSessao } from '@/types';
 import { useDashboardNav } from '@/components/shared/dashboard-nav-context';
 import { SeletorTema } from '@/components/shared/SeletorTema';
@@ -32,6 +33,7 @@ const TITULOS_ROTA: Record<string, string> = {
   '/auditoria': 'Auditoria',
   '/admin': 'Administração',
   '/dashboard': 'Visão Geral',
+  '/minha-fila': 'Minha Fila',
 };
 
 interface HeaderProps {
@@ -67,7 +69,7 @@ export function Header({ usuario }: HeaderProps) {
           <Menu className="h-5 w-5" />
         </button>
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex items-center gap-3">\n          <BuscaGlobal />
           <h1 className="text-sm font-semibold text-foreground truncate">{titulo}</h1>
         </div>
 
