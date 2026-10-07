@@ -50,6 +50,7 @@ import {
   type AtendimentoInternacaoCtx,
 } from '@/lib/prefill-internamento'
 import { deduplicarAlergiasPaciente } from '@/lib/alergias-paciente'
+import { atendimentoObstetricoPermitido } from '@/lib/obstetricia'
 
 export type { AbaInternacaoId } from '@/lib/internacao-abas'
 
@@ -66,8 +67,10 @@ export function WorkspaceInternacao({
   const role = sessao?.usuario?.role ?? ''
   const abaFromUrl = parseAbaInternacao(abaInicial)
   const abaDefault = useMemo(() => abaPadraoPorModo(modo, role), [modo, role])
+  // Até o atendimento ser carregado, abas obstétricas não são elegíveis.
+  // A decisão final usa sexo biológico + flag obstétrica do atendimento.
   const abaInicialValida =
-    abaFromUrl && abaValidaNoModo(modo, abaFromUrl, true) ? abaFromUrl : abaDefault
+    abaFromUrl && abaValidaNoModo(modo, abaFromUrl, false) ? abaFromUrl : abaDefault
 
   const [abaAtual, setAbaAtual] = useState<AbaInternacaoId>(abaInicialValida)
   const [carregando, setCarregando] = useState(true)
@@ -78,7 +81,17 @@ export function WorkspaceInternacao({
 
   const listaHref = modo === 'prontuario' ? '/prontuario' : '/evolucoes'
   const tituloModo = modo === 'prontuario' ? 'Prontuário Médico' : 'Prontuário Enfermagem'
-  const tituloAba = labelAbaInternacao(abaAtual, modo) ?? tituloModo
+  const atendimentoPrecarregado = dados?.atendimento as {
+    obstetrico?: boolean
+    paciente?: { sexoBiologico?: string }
+  } | undefined
+  const obstetricoDisponivel = atendimentoObstetricoPermitido(
+    atendimentoPrecarregado?.obstetrico,
+    atendimentoPrecarregado?.paciente?.sexoBiologico
+  )
+  const abaAtualValida = abaValidaNoModo(modo, abaAtual, obstetricoDisponivel)
+  const abaExibida = abaAtualValida ? abaAtual : abaDefault
+  const tituloAba = labelAbaInternacao(abaExibida, modo, obstetricoDisponivel) ?? tituloModo
 
   async function carregar(opcoes?: { silencioso?: boolean }) {
     if (!opcoes?.silencioso) setCarregando(true)
@@ -106,8 +119,14 @@ export function WorkspaceInternacao({
 
   useEffect(() => {
     const parsed = parseAbaInternacao(abaInicial)
-    if (parsed && abaValidaNoModo(modo, parsed)) setAbaAtual(parsed)
-  }, [abaInicial, modo])
+    if (parsed && abaValidaNoModo(modo, parsed, obstetricoDisponivel)) {
+      setAbaAtual(parsed)
+      return
+    }
+    if (!abaValidaNoModo(modo, abaAtual, obstetricoDisponivel)) {
+      setAbaAtual(abaDefault)
+    }
+  }, [abaInicial, modo, obstetricoDisponivel, abaAtual, abaDefault])
 
   if (carregando) {
     return (
@@ -194,9 +213,7 @@ export function WorkspaceInternacao({
   }
 
   const paciente = atendimento.paciente
-  const sexoNorm = String(paciente.sexoBiologico ?? '').toUpperCase()
-  const ehFeminino = sexoNorm === 'FEMININO' || sexoNorm === 'F'
-  const obstetrico = Boolean(atendimento.obstetrico && ehFeminino)
+  const obstetrico = atendimentoObstetricoPermitido(atendimento.obstetrico, paciente.sexoBiologico)
   const abas = abasPorModo(modo, obstetrico)
   const alergiasPaciente = deduplicarAlergiasPaciente(paciente.alergias ?? [])
   const nomePacienteCompleto =
@@ -326,7 +343,7 @@ export function WorkspaceInternacao({
           aria-label={tituloModo}
         >
           {abas.map((aba) => {
-            const ativa = abaAtual === aba.id
+            const ativa = abaExibida === aba.id
             return (
               <button
                 key={aba.id}
@@ -350,7 +367,7 @@ export function WorkspaceInternacao({
       </div>
 
       <div className="min-h-[320px]" role="tabpanel">
-        {modo === 'evolucoes' && abaAtual === 'INTERNACAO_ALTA' ? (
+        {modo === 'evolucoes' && abaExibida === 'INTERNACAO_ALTA' ? (
           <AbaInternacao
             atendimentoId={atendimentoId}
             numeroAtendimento={atendimento.numeroAtendimento}
@@ -360,15 +377,15 @@ export function WorkspaceInternacao({
           />
         ) : null}
 
-        {modo === 'evolucoes' && abaAtual === 'CCIH' ? (
+        {modo === 'evolucoes' && abaExibida === 'CCIH' ? (
           <FormularioFichaCcih atendimentoId={atendimentoId} />
         ) : null}
 
-        {modo === 'evolucoes' && abaAtual === 'MULTIDISCIPLINAR' ? (
+        {modo === 'evolucoes' && abaExibida === 'MULTIDISCIPLINAR' ? (
           <FormularioEvolucaoMultiprofissional atendimentoId={atendimentoId} />
         ) : null}
 
-        {modo === 'evolucoes' && abaAtual === 'INSTRUCOES_ENFERMAGEM' ? (
+        {modo === 'evolucoes' && abaExibida === 'INSTRUCOES_ENFERMAGEM' ? (
           <AbaInstrucoesEnfermagem
             atendimentoId={atendimentoId}
             medicoNome={atendimento.medico?.nome}
@@ -378,7 +395,7 @@ export function WorkspaceInternacao({
           />
         ) : null}
 
-        {abaAtual === 'LAUDO_MEDICO' ? (
+        {abaExibida === 'LAUDO_MEDICO' ? (
           <FormularioLaudoSolicitacao
             atendimentoId={atendimentoId}
             atendimentoContexto={atendimento}
@@ -387,7 +404,7 @@ export function WorkspaceInternacao({
           />
         ) : null}
 
-        {abaAtual === 'FICHA_EVOLUCAO' && modo === 'prontuario' && !isRoleEnfermagem(role) ? (
+        {abaExibida === 'FICHA_EVOLUCAO' && modo === 'prontuario' && !isRoleEnfermagem(role) ? (
           <FormularioEvolucao
             atendimentoId={atendimentoId}
             prontuarioId={prontuario.id}
@@ -399,7 +416,7 @@ export function WorkspaceInternacao({
           />
         ) : null}
 
-        {abaAtual === 'PRESCRICAO_ENFERMARIA' && modo === 'prontuario' && !isRoleEnfermagem(role) ? (
+        {abaExibida === 'PRESCRICAO_ENFERMARIA' && modo === 'prontuario' && !isRoleEnfermagem(role) ? (
           <AbaPrescricoesInternacao
             atendimentoId={atendimentoId}
             prontuarioId={prontuario.id}
@@ -409,7 +426,7 @@ export function WorkspaceInternacao({
           />
         ) : null}
 
-        {abaAtual === 'EXAMES' && modo === 'prontuario' && !isRoleEnfermagem(role) ? (
+        {abaExibida === 'EXAMES' && modo === 'prontuario' && !isRoleEnfermagem(role) ? (
           <AbaExamesInternacao
             atendimentoId={atendimentoId}
             prontuarioId={prontuario.id}
@@ -418,13 +435,13 @@ export function WorkspaceInternacao({
           />
         ) : null}
 
-        {abaAtual === 'FICHA_EVOLUCAO' && modo === 'prontuario' && isRoleEnfermagem(role) ? (
+        {abaExibida === 'FICHA_EVOLUCAO' && modo === 'prontuario' && isRoleEnfermagem(role) ? (
           <div className="bg-card border border-border rounded-xl p-6 text-sm text-muted-foreground">
             Evoluções médicas são registradas pelo médico no módulo Prontuário.
           </div>
         ) : null}
 
-        {abaAtual === 'PRESCRICAO_ENFERMARIA' && modo === 'prontuario' && isRoleEnfermagem(role) ? (
+        {abaExibida === 'PRESCRICAO_ENFERMARIA' && modo === 'prontuario' && isRoleEnfermagem(role) ? (
           <AbaPrescricoesInternacao
             atendimentoId={atendimentoId}
             prontuarioId={prontuario.id}
@@ -435,7 +452,7 @@ export function WorkspaceInternacao({
           />
         ) : null}
 
-        {abaAtual === 'EXAMES' && modo === 'prontuario' && isRoleEnfermagem(role) ? (
+        {abaExibida === 'EXAMES' && modo === 'prontuario' && isRoleEnfermagem(role) ? (
           <AbaExamesInternacao
             atendimentoId={atendimentoId}
             prontuarioId={prontuario.id}
@@ -445,30 +462,30 @@ export function WorkspaceInternacao({
           />
         ) : null}
 
-        {modo === 'evolucoes' && abaAtual === 'SINAIS_VITAIS' ? (
+        {modo === 'evolucoes' && abaExibida === 'SINAIS_VITAIS' ? (
           <AbaSinaisVitaisInternacao atendimentoId={atendimentoId} />
         ) : null}
 
-        {modo === 'evolucoes' && abaAtual === 'EVOLUCAO_DIURNA_NOTURNA' ? (
+        {modo === 'evolucoes' && abaExibida === 'EVOLUCAO_DIURNA_NOTURNA' ? (
           <FormularioEvolucaoDiurnaNoturna atendimentoId={atendimentoId} />
         ) : null}
 
-        {modo === 'evolucoes' && abaAtual === 'CONDICOES_ALTA' ? (
+        {modo === 'evolucoes' && abaExibida === 'CONDICOES_ALTA' ? (
           <FormularioCondicoesAlta
             atendimentoId={atendimentoId}
             numeroAtendimento={atendimento.numeroAtendimento}
           />
         ) : null}
 
-        {modo === 'evolucoes' && abaAtual === 'SAE' ? (
+        {modo === 'evolucoes' && abaExibida === 'SAE' ? (
           <FormularioSae atendimentoId={atendimentoId} />
         ) : null}
 
-        {abaAtual === 'INTERNACAO_OBSTETRICA' ? (
+        {obstetrico && abaExibida === 'INTERNACAO_OBSTETRICA' ? (
           <FormularioInternacaoObstetrica atendimentoId={atendimentoId} />
         ) : null}
 
-        {modo === 'evolucoes' && abaAtual === 'MEDICACAO_BERCARIO' ? (
+        {modo === 'evolucoes' && obstetrico && abaExibida === 'MEDICACAO_BERCARIO' ? (
           <FormularioBercario atendimentoId={atendimentoId} />
         ) : null}
       </div>
