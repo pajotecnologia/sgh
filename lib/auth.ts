@@ -238,20 +238,31 @@ export const authOptions: NextAuthOptions = {
 
     // Enriquecer a sessão com dados do JWT
     async session({ session, token }) {
-      if (token.sessaoValida === false) {
+      // Sessões antigas/corrompidas não podem chegar ao dashboard sem um usuário completo.
+      // Retornamos sessão sem identidade somente para o NextAuth encerrar o acesso; os
+      // layouts protegidos tratam isso como sessão inválida e redirecionam para o login.
+      if (
+        token.sessaoValida === false ||
+        typeof token.id !== 'string' ||
+        !token.id ||
+        typeof token.email !== 'string' ||
+        !token.email ||
+        typeof token.nome !== 'string' ||
+        !token.nome ||
+        !token.role
+      ) {
         return { ...session, usuario: undefined } as unknown as Session;
       }
-      if (token.id && token.email && token.role) {
-        session.usuario = {
-          id: token.id,
-          nome: token.nome,
-          email: token.email,
-          role: token.role,
-          crm: token.crm,
-          coren: token.coren,
-          sessaoId: token.sessaoId,
-        };
-      }
+
+      session.usuario = {
+        id: token.id,
+        nome: token.nome,
+        email: token.email,
+        role: token.role,
+        crm: token.crm,
+        coren: token.coren,
+        sessaoId: token.sessaoId,
+      };
       return session;
     },
 
