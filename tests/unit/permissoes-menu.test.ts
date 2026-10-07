@@ -10,6 +10,10 @@ describe('Permissões do menu', () => {
     expect(permissaoPadrao('atendimento-medico', 'MEDICO')).toBe(true)
     expect(permissaoPadrao('farmacia', 'FARMACEUTICO')).toBe(true)
     expect(permissaoPadrao('auditoria', 'ADMIN')).toBe(true)
+    expect(permissaoPadrao('admissoes', 'MEDICO')).toBe(true)
+    expect(permissaoPadrao('admissoes', 'DIRETOR_CLINICO')).toBe(true)
+    expect(permissaoPadrao('admissoes', 'FARMACEUTICO')).toBe(false)
+    expect(permissaoPadrao('mapa-leitos', 'FARMACEUTICO')).toBe(true)
   })
 
   it('possui chave única para cada item configurável', () => {
