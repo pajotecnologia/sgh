@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { UserPlus, FileText } from 'lucide-react'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { PainelAdmissoes } from '@/components/internamento/PainelAdmissoes'
 
 export const metadata: Metadata = { title: 'Admissões — Enfermagem' }
@@ -15,6 +16,7 @@ const ROLES = ['ADMIN', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM', 'RECEPCIONISTA', 'ME
 export default async function PaginaAdmissoesEnfermagem() {
   const sessao = await getServerSession(authOptions)
   if (!sessao) redirect('/login')
+  await exigirPermissaoMenu('admissoes')
   if (!ROLES.includes(sessao.usuario.role)) redirect('/acesso-negado')
 
   return (
