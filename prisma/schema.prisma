@@ -882,6 +882,8 @@ model FichaInternacaoAlta {
   id                String                    @id @default(uuid())
   atendimentoId     String                    @unique
   status            StatusFichaInternacaoAlta @default(RASCUNHO)
+  /// Status exclusivo do desfecho/alta; separado do status da admissão.
+  statusAlta        StatusAltaHospitalar      @default(RASCUNHO)
   nomePaciente      String?
   numeroProntuario  String?
   dadosFormulario   Json?
@@ -1803,6 +1805,12 @@ enum StatusLaudoSolicitacao {
 }
 
 enum StatusFichaInternacaoAlta {
+  RASCUNHO
+  EM_ANDAMENTO
+  CONCLUIDA
+}
+
+enum StatusAltaHospitalar {
   RASCUNHO
   EM_ANDAMENTO
   CONCLUIDA
