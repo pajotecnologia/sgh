@@ -16,6 +16,7 @@ import {
 import { DashboardChartCard } from '@/components/dashboard/DashboardChartCard'
 import { DashboardFiltroPeriodo } from '@/components/dashboard/DashboardFiltroPeriodo'
 import { CentralTarefasPendencias } from '@/components/dashboard/CentralTarefasPendencias'
+import { MinhaFilaResumo } from '@/components/dashboard/MinhaFilaResumo'
 import { obterEstatisticasDashboard, resolverPeriodo } from '@/lib/dashboard-stats'
 import { obterPendenciasUsuario } from '@/lib/central-tarefas'
 import { cn } from '@/lib/utils'
@@ -125,6 +126,9 @@ export default async function PaginaDashboard({
           </div>
         ))}
       </div>
+
+      {/* Operação prioritária: ação recomendada antes da camada analítica */}
+      {pendenciasIniciais && <MinhaFilaResumo dados={pendenciasIniciais} />}
 
       {/* Central de Tarefas & Pendências Clínicas por Perfil */}
       {pendenciasIniciais && <CentralTarefasPendencias dadosIniciais={pendenciasIniciais} />}
