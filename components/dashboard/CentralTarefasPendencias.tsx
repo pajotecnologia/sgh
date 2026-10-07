@@ -14,10 +14,9 @@ import {
   FlaskConical,
   BedDouble,
   CheckCircle2,
-  Sparkles,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { PendenciasUsuarioResultado, ItemPendenciaResumo } from '@/lib/central-tarefas'
+import type { PendenciasUsuarioResultado } from '@/lib/central-tarefas'
 import { BadgeManchester } from '@/components/triagem/BadgeManchester'
 import { cn } from '@/lib/utils'
 
@@ -34,6 +33,10 @@ export function CentralTarefasPendencias({ dadosIniciais }: { dadosIniciais?: Pe
   const [dados, setDados] = useState<PendenciasUsuarioResultado | null>(dadosIniciais ?? null)
   const [carregando, setCarregando] = useState(!dadosIniciais)
   const [filtroCategoria, setFiltroCategoria] = useState<string>('TODAS')
+  const [criticasAnteriores, setCriticasAnteriores] = useState(dadosIniciais?.criticas ?? 0)
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState<Date | null>(
+    dadosIniciais ? new Date() : null
+  )
 
   const recarregar = useCallback(async () => {
     try {
@@ -41,14 +44,25 @@ export function CentralTarefasPendencias({ dadosIniciais }: { dadosIniciais?: Pe
       const res = await fetch('/api/dashboard/pendencias')
       const json = await res.json()
       if (json.sucesso && json.dados) {
-        setDados(json.dados)
+        const novasPendencias = json.dados as PendenciasUsuarioResultado
+        if (novasPendencias.criticas > criticasAnteriores) {
+          const novas = novasPendencias.criticas - criticasAnteriores
+          toast.warning('Nova pendência crítica', {
+            description: novas === 1
+              ? 'Uma nova pendência crítica requer sua atenção.'
+              : `${novas} novas pendências críticas requerem sua atenção.`,
+          })
+        }
+        setCriticasAnteriores(novasPendencias.criticas)
+        setDados(novasPendencias)
+        setUltimaAtualizacao(new Date())
       }
     } catch {
       toast.error('Erro ao atualizar pendências.')
     } finally {
       setCarregando(false)
     }
-  }, [])
+  }, [criticasAnteriores])
 
   useEffect(() => {
     if (dadosIniciais) {
@@ -57,7 +71,7 @@ export function CentralTarefasPendencias({ dadosIniciais }: { dadosIniciais?: Pe
       setUltimaAtualizacao(new Date())
       return
     }
-    recarregar()
+    void recarregar()
   }, [dadosIniciais, recarregar])
 
   useEffect(() => {
@@ -111,12 +125,20 @@ export function CentralTarefasPendencias({ dadosIniciais }: { dadosIniciais?: Pe
             <p className="text-xs text-muted-foreground">
               Ações prioritárias e fluxos operacionais pendentes para o seu perfil.
             </p>
+            {ultimaAtualizacao && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Atualizado às {ultimaAtualizacao.toLocaleTimeString('pt-BR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+            )}
           </div>
         </div>
 
         <button
           type="button"
-          onClick={recarregar}
+          onClick={() => void recarregar()}
           disabled={carregando}
           className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-lg border border-border hover:bg-muted text-foreground transition-colors disabled:opacity-50"
         >
