@@ -3,6 +3,7 @@
 import type { Metadata } from 'next'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { prisma } from '@/lib/prisma'
 import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao'
 import Link from 'next/link'
@@ -30,6 +31,7 @@ export default async function PaginaAtendimentoMedico({
     'atendidos'
   )
   const sessao = await getServerSession(authOptions)
+  await exigirPermissaoMenu('atendimento-medico')
 
   if (!['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'].includes(sessao?.usuario.role ?? '')) {
     return (
