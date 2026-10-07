@@ -64,6 +64,7 @@ export function AbaSinaisVitaisInternacao({ atendimentoId }: { atendimentoId: st
   const [ganhos, setGanhos] = useState<Grid>({})
   const [perdas, setPerdas] = useState<Grid>({})
   const [evolucoes, setEvolucoes] = useState<EvolucaoDia[]>([])
+  const [modoVisualizacao, setModoVisualizacao] = useState<'grade' | 'grafico'>('grade')
 
   const carregar = useCallback(
     async (data: string) => {
@@ -153,8 +154,6 @@ export function AbaSinaisVitaisInternacao({ atendimentoId }: { atendimentoId: st
   const totalGanhos = somaGrid(ganhos)
   const totalPerdas = somaGrid(perdas)
   const balanco = totalGanhos - totalPerdas
-
-  const [modoVisualizacao, setModoVisualizacao] = useState<'grade' | 'grafico'>('grade')
 
   const dadosGrafico = HORAS_FICHA_SINAIS.map((h) => {
     const horaStr = String(h)
