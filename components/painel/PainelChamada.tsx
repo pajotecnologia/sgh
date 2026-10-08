@@ -402,13 +402,14 @@ export function PainelChamada({
             </div>
 
             {/* Caixa de Destino (Sala / Consultório) */}
-            <div className="w-full max-w-lg mt-3 flex flex-col items-center justify-center py-3 px-4 bg-gradient-to-r from-sky-950/80 via-sky-900/60 to-sky-950/80 border border-sky-500/30 rounded-2xl shadow-inner">
-              <span className="text-sky-300 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest mb-0.5">
+            <div className="w-full max-w-xl mt-3 flex flex-col items-center justify-center py-3.5 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-sky-950/80 via-sky-900/60 to-sky-950/80 border border-sky-500/30 rounded-2xl shadow-inner">
+              <span className="text-sky-300 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest mb-1 leading-normal">
                 Dirija-se à
               </span>
               <span
-                className="font-black text-white uppercase tracking-wide text-center line-clamp-1"
-                style={{ fontSize: exibirMidia ? 'clamp(1.15rem, 2vw, 1.75rem)' : 'clamp(1.4rem, 2.6vw, 2.2rem)' }}
+                className="font-black text-white uppercase tracking-wide text-center max-w-full truncate leading-normal py-0.5"
+                style={{ fontSize: exibirMidia ? 'clamp(1.15rem, 2vw, 1.75rem)' : 'clamp(1.35rem, 2.5vw, 2.2rem)' }}
+                title={chamadaAtual.salaDestino}
               >
                 {chamadaAtual.salaDestino}
               </span>
