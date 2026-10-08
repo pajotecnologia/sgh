@@ -17,37 +17,46 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sucesso: false, erro: 'Sessão inválida ou expirada.' }, { status: 401 })
   }
 
-  const userId = req.nextUrl.searchParams.get('usuarioId') ?? sessao.usuario.id
-  const somenteEu = userId === sessao.usuario.id
+  try {
+    const userId = req.nextUrl.searchParams.get('usuarioId') ?? sessao.usuario.id
+    const somenteEu = userId === sessao.usuario.id
 
-  if (!somenteEu && !admin(sessao)) {
-    return NextResponse.json({ sucesso: false, erro: 'Acesso negado.' }, { status: 403 })
+    if (!somenteEu && !admin(sessao)) {
+      return NextResponse.json({ sucesso: false, erro: 'Acesso negado.' }, { status: 403 })
+    }
+
+    const usuario = await prisma.usuario.findFirst({
+      where: { id: userId, deletedAt: null },
+      select: { id: true, nome: true, email: true, role: true, ativo: true },
+    })
+
+    if (!usuario) {
+      return NextResponse.json({ sucesso: false, erro: 'Usuário não encontrado.' }, { status: 404 })
+    }
+
+    const permissoes = await obterPermissoesEfetivas(usuario.id, usuario.role)
+    const dados = MENU_PERMISSOES.map((item) => ({
+      ...item,
+      padrao: permissaoPadrao(item.chave, usuario.role),
+      permitido: permissoes[item.chave],
+    }))
+
+    return NextResponse.json({
+      sucesso: true,
+      dados: {
+        usuario,
+        permissoes,
+        itens: dados,
+        bloqueioAdmin: usuario.role === 'ADMIN',
+      },
+    })
+  } catch (erro) {
+    console.error('[GET /api/configuracoes/permissoes]', erro)
+    return NextResponse.json(
+      { sucesso: false, erro: 'Não foi possível carregar as permissões. Verifique a disponibilidade do banco de dados.' },
+      { status: 503 }
+    )
   }
-
-  const usuario = await prisma.usuario.findFirst({
-    where: { id: userId, deletedAt: null },
-    select: { id: true, nome: true, email: true, role: true, ativo: true },
-  })
-
-  if (!usuario) return NextResponse.json({ sucesso: false, erro: 'Usuário não encontrado.' }, { status: 404 })
-
-  const permissoes = await obterPermissoesEfetivas(usuario.id, usuario.role)
-
-  const dados = MENU_PERMISSOES.map((item) => ({
-    ...item,
-    padrao: permissaoPadrao(item.chave, usuario.role),
-    permitido: permissoes[item.chave],
-  }))
-
-  return NextResponse.json({
-    sucesso: true,
-    dados: {
-      usuario,
-      permissoes,
-      itens: dados,
-      bloqueioAdmin: usuario.role === 'ADMIN',
-    },
-  })
 }
 
 export async function PUT(req: NextRequest) {
