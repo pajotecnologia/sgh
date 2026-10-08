@@ -23,8 +23,10 @@ export default async function DashboardLayout({
 }) {
   const sessao = await getServerSession(authOptions);
 
-  if (!sessao) {
-    redirect('/login');
+  // Sessão parcialmente inválida (ex.: JWT antigo/incompleto) não deve
+  // chegar ao DashboardShell e provocar erro de renderização.
+  if (!sessao?.usuario?.id || !sessao.usuario.role) {
+    redirect('/login?reason=session');
   }
 
   return <DashboardShell usuario={sessao.usuario}>{children}</DashboardShell>;
