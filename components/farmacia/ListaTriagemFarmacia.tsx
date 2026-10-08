@@ -3,12 +3,30 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { CheckCircle2, XCircle, Loader2, AlertTriangle, Bell } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader2, AlertTriangle, Bell, Boxes } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EnvoltorioListaPaginada } from '@/components/shared/EnvoltorioListaPaginada'
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao'
 import { getPusherCliente, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher'
 import type { InteracaoCritica } from '@/components/farmacia/ModalInteracaoCritica'
+
+function kitSugerido(nome: string = '', via: string = ''): string | null {
+  const n = nome.toUpperCase();
+  if (n.includes('CURATIVO ESPECIAL') || n.includes('QUEIMADURA')) return 'Kit Curativo Especial / Queimaduras';
+  if (n.includes('CURATIVO')) return 'Kit Curativo Simples / Oclusivo';
+  if (n.includes('SVD') || n.includes('VESICAL DE DEMORA') || n.includes('FOLEY')) return 'Kit Sondagem Vesical de Demora (SVD)';
+  if (n.includes('SVA') || n.includes('VESICAL DE ALIVIO')) return 'Kit Sondagem Vesical de Alívio (SVA)';
+  if (n.includes('SNG') || n.includes('SNE') || n.includes('NASOGASTRICA') || n.includes('NASOENTERAL')) return 'Kit Sondagem Nasogástrica / Enteral';
+  if (n.includes('PONTO') || n.includes('SUTURA')) return 'Kit Retirada de Pontos';
+  if (n.includes('PUNCAO') || n.includes('ACESSO VENOSO')) return 'Kit Acesso Venoso Periférico';
+
+  if (via === 'INTRAVENOSA') return 'Kit Injeção / Aplicação Endovenosa (EV)';
+  if (via === 'INTRAMUSCULAR') return 'Kit Injeção Intramuscular (IM)';
+  if (via === 'SUBCUTANEA') return 'Kit Injeção Subcutânea (SC)';
+  if (via === 'INALATORIA') return 'Kit Inalação / Nebulização';
+
+  return null;
+}
 
 type SaldoInfo = {
   saldoAtual: number | null
@@ -177,6 +195,16 @@ export function ListaTriagemFarmacia({
                   <span className="mx-1">•</span>
                   {l.item.dose} • {l.item.via} • {l.item.frequencia} • Qtde {l.item.quantidadeSolicitada}
                 </p>
+                {(() => {
+                  const kit = kitSugerido(l.item.medicamentoNome, l.item.via)
+                  if (!kit) return null
+                  return (
+                    <p className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 mt-1 flex items-center gap-1">
+                      <Boxes className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+                      <span>Kit de Insumos: {kit}</span>
+                    </p>
+                  )
+                })()}
                 <p className="text-[11px] text-muted-foreground mt-1">
                   {a.setor ? `Ala/Setor: ${a.setor}` : 'Ala/Setor: —'} • {a.sala ? `Leito: ${a.sala}` : 'Leito: —'}
                   {l.item.medicamento ? ` • Saldo: ${l.item.medicamento.saldoAtual}` : ''}
@@ -291,6 +319,21 @@ export function ListaTriagemFarmacia({
                   ) : null}
                 </div>
               ) : null}
+
+              {(() => {
+                const kit = kitSugerido(itemModal.item.medicamentoNome, itemModal.item.via)
+                if (!kit) return null
+                return (
+                  <div className="rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/70 dark:bg-blue-950/30 p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Boxes className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <span className="text-xs text-blue-900 dark:text-blue-200">
+                        <strong>Kit de Insumos Vinculado:</strong> {kit} (separar descartáveis correspondentes com a medicação).
+                      </span>
+                    </div>
+                  </div>
+                )
+              })()}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="bg-muted/40 border border-border rounded-lg p-3">
