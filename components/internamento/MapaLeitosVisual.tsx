@@ -87,12 +87,25 @@ export function MapaLeitosVisual() {
     try {
       setCarregando(true)
       const res = await fetch('/api/internamento/mapa-leitos')
-      const json = await res.json()
-      if (json.sucesso && json.dados) {
-        setDados(json.dados)
-      } else {
-        toast.error(json.erro || 'Falha ao carregar mapa de leitos.')
+      const json = await res.json().catch(() => ({}))
+
+      if (res.status === 401) {
+        window.location.href = '/login?reason=session'
+        return
       }
+
+      if (res.status === 403) {
+        toast.error('Você não possui permissão para acessar o Mapa de Leitos.')
+        setDados(null)
+        return
+      }
+
+      if (!res.ok || !json.sucesso || !json.dados) {
+        toast.error(json.erro || 'Falha ao carregar mapa de leitos.')
+        return
+      }
+
+      setDados(json.dados)
     } catch {
       toast.error('Erro de conexão ao carregar mapa de leitos.')
     } finally {
@@ -188,6 +201,11 @@ export function MapaLeitosVisual() {
         setLeitoDestinoSelecionado('')
         setMotivoTransferencia('')
         carregarDados()
+      } else if (res.status === 401) {
+        window.location.href = '/login?reason=session'
+        return
+      } else if (res.status === 403) {
+        toast.error('Você não possui permissão para transferir pacientes entre leitos.')
       } else {
         toast.error(json.erro || 'Falha ao transferir leito.')
       }
@@ -221,6 +239,11 @@ export function MapaLeitosVisual() {
         setLeitoStatusModal(null)
         setMotivoStatus('')
         carregarDados()
+      } else if (res.status === 401) {
+        window.location.href = '/login?reason=session'
+        return
+      } else if (res.status === 403) {
+        toast.error('Você não possui permissão para alterar o status do leito.')
       } else {
         toast.error(json.erro || 'Falha ao atualizar status.')
       }
