@@ -67,6 +67,7 @@ function montarTriagemFicha(atendimento: AtendimentoFichaPayload): TriagemFichaD
     localizacaoDor: extra.localizacaoDor ?? null,
     irradiacaoDorSites: extra.irradiacaoDorSites ?? null,
     estadoConscienciaSinais: extra.estadoConscienciaSinais ?? null,
+    dorPresente: extra.dorPresente ?? null,
   };
 }
 

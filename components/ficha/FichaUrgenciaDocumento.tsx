@@ -10,6 +10,12 @@ import {
   type IrradiacaoDorSiteKey,
 } from '@/lib/ficha-dor-irradiacao';
 import {
+  DOR_PRESENTE_KEYS,
+  DOR_PRESENTE_LABELS,
+  parseDorPresenteCsv,
+  type DorPresenteKey,
+} from '@/lib/ficha-dor-presente';
+import {
   PARAMETROS_CLINICOS_ESTADO_KEYS,
   PARAMETROS_CLINICOS_CIRCULATORY_KEYS,
   ESTADO_CONSCIENCIA_SINAIS_LABELS,
@@ -132,6 +138,7 @@ export type TriagemFichaDados = {
   ritmo?: string | null;
   duracaoDor?: string | null;
   localizacaoDor?: string | null;
+  dorPresente?: string | null;
   irradiacaoDorSites?: string | null;
   estadoConscienciaSinais?: string | null;
 };
@@ -231,18 +238,23 @@ export function FichaUrgenciaDocumento({
   const dorMarcada = (rotulo: string) =>
     tipoDor && tipoDor.toLowerCase().includes(rotulo.toLowerCase());
 
+  const duracaoDorExibicao =
+    triagem?.duracaoDor?.trim() || triagem?.tempoQueixa?.trim() || '';
+
   const textoFluxo = [
     triagem?.fluxograma,
     triagem?.discriminador,
     triagem?.ritmo,
     triagem?.irradiacao,
-    triagem?.tempoQueixa,
   ]
     .filter((x) => x && String(x).trim())
     .join('\n');
 
   const irradiacaoSitesMarcados = parseIrradiacaoDorSitesCsv(triagem?.irradiacaoDorSites);
   const irradMarcada = (k: IrradiacaoDorSiteKey) => irradiacaoSitesMarcados.includes(k);
+
+  const dorPresenteMarcados = parseDorPresenteCsv(triagem?.dorPresente);
+  const dorPresMarcada = (k: DorPresenteKey) => dorPresenteMarcados.includes(k);
 
   const numPrescRows = 8;
   const prescRows: { conduta: string; horario: string }[] = Array.from({ length: numPrescRows }, (_, i) => {
@@ -515,8 +527,8 @@ export function FichaUrgenciaDocumento({
           <div className="grid grid-cols-2 gap-1">
             <div>
               <p className="font-bold uppercase text-[7px] mb-0.25">Duração da dor</p>
-              <div className="min-h-[1.05rem] border border-black px-1 py-0.25 text-[7px] leading-tight">
-                {triagem?.duracaoDor?.trim() ? triagem.duracaoDor : '\u00A0'}
+              <div className="min-h-[1.05rem] border border-black px-1 py-0.25 text-[7px] leading-tight font-semibold">
+                {duracaoDorExibicao ? duracaoDorExibicao : '\u00A0'}
               </div>
             </div>
             <div>
@@ -542,15 +554,12 @@ export function FichaUrgenciaDocumento({
           <div>
             <p className="font-bold text-[7px] uppercase mb-0.25">Dor presente</p>
             <div className="flex gap-1">
-              <div className="flex-1 border border-black px-1 py-0.25 text-[7px] text-center leading-tight">
-                ( ) Em repouso
-              </div>
-              <div className="flex-1 border border-black px-1 py-0.25 text-[7px] text-center leading-tight">
-                ( ) Aos esforços
-              </div>
-              <div className="flex-1 border border-black px-1 py-0.25 text-[7px] text-center leading-tight">
-                ( ) Ao respirar
-              </div>
+              {DOR_PRESENTE_KEYS.map((key) => (
+                <div key={key} className="flex-1 border border-black px-1 py-0.25 text-[7px] text-center leading-tight font-semibold uppercase">
+                  (<span className="inline-block w-2 text-center">{dorPresMarcada(key) ? 'X' : '\u00A0'}</span>){' '}
+                  {DOR_PRESENTE_LABELS[key]}
+                </div>
+              ))}
             </div>
           </div>
 

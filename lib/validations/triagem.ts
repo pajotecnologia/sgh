@@ -99,6 +99,15 @@ export const schemaRegistrarTriagem = z.object({
 
   duracaoDor: z.string().max(500).optional(),
   localizacaoDor: z.string().max(500).optional(),
+  dorPresente: z
+    .array(
+      z.enum([
+        'EM_REPOUSO',
+        'AOS_ESFORCOS',
+        'AO_RESPIRAR',
+      ])
+    )
+    .optional(),
   irradiacaoDorSites: z
     .array(
       z.enum([

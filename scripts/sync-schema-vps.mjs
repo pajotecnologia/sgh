@@ -16,6 +16,13 @@ async function main() {
     await client.query('ALTER TABLE "instituicoes" ADD COLUMN IF NOT EXISTS "mfaHabilitado" BOOLEAN NOT NULL DEFAULT true;');
     console.log('✓ Coluna mfaHabilitado adicionada em instituicoes.');
 
+    await client.query('ALTER TABLE "triagens" ADD COLUMN IF NOT EXISTS "duracaoDor" TEXT;');
+    await client.query('ALTER TABLE "triagens" ADD COLUMN IF NOT EXISTS "localizacaoDor" TEXT;');
+    await client.query('ALTER TABLE "triagens" ADD COLUMN IF NOT EXISTS "dorPresente" TEXT;');
+    await client.query('ALTER TABLE "triagens" ADD COLUMN IF NOT EXISTS "irradiacaoDorSites" TEXT;');
+    await client.query('ALTER TABLE "triagens" ADD COLUMN IF NOT EXISTS "estadoConscienciaSinais" TEXT;');
+    console.log('✓ Colunas de avaliação de dor e consciência verificadas em triagens.');
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS "tb_uploads_sistema" (
         "id" TEXT NOT NULL,

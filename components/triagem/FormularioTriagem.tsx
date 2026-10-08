@@ -31,6 +31,11 @@ import { notificarFilaAtualizada } from '@/lib/fila-triagem-sync'
 import type { CorTriagem } from '@/types'
 import { IRRADIACAO_DOR_SITE_KEYS, IRRADIACAO_DOR_SITE_LABELS } from '@/lib/ficha-dor-irradiacao'
 import {
+  DOR_PRESENTE_KEYS,
+  DOR_PRESENTE_LABELS,
+  type DorPresenteKey,
+} from '@/lib/ficha-dor-presente'
+import {
   PARAMETROS_CLINICOS_ESTADO_KEYS,
   PARAMETROS_CLINICOS_CIRCULATORY_KEYS,
   ESTADO_CONSCIENCIA_SINAIS_LABELS,
@@ -94,8 +99,9 @@ export function FormularioTriagem({
       alergias: triagemInicial?.alergias ?? alergiasPreCadastro ?? '',
       regraDor: triagemInicial?.regraDor,
       tipoDorToracica: triagemInicial?.tipoDorToracica as RegistrarTriagemForm['tipoDorToracica'],
-      duracaoDor: triagemInicial?.duracaoDor,
-      localizacaoDor: triagemInicial?.localizacaoDor,
+      duracaoDor: triagemInicial?.duracaoDor ?? '',
+      localizacaoDor: triagemInicial?.localizacaoDor ?? '',
+      dorPresente: triagemInicial?.dorPresente ?? [],
       fluxograma: triagemInicial?.fluxograma,
       discriminador: triagemInicial?.discriminador,
       especialidade: triagemInicial?.especialidade,
@@ -110,6 +116,7 @@ export function FormularioTriagem({
   const altura = watch('sinaisVitais.altura')
   const estadoConscienciaSinais = watch('estadoConscienciaSinais') ?? []
   const irradiacaoDorSites = watch('irradiacaoDorSites') ?? []
+  const dorPresente = watch('dorPresente') ?? []
   const mostrarCamposDor = categoriaQueixa === 'dor'
 
   const camposProgresso = [
@@ -174,12 +181,30 @@ export function FormularioTriagem({
     )
   }
 
+  function toggleDorPresente(key: DorPresenteKey) {
+    const cur = watch('dorPresente') ?? []
+    const sel = cur.includes(key)
+    setValue(
+      'dorPresente',
+      sel ? cur.filter((k) => k !== key) : [...cur, key],
+      { shouldDirty: true }
+    )
+  }
+
   async function onSubmit(dados: RegistrarTriagemForm) {
     try {
+      // Se não informou duracaoDor explicitamente mas preencheu tempo da queixa com categoria dor, usa tempoQueixa
+      const duracaoFinal = dados.duracaoDor?.trim() || (dados.categoriaQueixa === 'dor' ? dados.tempoQueixa?.trim() : '') || ''
+      const payload: RegistrarTriagemForm = {
+        ...dados,
+        duracaoDor: duracaoFinal || undefined,
+        dorPresente: dados.dorPresente && dados.dorPresente.length > 0 ? dados.dorPresente : undefined,
+      }
+
       const res = await fetch('/api/triagem', {
         method: triagemInicial ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dados),
+        body: JSON.stringify(payload),
       })
       const json = await res.json()
       if (!json.sucesso) {
@@ -625,9 +650,9 @@ export function FormularioTriagem({
           <div className="pt-5 border-t border-border space-y-4">
             <p className="text-sm font-semibold text-foreground">Caracterização da dor</p>
             <p className="text-xs text-muted-foreground -mt-2">
-              Registre as características clínicas sem repetir o tempo de evolução informado na queixa principal.
+              Registre as características clínicas para impressão detalhada da ficha de atendimento.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Característica da dor</label>
                 <select {...register('tipoDorToracica')} className={inputText()}>
@@ -638,32 +663,68 @@ export function FormularioTriagem({
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Localização</label>
+                <label className="text-sm font-medium mb-1.5 block">Duração da dor</label>
+                <input
+                  {...register('duracaoDor', registerTextoCadastro)}
+                  className={inputText()}
+                  placeholder="EX: 4HS, 2 DIAS, DESDE ONTEM"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Localização da dor</label>
                 <input
                   {...register('localizacaoDor', registerTextoCadastro)}
                   className={inputText()}
-                  placeholder="EX: PRECORDIAL, ABDOME, MEMBRO INFERIOR"
+                  placeholder="EX: PRECORDIAL, ABDOME, MEMBRO INF."
                 />
               </div>
             </div>
+
             <div>
-              <p className="text-sm font-medium mb-2">Irradiação (marque conforme aplicável)</p>
+              <p className="text-sm font-medium mb-2">Dor presente (condições de ocorrência)</p>
               <div className="flex flex-wrap gap-2">
-                {IRRADIACAO_DOR_SITE_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => toggleIrradiacaoSite(key)}
-                    className={cn(
-                      'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-                      irradiacaoDorSites.includes(key)
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border hover:bg-muted'
-                    )}
-                  >
-                    {IRRADIACAO_DOR_SITE_LABELS[key]}
-                  </button>
-                ))}
+                {DOR_PRESENTE_KEYS.map((key) => {
+                  const sel = dorPresente.includes(key)
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => toggleDorPresente(key)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
+                        sel
+                          ? 'border-primary bg-primary/15 text-primary font-semibold ring-1 ring-primary/30 shadow-sm'
+                          : 'border-border bg-background hover:bg-muted/70'
+                      )}
+                    >
+                      {sel ? '✓ ' : ''}{DOR_PRESENTE_LABELS[key]}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium mb-2">Irradiação da dor (marque conforme aplicável)</p>
+              <div className="flex flex-wrap gap-2">
+                {IRRADIACAO_DOR_SITE_KEYS.map((key) => {
+                  const sel = irradiacaoDorSites.includes(key)
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => toggleIrradiacaoSite(key)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
+                        sel
+                          ? 'border-primary bg-primary/15 text-primary font-semibold ring-1 ring-primary/30 shadow-sm'
+                          : 'border-border bg-background hover:bg-muted/70'
+                      )}
+                    >
+                      {sel ? '✓ ' : ''}{IRRADIACAO_DOR_SITE_LABELS[key]}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </div>

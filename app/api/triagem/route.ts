@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       atendimentoId, corClassificacao, queixaPrincipal, categoriaQueixa, sinaisVitais,
       doencasPreexistentes, medicacoes, alergias, acidenteTrabalho, regraDor,
       tipoDorToracica, irradiacao, tempoQueixa, fluxograma, discriminador, especialidade,
-      duracaoDor, localizacaoDor, irradiacaoDorSites, estadoConscienciaSinais,
+      duracaoDor, localizacaoDor, dorPresente, irradiacaoDorSites, estadoConscienciaSinais,
     } = validacao.data;
 
     // Verificar se o atendimento existe e está aguardando triagem
@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
           irradiacao: irradiacao || null,
           duracaoDor: duracaoDor?.trim() || null,
           localizacaoDor: localizacaoDor?.trim() || null,
+          dorPresente: dorPresente && dorPresente.length > 0 ? dorPresente.join(',') : null,
           irradiacaoDorSites:
             irradiacaoDorSites && irradiacaoDorSites.length > 0 ? irradiacaoDorSites.join(',') : null,
           estadoConscienciaSinais: estadoConscienciaSinaisKeysToCsv(estadoConscienciaSinais ?? []),
@@ -241,7 +242,7 @@ export async function PUT(req: NextRequest) {
       atendimentoId, corClassificacao, queixaPrincipal, categoriaQueixa, sinaisVitais,
       doencasPreexistentes, medicacoes, alergias, acidenteTrabalho, regraDor,
       tipoDorToracica, irradiacao, tempoQueixa, fluxograma, discriminador, especialidade,
-      duracaoDor, localizacaoDor, irradiacaoDorSites, estadoConscienciaSinais,
+      duracaoDor, localizacaoDor, dorPresente, irradiacaoDorSites, estadoConscienciaSinais,
     } = validacao.data;
 
     const atendimento = await prisma.atendimento.findFirst({
@@ -286,6 +287,7 @@ export async function PUT(req: NextRequest) {
           irradiacao: irradiacao || null,
           duracaoDor: duracaoDor?.trim() || null,
           localizacaoDor: localizacaoDor?.trim() || null,
+          dorPresente: dorPresente && dorPresente.length > 0 ? dorPresente.join(',') : null,
           irradiacaoDorSites:
             irradiacaoDorSites && irradiacaoDorSites.length > 0 ? irradiacaoDorSites.join(',') : null,
           estadoConscienciaSinais: estadoConscienciaSinaisKeysToCsv(estadoConscienciaSinais ?? []),

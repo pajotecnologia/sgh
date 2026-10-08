@@ -498,6 +498,8 @@ model Triagem {
   tipoDorToracica      String?
   duracaoDor           String?
   localizacaoDor       String?
+  /// Marcadores de momento em que a dor se manifesta (CSV de chaves, ex.: EM_REPOUSO,AOS_ESFORCOS)
+  dorPresente          String?
   /// Marcadores de irradiação (CSV de chaves, ex.: BRACO_E,ABDOME)
   irradiacaoDorSites String?
   /// Estado/consciência/sinais (CSV de chaves)

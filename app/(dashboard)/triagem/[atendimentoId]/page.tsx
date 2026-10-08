@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { FormularioTriagem } from '@/components/triagem/FormularioTriagem';
 import { ToggleObstetrico } from '@/components/atendimento/ToggleObstetrico';
 import { parseEstadoConscienciaSinaisCsv } from '@/lib/triagem-estado-consciencia-sinais';
+import { parseDorPresenteCsv } from '@/lib/ficha-dor-presente';
 import { descriptografar } from '@/lib/encryption';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -112,6 +113,9 @@ export default async function PaginaRealizarTriagem({
                   tipoDorToracica: (atendimento.triagem.tipoDorToracica ?? '') as '' | 'NORMAL' | 'QUEIMACAO' | 'APERTO' | 'PONTADA',
                   duracaoDor: atendimento.triagem.duracaoDor ?? undefined,
                   localizacaoDor: atendimento.triagem.localizacaoDor ?? undefined,
+                  dorPresente: atendimento.triagem.dorPresente
+                    ? [...parseDorPresenteCsv(atendimento.triagem.dorPresente)]
+                    : [],
                   irradiacaoDorSites: atendimento.triagem.irradiacaoDorSites
                     ? (atendimento.triagem.irradiacaoDorSites
                         .split(',')
