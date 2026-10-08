@@ -72,6 +72,18 @@ npm run db:migrate:deploy
 npm run db:seed   # opcional: utilizadores de demonstração; troque senhas em produção
 ```
 
+### Bancos existentes sem histórico Prisma
+
+O SGH possui o script `scripts/deploy-migrations-safe.mjs` para o cenário em que o PostgreSQL já possui estrutura, mas ainda não possui histórico em `_prisma_migrations`.
+
+Com Prisma 7, o script utiliza `prisma migrate diff --from-config-datasource` em conjunto com `prisma.config.ts`. A opção antiga `--from-url` não deve ser utilizada.
+
+O baseline é permitido somente quando o diff confirmar compatibilidade estrutural. Se houver diferença, o processo deve falhar e o schema do banco deve ser corrigido antes de marcar migrations como aplicadas.
+
+**Não executar baseline manualmente para esconder schema drift.** Primeiro faça backup e investigue a diferença.
+
+Incidente documentado em [docs/incidentes-producao.md](docs/incidentes-producao.md).
+
 A variável `DATABASE_URL` deve apontar para o Postgres da VPS, por exemplo:
 
 `postgresql://sgh_user:SENHA_FORTE@127.0.0.1:5432/sgh_db`

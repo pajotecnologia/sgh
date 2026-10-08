@@ -177,3 +177,31 @@ O foco passa a ser assistência, gestão operacional, regulação, segurança do
   - `npx tsc --noEmit` executado com **0 erros de tipagem**.
   - `npm run build` validado com compilação de todas as 48 rotas estáticas e dinâmicas com sucesso.
 
+---
+
+## 15. Incidentes de Produção e Correção do Prisma 7 — 2026-10-08
+
+### 15.1 Falha de inicialização do container
+
+Durante deploy no Coolify, o novo container permaneceu `unhealthy` e sofreu rollback. O processo de entrada do SGH executava as migrations antes de iniciar o Next.js.
+
+O PostgreSQL existente retornou P3005 porque possuía schema sem histórico Prisma. O script de baseline tentou executar `prisma migrate diff --from-url`, opção removida no Prisma 7.8.0.
+
+### 15.2 Correção aplicada
+
+O arquivo `scripts/deploy-migrations-safe.mjs` foi atualizado para usar `--from-config-datasource`, mantendo `prisma.config.ts` como fonte do datasource.
+
+A regra de segurança permaneceu: nenhum baseline é aplicado se o diff indicar diferença estrutural.
+
+O PR #28 passou pela CI e foi integrado à `main` em 2026-10-08 com o commit `ffbea667b8e28c519ee21cab82cfe4329b1b6c3c`.
+
+### 15.3 Healthcheck
+
+O Dockerfile instala `curl` e `wget` e executa healthcheck em `/api/health` na porta 3002. O aviso do Coolify sobre ferramentas de healthcheck foi tratado como secundário porque o processo estava falhando anteriormente durante migrations.
+
+### 15.4 Estado e procedimento
+
+A correção de código está na `main`. A validação final depende de novo deploy no Coolify. Se o PostgreSQL apresentar drift real, o deploy deve continuar falhando de forma segura até que a diferença seja corrigida. Baseline forçado não é permitido.
+
+Para detalhes operacionais, consultar `docs/incidentes-producao.md`.
+

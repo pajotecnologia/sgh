@@ -38,6 +38,13 @@ Sistema hospitalar completo para unidades de urgência/emergência e internaçã
 
 ---
 
+## 🚨 Produção e incidentes
+
+- [**Registro de Incidentes e Correções de Produção**](docs/incidentes-producao.md) — histórico dos problemas de deploy, Prisma 7, baseline, RBAC, healthcheck e correções aplicadas.
+- O deploy de produção deve ser validado também no runtime do Coolify; CI verde não substitui a validação do PostgreSQL e do healthcheck reais.
+
+---
+
 ## 📚 Documentação Técnica Oficial (`/docs`)
 
 Para documentação aprofundada de engenharia e operação, consulte os manuais em `/docs`:

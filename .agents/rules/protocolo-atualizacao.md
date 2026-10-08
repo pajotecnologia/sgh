@@ -35,3 +35,16 @@ git fetch origin main && git reset --hard origin/main && npm run deploy:prod
 3. `npm run db:migrate:deploy` (Aplica migrações PostgreSQL com segurança)
 4. `npm run build:release` (Compila Next.js e empacota a release)
 5. `pm2 reload sgh.pajotech.com.br` (Recarrega o processo no PM2 com zero downtime)
+
+## 5. Regra para migrations Prisma 7 em produção
+
+Antes de qualquer atualização que altere schema, validar migrations no CI e no ambiente de produção.
+
+Para PostgreSQL existente sem histórico Prisma, usar `scripts/deploy-migrations-safe.mjs`. O script utiliza `--from-config-datasource`; `--from-url` não é compatível com Prisma 7.8.0.
+
+Nunca marcar todas as migrations como aplicadas para esconder uma diferença estrutural. Em caso de diff real, parar o deploy, fazer backup e corrigir o schema/migration de forma controlada.
+
+Em caso de container `unhealthy`, diagnosticar primeiro entrypoint, migrations e inicialização do Next.js. O Dockerfile já fornece `curl` e `wget` para o healthcheck.
+
+Consultar o registro em `docs/incidentes-producao.md`.
+
