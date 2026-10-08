@@ -41,6 +41,7 @@ import {
   Sparkles,
   Syringe,
   UserCheck,
+  Boxes,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import type { Role, UsuarioSessao } from '@/types';
@@ -197,6 +198,7 @@ const GRUPOS_NAVEGACAO: GrupoNav[] = [
           { label: 'Prescrições Médicas', href: '/cadastros/prescricoes-medicas', icon: ClipboardList },
           { label: 'Profissionais / Usuários', href: '/cadastros/profissionais', icon: Users },
           { label: 'Medicamentos e Materiais', href: '/cadastros/medicamentos', icon: Package },
+          { label: 'Kits Automáticos (Insumos)', href: '/cadastros/kits', icon: Boxes },
           { label: 'Fornecedores', href: '/cadastros/fornecedores', icon: Truck },
           { label: 'Sinônimos (Farmácia)', href: '/cadastros/sinonimos', icon: Tags },
         ],
