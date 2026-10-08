@@ -241,3 +241,33 @@ A próxima grande etapa não é “consertar o sistema”, mas **transformar as 
 ---
 
 *Última atualização: 2026-10-07 — direcionamento ajustado para rede pública de saúde e retirada do faturamento do roadmap.*
+
+## 9. Incidentes de produção e correções — 2026-10-08
+
+Foi documentado um incidente de deploy em que o container do Coolify ficou `unhealthy` durante a inicialização.
+
+### Causa identificada
+
+- PostgreSQL de produção já existente sem histórico Prisma.
+- `prisma migrate deploy` retornando P3005.
+- Script de baseline usando a opção removida `--from-url` do Prisma 7.8.0.
+- O diagnóstico de incompatibilidade do schema era inconclusivo porque o comando de diff falhava antes da comparação.
+
+### Correção
+
+- `scripts/deploy-migrations-safe.mjs` passou a utilizar `--from-config-datasource`.
+- A validação estrutural antes do baseline foi preservada.
+- O baseline continua bloqueado quando existe diferença real entre banco e schema.
+- PR #28 foi validado pela CI e integrado à `main` em 2026-10-08.
+- Commit de merge: `ffbea667b8e28c519ee21cab82cfe4329b1b6c3c`.
+- Dockerfile já instala `curl` e `wget` e possui healthcheck para `/api/health`.
+
+### Pendência de produção
+
+O GitHub não possui acesso direto ao runtime do Coolify/PostgreSQL. É necessário executar novo deploy da `main`. Se o banco possuir diferença estrutural real, o novo log deverá mostrar a diferença sem aplicar baseline indevido.
+
+Consulte o diagnóstico completo em [docs/incidentes-producao.md](docs/incidentes-producao.md).
+
+---
+
+*Última atualização: 2026-10-08 — registro de incidentes de produção, correção Prisma 7 e fluxo de baseline seguro.*
