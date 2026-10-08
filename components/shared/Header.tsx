@@ -106,15 +106,15 @@ export function Header({ usuario }: HeaderProps) {
           >
             <div className="text-right hidden sm:block">
               <p className="text-xs font-semibold text-foreground leading-tight">
-                {usuario.nome.split(' ')[0]}
+                {usuario?.nome ? usuario.nome.split(' ')[0] : 'Usuário'}
               </p>
               <p className="text-[10px] text-muted-foreground">
-                {usuario.email}
+                {usuario?.email ?? ''}
               </p>
             </div>
             <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
               <span className="text-primary text-xs font-bold">
-                {usuario.nome.charAt(0).toUpperCase()}
+                {usuario?.nome ? usuario.nome.charAt(0).toUpperCase() : 'U'}
               </span>
             </div>
           </Link>

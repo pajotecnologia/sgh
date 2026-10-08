@@ -5,6 +5,7 @@ import { Check, ChevronDown, Loader2, RotateCcw, ShieldCheck, UserCog, X } from 
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { MENU_PERMISSOES, chavesPorGrupo, type ChavePermissao } from '@/lib/permissoes-menu'
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 
 interface Usuario {
   id: string
@@ -24,7 +25,7 @@ const ROTULOS_ROLE: Record<string, string> = {
   FARMACEUTICO: 'Farmacêutico',
 }
 
-export function PermissoesUsuarios() {
+function PermissoesUsuariosConteudo() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [usuarioId, setUsuarioId] = useState('')
   const [permissoes, setPermissoes] = useState<Record<string, boolean>>({})
@@ -42,10 +43,10 @@ export function PermissoesUsuarios() {
       .then((res) => res.json())
       .then((json) => {
         if (!ativo) return
-        if (!json.sucesso) throw new Error(json.erro)
-        const lista = (json.dados ?? []) as Usuario[]
+        if (!json?.sucesso) throw new Error(json?.erro || 'Erro ao obter usuários')
+        const lista = Array.isArray(json?.dados) ? (json.dados as Usuario[]) : []
         setUsuarios(lista)
-        const primeiro = lista.find((u) => u.ativo && u.role !== 'ADMIN') ?? lista.find((u) => u.ativo)
+        const primeiro = lista.find((u) => u.ativo && u.role !== 'ADMIN') ?? lista.find((u) => u.ativo) ?? lista[0]
         if (primeiro) setUsuarioId(primeiro.id)
       })
       .catch((erro) => {
@@ -67,13 +68,14 @@ export function PermissoesUsuarios() {
       .then((res) => res.json())
       .then((json) => {
         if (!ativo) return
-        if (!json.sucesso) throw new Error(json.erro)
-        setPermissoes(json.dados.permissoes ?? {})
+        if (!json?.sucesso) throw new Error(json?.erro || 'Erro ao obter permissões')
+        setPermissoes(json.dados?.permissoes ?? {})
+        const itens = Array.isArray(json.dados?.itens) ? json.dados.itens : []
         const mapaPadrao = Object.fromEntries(
-          (json.dados.itens ?? []).map((item: { chave: string; padrao: boolean }) => [item.chave, item.padrao])
+          itens.map((item: { chave: string; padrao: boolean }) => [item.chave, item.padrao])
         )
         setPadroes(mapaPadrao)
-        setBloqueioAdmin(Boolean(json.dados.bloqueioAdmin))
+        setBloqueioAdmin(Boolean(json.dados?.bloqueioAdmin))
       })
       .catch((erro) => {
         if (ativo) toast.error(erro instanceof Error ? erro.message : 'Erro ao carregar permissões.')
@@ -88,23 +90,23 @@ export function PermissoesUsuarios() {
 
   const grupos = useMemo(() => chavesPorGrupo(), [])
   const total = MENU_PERMISSOES.length
-  const liberados = MENU_PERMISSOES.filter((item) => permissoes[item.chave]).length
+  const liberados = MENU_PERMISSOES.filter((item) => Boolean(permissoes?.[item.chave])).length
 
   function alterar(chave: ChavePermissao, permitido: boolean) {
     if (bloqueioAdmin) return
-    setPermissoes((atual) => ({ ...atual, [chave]: permitido }))
+    setPermissoes((atual) => ({ ...(atual ?? {}), [chave]: permitido }))
   }
 
   function restaurarPadroes() {
     if (bloqueioAdmin) return
-    setPermissoes({ ...padroes })
+    setPermissoes({ ...(padroes ?? {}) })
   }
 
   function marcarGrupo(grupo: string, permitido: boolean) {
     if (bloqueioAdmin) return
     const grupoItens = MENU_PERMISSOES.filter((item) => item.grupo === grupo)
     setPermissoes((atual) => ({
-      ...atual,
+      ...(atual ?? {}),
       ...Object.fromEntries(grupoItens.map((item) => [item.chave, permitido])),
     }))
   }
@@ -119,7 +121,7 @@ export function PermissoesUsuarios() {
         body: JSON.stringify({ usuarioId, permissoes }),
       })
       const json = await res.json()
-      if (!json.sucesso) throw new Error(json.erro)
+      if (!json?.sucesso) throw new Error(json?.erro || 'Erro ao salvar')
       if (json.dados) {
         setPermissoes(json.dados)
       }
@@ -177,7 +179,7 @@ export function PermissoesUsuarios() {
               >
                 {usuarios.map((usuario) => (
                   <option key={usuario.id} value={usuario.id}>
-                    {usuario.nome} — {ROTULOS_ROLE[usuario.role] ?? usuario.role}
+                    {usuario.nome} — {(usuario.role && ROTULOS_ROLE[usuario.role]) ? ROTULOS_ROLE[usuario.role] : (usuario.role || 'Usuário')}
                   </option>
                 ))}
               </select>
@@ -191,7 +193,7 @@ export function PermissoesUsuarios() {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background px-4 py-3">
           <div className="text-xs">
             <span className="font-semibold">{usuarioSelecionado.nome}</span>
-            <span className="text-muted-foreground"> · {ROTULOS_ROLE[usuarioSelecionado.role] ?? usuarioSelecionado.role}</span>
+            <span className="text-muted-foreground"> · {(usuarioSelecionado.role && ROTULOS_ROLE[usuarioSelecionado.role]) ? ROTULOS_ROLE[usuarioSelecionado.role] : (usuarioSelecionado.role || 'Usuário')}</span>
             {bloqueioAdmin ? (
               <span className="ml-2 inline-flex rounded-full bg-primary/10 text-primary px-2 py-0.5 font-semibold">Acesso total</span>
             ) : null}
@@ -215,9 +217,9 @@ export function PermissoesUsuarios() {
       ) : (
         <div className="space-y-4">
           {grupos.map((grupo) => {
-            const grupoItens = grupo.itens
-            const todos = grupoItens.every((item) => permissoes[item.chave])
-            const nenhum = grupoItens.every((item) => !permissoes[item.chave])
+            const grupoItens = grupo.itens ?? []
+            const todos = grupoItens.length > 0 && grupoItens.every((item) => Boolean(permissoes?.[item.chave]))
+            const nenhum = grupoItens.length > 0 && grupoItens.every((item) => !permissoes?.[item.chave])
             return (
               <section key={grupo.grupo} className="rounded-xl border border-border bg-background overflow-hidden">
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-border bg-muted/30">
@@ -227,10 +229,10 @@ export function PermissoesUsuarios() {
                   </div>
                   {!bloqueioAdmin ? (
                     <div className="flex gap-1.5">
-                      <button type="button" onClick={() => marcarGrupo(grupo.grupo, true)} className="px-2.5 py-1.5 rounded-md border border-border text-[11px] font-semibold hover:bg-muted">
+                      <button type="button" onClick={() => marcarGrupo(grupo.grupo, true)} className="px-2.5 py-1.5 rounded-md border border-border text-[11px] font-semibold hover:bg-muted cursor-pointer">
                         Liberar grupo
                       </button>
-                      <button type="button" onClick={() => marcarGrupo(grupo.grupo, false)} className="px-2.5 py-1.5 rounded-md border border-border text-[11px] font-semibold hover:bg-muted">
+                      <button type="button" onClick={() => marcarGrupo(grupo.grupo, false)} className="px-2.5 py-1.5 rounded-md border border-border text-[11px] font-semibold hover:bg-muted cursor-pointer">
                         Bloquear grupo
                       </button>
                     </div>
@@ -239,8 +241,8 @@ export function PermissoesUsuarios() {
 
                 <div className="divide-y divide-border">
                   {grupoItens.map((item) => {
-                    const permitido = Boolean(permissoes[item.chave])
-                    const padrao = Boolean(padroes[item.chave])
+                    const permitido = Boolean(permissoes?.[item.chave])
+                    const padrao = Boolean(padroes?.[item.chave])
                     return (
                       <label
                         key={item.chave}
@@ -294,7 +296,7 @@ export function PermissoesUsuarios() {
           <button
             type="button"
             onClick={restaurarPadroes}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-xs font-semibold hover:bg-muted"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-xs font-semibold hover:bg-muted cursor-pointer"
           >
             <RotateCcw className="h-3.5 w-3.5" /> Restaurar padrões do cargo
           </button>
@@ -302,7 +304,7 @@ export function PermissoesUsuarios() {
             type="button"
             onClick={salvar}
             disabled={salvando}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-60"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-60 cursor-pointer"
           >
             {salvando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             Salvar permissões
@@ -310,5 +312,13 @@ export function PermissoesUsuarios() {
         </div>
       ) : null}
     </div>
+  )
+}
+
+export function PermissoesUsuarios() {
+  return (
+    <ErrorBoundary fallbackTitle="Erro ao carregar permissões" fallbackMessage="Ocorreu uma falha ao exibir a tela de permissões de usuários.">
+      <PermissoesUsuariosConteudo />
+    </ErrorBoundary>
   )
 }

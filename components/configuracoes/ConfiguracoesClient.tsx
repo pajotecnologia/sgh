@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Building2, MapPin, Upload, Image as ImageIcon, Loader2, Plus, Trash2, Tag, Volume2, Palette, Settings2, Mail, Pencil, LayoutPanelLeft, Video, Sparkles, ShieldCheck, KeyRound, DoorOpen, Check, RotateCcw, Users } from 'lucide-react';
 import { textoCadastroMaiusculo } from '@/lib/cadastro-maiusculo';
 import { PermissoesUsuarios } from '@/components/configuracoes/PermissoesUsuarios';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { cn } from '@/lib/utils';
 import type { MidiaPainelRotativa, ConfigPainelExibicao } from '@/lib/painel-config';
 import { CONFIG_PAINEL_PADRAO, inferirTipoMidiaPainel, tipoMidiaDeArquivo, validarUrlMidiaPainel } from '@/lib/painel-config';
@@ -884,6 +885,7 @@ export function ConfiguracoesClient() {
 
       {/* Conteúdo da aba ativa */}
       <div className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-full overflow-hidden">
+        <ErrorBoundary fallbackTitle="Erro ao carregar módulo de configuração" fallbackMessage="Ocorreu uma falha ao exibir o conteúdo desta aba de configurações.">
         
         {/* ABA: INSTITUICAO */}
         {abaAtiva === 'INSTITUICAO' && (
@@ -1997,6 +1999,7 @@ export function ConfiguracoesClient() {
           </div>
         )}
 
+        </ErrorBoundary>
       </div>
     </div>
   );

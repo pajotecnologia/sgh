@@ -252,13 +252,13 @@ export function Sidebar({ usuario }: SidebarProps) {
     fetch('/api/permissoes/me')
       .then((res) => res.json())
       .then((json) => {
-        if (ativo && json.sucesso && json.dados) setPermissoes(json.dados);
+        if (ativo && json?.sucesso && json?.dados) setPermissoes(json.dados);
       })
       .catch(() => {
         // Mantém o RBAC legado como fallback caso a consulta de permissões esteja indisponível.
       });
     return () => { ativo = false; };
-  }, [usuario.id]);
+  }, [usuario?.id]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -275,18 +275,20 @@ export function Sidebar({ usuario }: SidebarProps) {
   };
 
   const permitido = (label: string, href: string, roles?: Role[]) => {
+    const roleUsuario = usuario?.role;
+    if (!roleUsuario) return false;
     const item = MENU_PERMISSOES.find((x) => x.label === label && x.href === href);
     if (item && permissoes && typeof permissoes[item.chave] === 'boolean') {
       return permissoes[item.chave];
     }
-    if (roles && !roles.includes(usuario.role)) return false;
+    if (roles && !roles.includes(roleUsuario)) return false;
     if (!item) return true;
-    return permissaoPadrao(item.chave, usuario.role);
+    return permissaoPadrao(item.chave, roleUsuario);
   };
 
   const gruposFiltrados = (() => {
     return GRUPOS_NAVEGACAO.map((grupo) => {
-      const itensFiltrados = grupo.itens.map((item) => {
+      const itensFiltrados = (grupo.itens ?? []).map((item) => {
         const filhos = item.children?.filter((sub) => permitido(sub.label, sub.href, sub.roles));
         return { ...item, children: filhos };
       }).filter((item) => {
@@ -473,7 +475,8 @@ export function Sidebar({ usuario }: SidebarProps) {
                 })}
               </div>
             </div>
-          )))}
+          ))
+        )}
         </nav>
 
         {/* Rodapé / Perfil do Usuário & Ações Rápidas */}
@@ -487,15 +490,15 @@ export function Sidebar({ usuario }: SidebarProps) {
           >
             <div className="relative shrink-0">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-blue-500/30 border border-primary/50 flex items-center justify-center font-bold text-primary text-xs">
-                {usuario.nome.charAt(0).toUpperCase()}
+                {usuario?.nome ? usuario.nome.charAt(0).toUpperCase() : 'U'}
               </div>
               <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-slate-950" />
             </div>
 
             <div className={cn('min-w-0 flex-1 overflow-hidden', collapsed && 'md:hidden')}>
-              <p className="text-xs font-semibold text-white truncate leading-tight">{usuario.nome}</p>
+              <p className="text-xs font-semibold text-white truncate leading-tight">{usuario?.nome ?? 'Usuário'}</p>
               <p className="text-[10px] text-slate-400 truncate">
-                {labelRole[usuario.role] ?? usuario.role}
+                {(usuario?.role && labelRole[usuario.role]) ? labelRole[usuario.role] : (usuario?.role ?? '')}
               </p>
             </div>
           </div>
