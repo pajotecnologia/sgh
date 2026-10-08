@@ -1,7 +1,7 @@
-'use client'
-
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
+import type { Role } from '@prisma/client'
 import {
   BedDouble,
   Activity,
@@ -32,6 +32,7 @@ import type {
   PacienteLeitoMapa,
 } from '@/lib/mapa-leitos'
 import type { TipoLeitoHospitalar, StatusLeitoHospitalar, CorTriagem } from '@/types'
+import { podeExecutarAcaoClinica } from '@/lib/rbac-clinico'
 import { BadgeManchester } from '@/components/triagem/BadgeManchester'
 import { cn } from '@/lib/utils'
 
@@ -63,6 +64,11 @@ const CORES_TIPO_LEITO: Record<TipoLeitoHospitalar, { label: string; bg: string;
 }
 
 export function MapaLeitosVisual() {
+  const { data: sessao } = useSession()
+  const role = (sessao?.usuario?.role ?? '') as Role
+  const podeTransferir = Boolean(role && podeExecutarAcaoClinica(role, 'TRANSFERIR_LEITO'))
+  const podeInterditar = Boolean(role && podeExecutarAcaoClinica(role, 'INTERDITAR_LEITO'))
+
   const [dados, setDados] = useState<MapaLeitosResultado | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [filtroClinica, setFiltroClinica] = useState<string>('TODAS')
@@ -177,6 +183,10 @@ export function MapaLeitosVisual() {
   // Executar Transferência
   const handleTransferir = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!podeTransferir) {
+      toast.error('Você não possui permissão para transferir pacientes entre leitos.')
+      return
+    }
     if (!leitoTransferencia?.pacienteAtual || !leitoDestinoSelecionado) {
       toast.error('Selecione o leito de destino.')
       return
@@ -219,6 +229,10 @@ export function MapaLeitosVisual() {
   // Executar Mudança de Status
   const handleMudarStatus = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!podeInterditar) {
+      toast.error('Você não possui permissão para alterar o status do leito.')
+      return
+    }
     if (!leitoStatusModal) return
 
     try {
@@ -633,18 +647,20 @@ export function MapaLeitosVisual() {
                                     Detalhes
                                   </button>
                                   <div className="flex items-center gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setLeitoTransferencia(leito)
-                                        setLeitoDestinoSelecionado('')
-                                        setMotivoTransferencia('')
-                                      }}
-                                      title="Transferir paciente para outro leito"
-                                      className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                                    >
-                                      <ArrowRightLeft className="h-3.5 w-3.5" />
-                                    </button>
+                                    {podeTransferir && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setLeitoTransferencia(leito)
+                                          setLeitoDestinoSelecionado('')
+                                          setMotivoTransferencia('')
+                                        }}
+                                        title="Transferir paciente para outro leito"
+                                        className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                                      >
+                                        <ArrowRightLeft className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
                                     <Link
                                       href={`/prontuario/${p.atendimentoId}`}
                                       title="Abrir Prontuário"
@@ -663,31 +679,39 @@ export function MapaLeitosVisual() {
                                     Admitir
                                     <ChevronRight className="h-3 w-3" />
                                   </Link>
+                                  {podeInterditar && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setLeitoStatusModal(leito)
+                                        setNovoStatus('INTERDITADO')
+                                        setMotivoStatus('')
+                                      }}
+                                      title="Interditar leito"
+                                      className="text-[11px] text-muted-foreground hover:text-amber-600 transition-colors"
+                                    >
+                                      Interditar
+                                    </button>
+                                  )}
+                                </>
+                              ) : (
+                                podeInterditar ? (
                                   <button
                                     type="button"
                                     onClick={() => {
                                       setLeitoStatusModal(leito)
-                                      setNovoStatus('INTERDITADO')
+                                      setNovoStatus('DISPONIVEL')
                                       setMotivoStatus('')
                                     }}
-                                    title="Interditar leito"
-                                    className="text-[11px] text-muted-foreground hover:text-amber-600 transition-colors"
+                                    className="w-full text-center text-xs font-semibold text-primary hover:underline py-0.5"
                                   >
-                                    Interditar
+                                    Liberar / Desinterditar
                                   </button>
-                                </>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setLeitoStatusModal(leito)
-                                    setNovoStatus('DISPONIVEL')
-                                    setMotivoStatus('')
-                                  }}
-                                  className="w-full text-center text-xs font-semibold text-primary hover:underline py-0.5"
-                                >
-                                  Liberar / Desinterditar
-                                </button>
+                                ) : (
+                                  <span className="w-full text-center text-xs font-medium text-amber-700 dark:text-amber-400 py-0.5">
+                                    Bloqueado
+                                  </span>
+                                )
                               )}
                             </div>
                           </div>
@@ -703,7 +727,7 @@ export function MapaLeitosVisual() {
       )}
 
       {/* Modal: Transferência de Leito */}
-      {leitoTransferencia && leitoTransferencia.pacienteAtual && (
+      {leitoTransferencia && podeTransferir && leitoTransferencia.pacienteAtual && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-xl shadow-xl max-w-lg w-full p-5 space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-border">
@@ -787,7 +811,7 @@ export function MapaLeitosVisual() {
       )}
 
       {/* Modal: Interdição / Liberação */}
-      {leitoStatusModal && (
+      {leitoStatusModal && podeInterditar && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-xl shadow-xl max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-border">

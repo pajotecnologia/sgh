@@ -10,7 +10,7 @@ const schemaStatusLeito = z.object({
   motivo: z.string().min(2, 'Informe o motivo da alteração de status').optional(),
 })
 
-const ROLES_STATUS = ['ADMIN', 'ENFERMEIRO', 'DIRETOR_CLINICO']
+import { podeExecutarAcaoClinica } from '@/lib/rbac-clinico'
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 })
     }
 
-    if (!ROLES_STATUS.includes(sessao.usuario.role)) {
+    if (!podeExecutarAcaoClinica(sessao.usuario.role, 'INTERDITAR_LEITO')) {
       return NextResponse.json({ sucesso: false, erro: 'Sem permissão para alterar status do leito.' }, { status: 403 })
     }
 

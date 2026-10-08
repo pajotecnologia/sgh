@@ -17,4 +17,17 @@ describe('RBAC clínico', () => {
     expect(atendimentoPodeSerEditado('ALTA')).toBe(false)
     expect(atendimentoPodeSerEditado('OBITO')).toBe(false)
   })
+  it('bloqueia transferência e interdição de leito para recepcionista', () => {
+    expect(podeExecutarAcaoClinica('RECEPCIONISTA', 'TRANSFERIR_LEITO')).toBe(false)
+    expect(podeExecutarAcaoClinica('RECEPCIONISTA', 'INTERDITAR_LEITO')).toBe(false)
+    expect(podeExecutarAcaoClinica('MEDICO', 'TRANSFERIR_LEITO')).toBe(true)
+    expect(podeExecutarAcaoClinica('ENFERMEIRO', 'TRANSFERIR_LEITO')).toBe(true)
+    expect(podeExecutarAcaoClinica('ADMIN', 'TRANSFERIR_LEITO')).toBe(true)
+    expect(podeExecutarAcaoClinica('DIRETOR_CLINICO', 'TRANSFERIR_LEITO')).toBe(true)
+    expect(podeExecutarAcaoClinica('ENFERMEIRO', 'INTERDITAR_LEITO')).toBe(true)
+    expect(podeExecutarAcaoClinica('ADMIN', 'INTERDITAR_LEITO')).toBe(true)
+    expect(podeExecutarAcaoClinica('DIRETOR_CLINICO', 'INTERDITAR_LEITO')).toBe(true)
+    expect(podeExecutarAcaoClinica('MEDICO', 'INTERDITAR_LEITO')).toBe(false)
+  })
 })
+

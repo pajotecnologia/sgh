@@ -11,7 +11,7 @@ const schemaTransferencia = z.object({
   motivo: z.string().min(3, 'Informe o motivo da transferência').optional(),
 })
 
-const ROLES_TRANSFERENCIA = ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO', 'ENFERMEIRO']
+import { podeExecutarAcaoClinica } from '@/lib/rbac-clinico'
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,8 +20,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 })
     }
 
-    if (!ROLES_TRANSFERENCIA.includes(sessao.usuario.role)) {
-      return NextResponse.json({ sucesso: false, erro: 'Sem permissão para transferir paciente de leito.' }, { status: 403 })
+    if (!podeExecutarAcaoClinica(sessao.usuario.role, 'TRANSFERIR_LEITO')) {
+      return NextResponse.json(
+        { sucesso: false, erro: 'Recepcionistas e perfis sem atribuição clínica não possuem permissão para transferir paciente de leito.' },
+        { status: 403 }
+      )
     }
 
     const body = await req.json()
