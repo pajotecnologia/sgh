@@ -64,3 +64,16 @@ Depois clique em **Restart** no projeto `sgh` no aaPanel.
 
 Caso deseje atualizar o banco manualmente pelo **pgAdmin4**:
 - Execute o script [`database/sgh_update_schema.sql`](file:///c:/Users/AdminUser/Documentos/PROJETOS_SISTEMAS/sgh/database/sgh_update_schema.sql) na ferramenta de Query Tool (F5).
+
+## 6. Regra adicional para PostgreSQL existente e Prisma 7
+
+Quando o banco de produção já possui estrutura e não possui histórico em `_prisma_migrations`, não executar baseline manualmente sem validar o schema.
+
+O fluxo oficial utiliza `scripts/deploy-migrations-safe.mjs`, que trata P3005, executa `prisma migrate diff` com `--from-config-datasource` e só inicializa o histórico quando não existe diferença estrutural.
+
+A opção `--from-url` foi removida no Prisma 7.8.0 e não deve voltar ao projeto.
+
+Se o deploy ficar `unhealthy`, primeiro verificar logs do entrypoint e migrations; somente depois investigar o healthcheck. O Dockerfile atual já instala `curl` e `wget`.
+
+Registro detalhado: [docs/incidentes-producao.md](docs/incidentes-producao.md).
+
