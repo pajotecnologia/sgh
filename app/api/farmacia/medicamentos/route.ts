@@ -41,10 +41,12 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url)
     const q = (url.searchParams.get('q') ?? '').trim()
     const ativo = (url.searchParams.get('ativo') ?? 'true').trim() !== 'false'
+    const tipoItem = (url.searchParams.get('tipoItem') ?? url.searchParams.get('tipo') ?? '').trim()
 
     const meds = await prisma.tbMedicamento.findMany({
       where: {
         ativo,
+        ...(tipoItem ? { tipoItem: { equals: tipoItem, mode: 'insensitive' } } : {}),
         ...(q
           ? {
               OR: [

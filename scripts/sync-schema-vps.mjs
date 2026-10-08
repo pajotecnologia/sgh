@@ -240,7 +240,62 @@ async function main() {
         WHEN duplicate_object THEN null;
       END $$;
     `);
-    console.log('✓ Tabela laudos_solicitacao verificada.');
+    await client.query('ALTER TABLE "tb_medicamento" ADD COLUMN IF NOT EXISTS "tipoItem" TEXT NOT NULL DEFAULT \'MEDICAMENTO\';');
+    await client.query('CREATE INDEX IF NOT EXISTS "tb_medicamento_tipoItem_idx" ON "tb_medicamento"("tipoItem");');
+    console.log('✓ Coluna tipoItem em tb_medicamento verificada.');
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "tb_kits_procedimentos" (
+        "id" TEXT NOT NULL,
+        "codigo" TEXT,
+        "nome" TEXT NOT NULL,
+        "descricao" TEXT,
+        "tipoVinculo" TEXT NOT NULL DEFAULT 'PROCEDIMENTO',
+        "viaAdministracao" TEXT,
+        "procedimentoNome" TEXT,
+        "ativo" BOOLEAN NOT NULL DEFAULT true,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "tb_kits_procedimentos_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    await client.query('CREATE UNIQUE INDEX IF NOT EXISTS "tb_kits_procedimentos_codigo_key" ON "tb_kits_procedimentos"("codigo");');
+    await client.query('CREATE INDEX IF NOT EXISTS "tb_kits_procedimentos_tipoVinculo_idx" ON "tb_kits_procedimentos"("tipoVinculo");');
+    await client.query('CREATE INDEX IF NOT EXISTS "tb_kits_procedimentos_viaAdministracao_idx" ON "tb_kits_procedimentos"("viaAdministracao");');
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "tb_kits_procedimentos_itens" (
+        "id" TEXT NOT NULL,
+        "kitId" TEXT NOT NULL,
+        "medicamentoId" TEXT,
+        "descricaoItem" TEXT NOT NULL,
+        "quantidadePadrao" INTEGER NOT NULL DEFAULT 1,
+        "unidade" TEXT DEFAULT 'UN',
+        "obrigatorio" BOOLEAN NOT NULL DEFAULT true,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "tb_kits_procedimentos_itens_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    await client.query('CREATE INDEX IF NOT EXISTS "tb_kits_procedimentos_itens_kitId_idx" ON "tb_kits_procedimentos_itens"("kitId");');
+    await client.query('CREATE INDEX IF NOT EXISTS "tb_kits_procedimentos_itens_medicamentoId_idx" ON "tb_kits_procedimentos_itens"("medicamentoId");');
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE "tb_kits_procedimentos_itens" ADD CONSTRAINT "tb_kits_procedimentos_itens_kitId_fkey"
+        FOREIGN KEY ("kitId") REFERENCES "tb_kits_procedimentos"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE "tb_kits_procedimentos_itens" ADD CONSTRAINT "tb_kits_procedimentos_itens_medicamentoId_fkey"
+        FOREIGN KEY ("medicamentoId") REFERENCES "tb_medicamento"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    console.log('✓ Tabelas tb_kits_procedimentos e itens verificadas.');
 
     console.log('✨ Sincronização concluída com sucesso!');
   } catch (err) {

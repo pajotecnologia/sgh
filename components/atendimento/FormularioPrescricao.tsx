@@ -6,7 +6,19 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Plus, Trash2, AlertOctagon, AlertTriangle, FileSignature, Loader2 } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  AlertOctagon,
+  AlertTriangle,
+  FileSignature,
+  Loader2,
+  Pill,
+  Bandage,
+  Boxes,
+  Sparkles,
+  Info,
+} from 'lucide-react';
 import { schemaCriarPrescricao, type CriarPrescricaoForm } from '@/lib/validations/atendimento';
 import { cn } from '@/lib/utils';
 import { ModalInteracaoCritica, type InteracaoCritica } from '@/components/farmacia/ModalInteracaoCritica';
@@ -19,6 +31,36 @@ import {
 } from '@/lib/prescricao-ui';
 
 type VariantPrescricao = 'ps' | 'internacao' | 'receita_alta';
+type CategoriaItemPrescricao = 'MEDICAMENTO' | 'PROCEDIMENTO' | 'MATERIAL';
+
+const PROCEDIMENTOS_RAPIDOS = [
+  { nome: 'Curativo Simples / Oclusivo', via: 'TOPICA', dose: '1 aplicação', freq: '1x ao dia', obs: 'Limpeza com SF 0,9% e cobertura estéril', kit: 'Kit Curativo Simples' },
+  { nome: 'Curativo Especial / Queimaduras', via: 'TOPICA', dose: '1 aplicação', freq: '1x ao dia', obs: 'Pomada conforme conduta e atadura crepom', kit: 'Kit Curativo Especial' },
+  { nome: 'Sondagem Vesical de Demora (SVD)', via: 'TOPICA', dose: '1 procedimento', freq: 'Dose única', obs: 'Sonda Foley em sistema fechado', kit: 'Kit Sondagem Vesical de Demora (SVD)' },
+  { nome: 'Sondagem Vesical de Alívio (SVA)', via: 'TOPICA', dose: '1 procedimento', freq: 'Se retenção urinária', obs: 'Descompressão pontual', kit: 'Kit Sondagem Vesical de Alívio (SVA)' },
+  { nome: 'Sondagem Nasogástrica (SNG)', via: 'TOPICA', dose: '1 procedimento', freq: 'Dose única', obs: 'Sonda Levine para drenagem ou dieta', kit: 'Kit Sondagem Nasogástrica / Enteral' },
+  { nome: 'Inalação / Nebulização', via: 'INALATORIA', dose: '1 sessão', freq: '6/6h ou SN', obs: 'Micronebulização com O2/Ar', kit: 'Kit Inalação / Nebulização' },
+  { nome: 'Retirada de Pontos', via: 'TOPICA', dose: '1 procedimento', freq: 'Dose única', obs: 'Remoção de sutura com técnica asséptica', kit: 'Kit Retirada de Pontos' },
+  { nome: 'Acesso Venoso Periférico', via: 'INTRAVENOSA', dose: '1 punção', freq: 'Dose única', obs: 'Punção venosa com cateter de segurança', kit: 'Kit Acesso Venoso Periférico' },
+] as const;
+
+function identificarKitAutomatico(nome: string = '', via: string = ''): string | null {
+  const n = nome.toUpperCase();
+  if (n.includes('CURATIVO ESPECIAL') || n.includes('QUEIMADURA')) return 'Kit Curativo Especial / Queimaduras';
+  if (n.includes('CURATIVO')) return 'Kit Curativo Simples / Oclusivo';
+  if (n.includes('SVD') || n.includes('VESICAL DE DEMORA') || n.includes('FOLEY')) return 'Kit Sondagem Vesical de Demora (SVD)';
+  if (n.includes('SVA') || n.includes('VESICAL DE ALIVIO')) return 'Kit Sondagem Vesical de Alívio (SVA)';
+  if (n.includes('SNG') || n.includes('SNE') || n.includes('NASOGASTRICA') || n.includes('NASOENTERAL')) return 'Kit Sondagem Nasogástrica / Enteral';
+  if (n.includes('PONTO') || n.includes('SUTURA')) return 'Kit Retirada de Pontos';
+  if (n.includes('PUNCAO') || n.includes('ACESSO VENOSO')) return 'Kit Acesso Venoso Periférico';
+
+  if (via === 'INTRAVENOSA') return 'Kit Injeção / Aplicação Endovenosa (EV)';
+  if (via === 'INTRAMUSCULAR') return 'Kit Injeção Intramuscular (IM)';
+  if (via === 'SUBCUTANEA') return 'Kit Injeção Subcutânea (SC)';
+  if (via === 'INALATORIA') return 'Kit Inalação / Nebulização';
+
+  return null;
+}
 
 interface FormularioPrescricaoProps {
   atendimentoId: string
@@ -141,14 +183,19 @@ export function FormularioPrescricao({
     setItemEmEdicao(0)
   }, [prefillObservacoes, prefillItens, prontuarioId, tipoPrescricao, reset])
 
-  const prontuarioIdRef = useRef(prontuarioId);
-  useEffect(() => {
-    if (prontuarioIdRef.current !== prontuarioId) {
-      prontuarioIdRef.current = prontuarioId;
-      reset(itemPrescricaoVazio(prontuarioId, tipoPrescricao));
-      setItemEmEdicao(0);
-    }
-  }, [prontuarioId, tipoPrescricao, reset]);
+  const [categoriaAtiva, setCategoriaAtiva] = useState<CategoriaItemPrescricao>('MEDICAMENTO');
+
+  const aplicarProcedimentoRapido = (proc: typeof PROCEDIMENTOS_RAPIDOS[number]) => {
+    setValue(`itens.${itemEmEdicao}.nomeMedicamento`, proc.nome, { shouldValidate: true });
+    setValue(`itens.${itemEmEdicao}.principioAtivo`, proc.nome, { shouldValidate: true });
+    setValue(`itens.${itemEmEdicao}.dose`, proc.dose, { shouldValidate: true });
+    setValue(`itens.${itemEmEdicao}.via`, proc.via as any, { shouldValidate: true });
+    setValue(`itens.${itemEmEdicao}.frequencia`, proc.freq, { shouldValidate: true });
+    setValue(`itens.${itemEmEdicao}.observacoes`, proc.obs, { shouldValidate: true });
+  };
+
+  const itemAtual = itensWatch[itemEmEdicao];
+  const kitDetectado = identificarKitAutomatico(itemAtual?.nomeMedicamento, itemAtual?.via);
 
   useEffect(() => {
     if (itemEmEdicao > fields.length - 1) {
@@ -431,11 +478,50 @@ export function FormularioPrescricao({
           )}
 
           {fields[itemEmEdicao] ? (
-            <div className="p-4 bg-muted/15 border border-border rounded-xl relative">
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Editando item {itemEmEdicao + 1}
-                </span>
+            <div className="p-4 bg-muted/15 border border-border rounded-xl relative space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-border/70">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Item {itemEmEdicao + 1} de {fields.length}
+                  </span>
+                  {/* Seletor de Categoria do Item */}
+                  <div className="flex items-center bg-muted/60 p-0.5 rounded-lg border border-border text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setCategoriaAtiva('MEDICAMENTO')}
+                      className={cn(
+                        'px-2 py-1 rounded-md font-semibold flex items-center gap-1 transition-all',
+                        categoriaAtiva === 'MEDICAMENTO' ? 'bg-background shadow-xs text-primary' : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      <Pill className="h-3 w-3" />
+                      Medicamento
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCategoriaAtiva('PROCEDIMENTO')}
+                      className={cn(
+                        'px-2 py-1 rounded-md font-semibold flex items-center gap-1 transition-all',
+                        categoriaAtiva === 'PROCEDIMENTO' ? 'bg-background shadow-xs text-primary' : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      <Bandage className="h-3 w-3" />
+                      Procedimento / Cuidado
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCategoriaAtiva('MATERIAL')}
+                      className={cn(
+                        'px-2 py-1 rounded-md font-semibold flex items-center gap-1 transition-all',
+                        categoriaAtiva === 'MATERIAL' ? 'bg-background shadow-xs text-primary' : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      <Boxes className="h-3 w-3" />
+                      Insumo / Material
+                    </button>
+                  </div>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -444,21 +530,49 @@ export function FormularioPrescricao({
                   }}
                   disabled={fields.length === 1}
                   className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-30"
-                  title="Remover medicamento"
-                  aria-label={`Remover medicamento ${itemEmEdicao + 1}`}
+                  title="Remover item da prescrição"
+                  aria-label={`Remover item ${itemEmEdicao + 1}`}
                 >
                   <Trash2 className="h-4 w-4" aria-hidden />
                 </button>
               </div>
 
+              {/* Sugestões Rápidas de Procedimentos de Enfermagem */}
+              {categoriaAtiva === 'PROCEDIMENTO' && (
+                <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl space-y-1.5 animate-in fade-in-50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-primary flex items-center gap-1">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Cuidados &amp; Procedimentos Padrão (com kit automático de materiais):
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PROCEDIMENTOS_RAPIDOS.map((proc) => (
+                      <button
+                        key={proc.nome}
+                        type="button"
+                        onClick={() => aplicarProcedimentoRapido(proc)}
+                        className="px-2.5 py-1 text-[11px] bg-background hover:bg-primary/10 hover:border-primary/50 border border-border rounded-lg font-medium transition-all text-left shadow-2xs"
+                      >
+                        {proc.nome}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
                 <div className="lg:col-span-4">
                   <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
-                    Medicamento *{' '}
+                    {categoriaAtiva === 'PROCEDIMENTO'
+                      ? 'Procedimento / Cuidado *'
+                      : categoriaAtiva === 'MATERIAL'
+                      ? 'Material / Insumo *'
+                      : 'Medicamento *'}{' '}
                     <span className="font-normal text-muted-foreground/70">
                       {variantEfetivo === 'receita_alta'
-                        ? '(digite livremente ou busque no catálogo)'
-                        : '(pesquise no estoque)'}
+                        ? '(digite livremente ou busque)'
+                        : '(pesquise no catálogo/estoque)'}
                     </span>
                   </label>
                   <BuscaMedicamentoEstoque
@@ -486,21 +600,21 @@ export function FormularioPrescricao({
 
                 <div className="lg:col-span-3">
                   <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
-                    Princípio ativo
+                    Princípio ativo / Ref.
                     <span className="font-normal text-muted-foreground/70"> (interações)</span>
                   </label>
                   <input
                     {...register(`itens.${itemEmEdicao}.principioAtivo`)}
-                    placeholder="Ex.: dipirona, losartana"
+                    placeholder={categoriaAtiva === 'PROCEDIMENTO' ? 'Ex: Cuidados de Enfermagem' : 'Ex.: dipirona, losartana'}
                     className={inputClass(itemErrors?.principioAtivo)}
                   />
                 </div>
 
                 <div className="sm:col-span-1 lg:col-span-2">
-                  <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Dose *</label>
+                  <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Dose / Quantidade *</label>
                   <input
                     {...register(`itens.${itemEmEdicao}.dose`)}
-                    placeholder="500 mg, 1 cp"
+                    placeholder={categoriaAtiva === 'PROCEDIMENTO' ? '1 procedimento' : '500 mg, 1 cp'}
                     className={inputClass(itemErrors?.dose)}
                   />
                   {itemErrors?.dose ? (
@@ -509,7 +623,7 @@ export function FormularioPrescricao({
                 </div>
 
                 <div className="sm:col-span-1 lg:col-span-3">
-                  <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Via *</label>
+                  <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Via de Aplicação *</label>
                   <select
                     {...register(`itens.${itemEmEdicao}.via`)}
                     className={inputClass(itemErrors?.via)}
@@ -521,10 +635,10 @@ export function FormularioPrescricao({
                 </div>
 
                 <div className="lg:col-span-5">
-                  <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Frequência *</label>
+                  <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Frequência / Horário *</label>
                   <input
                     {...register(`itens.${itemEmEdicao}.frequencia`)}
-                    placeholder="Ex.: 8/8h, Se dor"
+                    placeholder="Ex.: 8/8h, 1x ao dia, Se dor, Dose única"
                     className={inputClass(itemErrors?.frequencia)}
                   />
                   {itemErrors?.frequencia ? (
@@ -564,15 +678,30 @@ export function FormularioPrescricao({
 
                 <div className="lg:col-span-5">
                   <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
-                    Observações do item
+                    Instruções &amp; Observações
                   </label>
                   <input
                     {...register(`itens.${itemEmEdicao}.observacoes`)}
-                    placeholder="Instruções específicas"
+                    placeholder="Ex: diluir em 100ml SF 0,9% correr em 30 min, curativo com gaze estéril"
                     className={inputClass()}
                   />
                 </div>
               </div>
+
+              {/* Badge Dinâmico de Kit Automático */}
+              {kitDetectado && (
+                <div className="p-3 rounded-xl bg-blue-50/90 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 flex items-center justify-between text-xs text-blue-900 dark:text-blue-200 animate-in fade-in-50">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Boxes className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <span className="truncate">
+                      <strong>Kit Automático de Insumos:</strong> {kitDetectado}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-200/70 dark:bg-blue-900/70 px-2 py-0.5 rounded-md text-blue-800 dark:text-blue-200 shrink-0 ml-2">
+                    Dispensação Hospitalar Automática
+                  </span>
+                </div>
+              )}
             </div>
           ) : null}
 

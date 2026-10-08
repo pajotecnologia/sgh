@@ -21,6 +21,7 @@ export type ChavePermissao =
   | 'cadastros-prescricoes'
   | 'cadastros-usuarios'
   | 'cadastros-medicamentos'
+  | 'cadastros-kits'
   | 'cadastros-fornecedores'
   | 'cadastros-sinonimos'
   | 'relatorios'
@@ -90,6 +91,7 @@ export const MENU_PERMISSOES: ItemPermissao[] = [
   { chave: 'cadastros-prescricoes', label: 'Prescrições Médicas', href: '/cadastros/prescricoes-medicas', grupo: 'Gestão & Consultas', parent: 'cadastros', rolesPadrao: ['ADMIN', 'FARMACEUTICO', 'DIRETOR_CLINICO'] },
   { chave: 'cadastros-usuarios', label: 'Profissionais / Usuários', href: '/cadastros/profissionais', grupo: 'Gestão & Consultas', parent: 'cadastros', rolesPadrao: ['ADMIN', 'FARMACEUTICO', 'DIRETOR_CLINICO'] },
   { chave: 'cadastros-medicamentos', label: 'Medicamentos e Materiais', href: '/cadastros/medicamentos', grupo: 'Gestão & Consultas', parent: 'cadastros', rolesPadrao: ['ADMIN', 'FARMACEUTICO', 'DIRETOR_CLINICO'] },
+  { chave: 'cadastros-kits', label: 'Kits Automáticos (Insumos)', href: '/cadastros/kits', grupo: 'Gestão & Consultas', parent: 'cadastros', rolesPadrao: ['ADMIN', 'FARMACEUTICO', 'DIRETOR_CLINICO', 'ENFERMEIRO'] },
   { chave: 'cadastros-fornecedores', label: 'Fornecedores', href: '/cadastros/fornecedores', grupo: 'Gestão & Consultas', parent: 'cadastros', rolesPadrao: ['ADMIN', 'FARMACEUTICO', 'DIRETOR_CLINICO'] },
   { chave: 'cadastros-sinonimos', label: 'Sinônimos (Farmácia)', href: '/cadastros/sinonimos', grupo: 'Gestão & Consultas', parent: 'cadastros', rolesPadrao: ['ADMIN', 'FARMACEUTICO', 'DIRETOR_CLINICO'] },
   { chave: 'relatorios', label: 'Relatórios & Indicadores', href: '/relatorios/prontuario-medico', grupo: 'Gestão & Consultas', rolesPadrao: RELATORIOS },

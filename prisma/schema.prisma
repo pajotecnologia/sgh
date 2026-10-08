@@ -1327,6 +1327,8 @@ model TbMedicamento {
   /// Alerta quando saldoAtual <= estoqueMinimo
   estoqueMinimo Int      @default(0)
   ativo         Boolean  @default(true)
+  /// Tipo de item no catálogo: MEDICAMENTO, MATERIAL, PROCEDIMENTO
+  tipoItem      String   @default("MEDICAMENTO")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -1336,10 +1338,54 @@ model TbMedicamento {
   movimentacoes TbFarmaciaMovimentacao[]
   entradasNfItens TbFarmaciaEntradaNfItem[]
   saidasItens     TbFarmaciaSaidaItem[]
+  kitItens        TbKitProcedimentoItem[]
 
   @@index([principioAtivo])
   @@index([nome])
+  @@index([tipoItem])
   @@map("tb_medicamento")
+}
+
+/// Kits automáticos de materiais e insumos hospitalares (vinculados à via de administração ou procedimento)
+model TbKitProcedimento {
+  id               String                  @id @default(uuid())
+  codigo           String?                 @unique
+  nome             String
+  descricao        String?
+  /// "VIA_ADMINISTRACAO" ou "PROCEDIMENTO"
+  tipoVinculo      String                  @default("PROCEDIMENTO")
+  /// Se vinculado à via: INTRAVENOSA, INTRAMUSCULAR, SUBCUTANEA, INALATORIA, etc.
+  viaAdministracao String?
+  procedimentoNome String?
+  ativo            Boolean                 @default(true)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  itens            TbKitProcedimentoItem[]
+
+  @@index([tipoVinculo])
+  @@index([viaAdministracao])
+  @@map("tb_kits_procedimentos")
+}
+
+/// Itens/Insumos que compõem o kit automático
+model TbKitProcedimentoItem {
+  id               String            @id @default(uuid())
+  kitId            String
+  medicamentoId    String?
+  descricaoItem    String
+  quantidadePadrao Int               @default(1)
+  unidade          String?           @default("UN")
+  obrigatorio      Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  kit              TbKitProcedimento @relation(fields: [kitId], references: [id], onDelete: Cascade)
+  medicamento      TbMedicamento?    @relation(fields: [medicamentoId], references: [id], onDelete: SetNull)
+
+  @@index([kitId])
+  @@index([medicamentoId])
+  @@map("tb_kits_procedimentos_itens")
 }
 
 /// Lote de medicamento — controle por validade (FEFO)
