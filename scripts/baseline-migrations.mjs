@@ -1,6 +1,7 @@
 /**
  * Marca todas as migrations como aplicadas sem executá-las de forma rápida e atômica.
- * Use quando o banco foi criado com `db:push` / `db:bootstrap` e ainda não tem histórico Prisma.
+ * Limpa qualquer estado de falha anterior (P3009/P3018) e assegura que todas as migrations
+ * presentes em prisma/migrations fiquem registradas como concluídas no _prisma_migrations.
  *
  * Uso: npm run db:migrate:baseline
  */
@@ -46,9 +47,12 @@ async function main() {
       );
     `);
 
+    // Limpa migrações incompletas ou marcadas com erro
+    await client.query(`DELETE FROM "_prisma_migrations" WHERE "finished_at" IS NULL OR "rolled_back_at" IS NOT NULL;`);
+
     console.log(`[migrate:baseline] Sincronizando ${migrationNames.length} migration(s) no histórico Prisma...`);
 
-    const existingRes = await client.query('SELECT migration_name FROM "_prisma_migrations" WHERE rolled_back_at IS NULL;');
+    const existingRes = await client.query('SELECT migration_name FROM "_prisma_migrations";');
     const existingSet = new Set(existingRes.rows.map((r) => r.migration_name));
 
     for (const name of migrationNames) {
