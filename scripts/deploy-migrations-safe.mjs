@@ -74,7 +74,7 @@ const diff = runPrisma(
     'migrate',
     'diff',
     '--from-config-datasource',
-    '--to-schema-datamodel',
+    '--to-schema',
     'prisma/schema.prisma',
     '--exit-code',
   ],

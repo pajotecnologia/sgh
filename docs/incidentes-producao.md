@@ -22,7 +22,7 @@ O arquivo scripts/deploy-migrations-safe.mjs foi corrigido.
 
 Antes: prisma migrate diff com --from-url DATABASE_URL.
 
-Depois: prisma migrate diff com --from-config-datasource e --to-schema-datamodel prisma/schema.prisma.
+Depois: prisma migrate diff com --from-config-datasource e --to-schema prisma/schema.prisma.
 
 A nova forma utiliza o datasource definido pelo prisma.config.ts.
 
