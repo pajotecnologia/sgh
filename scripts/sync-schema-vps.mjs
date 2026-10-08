@@ -156,6 +156,85 @@ async function main() {
       console.log('✓ Salas e consultórios padrão inseridos.');
     }
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "permissoes_usuarios" (
+        "id" TEXT NOT NULL,
+        "usuarioId" TEXT NOT NULL,
+        "chave" TEXT NOT NULL,
+        "permitido" BOOLEAN NOT NULL DEFAULT true,
+        "criadoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "atualizadoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "permissoes_usuarios_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    await client.query('CREATE UNIQUE INDEX IF NOT EXISTS "permissoes_usuarios_usuarioId_chave_key" ON "permissoes_usuarios"("usuarioId", "chave");');
+    await client.query('CREATE INDEX IF NOT EXISTS "permissoes_usuarios_usuarioId_idx" ON "permissoes_usuarios"("usuarioId");');
+    await client.query('CREATE INDEX IF NOT EXISTS "permissoes_usuarios_chave_permitido_idx" ON "permissoes_usuarios"("chave", "permitido");');
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE "permissoes_usuarios" ADD CONSTRAINT "permissoes_usuarios_usuarioId_fkey"
+        FOREIGN KEY ("usuarioId") REFERENCES "usuarios"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    console.log('✓ Tabela permissoes_usuarios verificada.');
+
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE "StatusLaudoSolicitacao" AS ENUM ('RASCUNHO', 'SOLICITADO', 'AUTORIZADO', 'REJEITADO');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "laudos_solicitacao" (
+        "id" TEXT NOT NULL,
+        "atendimentoId" TEXT NOT NULL,
+        "status" "StatusLaudoSolicitacao" NOT NULL DEFAULT 'RASCUNHO',
+        "nomeHospital" TEXT,
+        "cnpjHospital" TEXT,
+        "nomePaciente" TEXT,
+        "numeroAih" TEXT,
+        "procedimentoAnterior" TEXT,
+        "procedimentoSolicitado" TEXT,
+        "nomeMedicoSolicitante" TEXT,
+        "crmMedicoSolicitante" TEXT,
+        "cpfMedicoSolicitante" TEXT,
+        "mudancaProcedimento" BOOLEAN NOT NULL DEFAULT false,
+        "diariaUti" BOOLEAN NOT NULL DEFAULT false,
+        "diariaAcompanhante" BOOLEAN NOT NULL DEFAULT false,
+        "vacinaAntiRh" BOOLEAN NOT NULL DEFAULT false,
+        "usoProteseOtica" BOOLEAN NOT NULL DEFAULT false,
+        "usoFatoresCoagulacao" BOOLEAN NOT NULL DEFAULT false,
+        "usoOrdenadores" BOOLEAN NOT NULL DEFAULT false,
+        "nutricaoParenteral" BOOLEAN NOT NULL DEFAULT false,
+        "justificativa" TEXT,
+        "dataSolicitacao" TIMESTAMP(3),
+        "nomeAcompanhante" TEXT,
+        "dataAuditoria" TIMESTAMP(3),
+        "parecerAuditor" TEXT,
+        "nomeAuditor" TEXT,
+        "crmAuditor" TEXT,
+        "preenchidoPorId" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "laudos_solicitacao_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    await client.query('CREATE UNIQUE INDEX IF NOT EXISTS "laudos_solicitacao_atendimentoId_key" ON "laudos_solicitacao"("atendimentoId");');
+    await client.query('CREATE INDEX IF NOT EXISTS "laudos_solicitacao_status_idx" ON "laudos_solicitacao"("status");');
+    await client.query('CREATE INDEX IF NOT EXISTS "laudos_solicitacao_createdAt_idx" ON "laudos_solicitacao"("createdAt");');
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE "laudos_solicitacao" ADD CONSTRAINT "laudos_solicitacao_atendimentoId_fkey"
+        FOREIGN KEY ("atendimentoId") REFERENCES "atendimentos"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+    console.log('✓ Tabela laudos_solicitacao verificada.');
+
     console.log('✨ Sincronização concluída com sucesso!');
   } catch (err) {
     console.warn('Aviso durante sync-schema-vps:', err?.message || err);
