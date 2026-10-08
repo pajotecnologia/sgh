@@ -13,7 +13,7 @@ const ROLES_PERMITIDAS = [
   'ENFERMEIRO',
   'TECNICO_ENFERMAGEM',
   'FARMACEUTICO',
-  'RECEPCAO',
+  'RECEPCIONISTA',
 ];
 
 export async function GET(
