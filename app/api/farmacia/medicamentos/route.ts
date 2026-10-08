@@ -43,10 +43,21 @@ export async function GET(req: NextRequest) {
     const ativo = (url.searchParams.get('ativo') ?? 'true').trim() !== 'false'
     const tipoItem = (url.searchParams.get('tipoItem') ?? url.searchParams.get('tipo') ?? '').trim()
 
+    const filtroTipoItem = tipoItem
+      ? tipoItem.toUpperCase() === 'MEDICAMENTO'
+        ? {
+            AND: [
+              { tipoItem: { equals: 'MEDICAMENTO', mode: 'insensitive' as const } },
+              { tipoItem: { notIn: ['MATERIAL', 'PROCEDIMENTO', 'INSUMO'] } },
+            ],
+          }
+        : { tipoItem: { equals: tipoItem, mode: 'insensitive' as const } }
+      : {}
+
     const meds = await prisma.tbMedicamento.findMany({
       where: {
         ativo,
-        ...(tipoItem ? { tipoItem: { equals: tipoItem, mode: 'insensitive' } } : {}),
+        ...filtroTipoItem,
         ...(q
           ? {
               OR: [

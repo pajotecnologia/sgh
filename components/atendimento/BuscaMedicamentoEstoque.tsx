@@ -25,6 +25,7 @@ interface BuscaMedicamentoEstoqueProps {
   onNomeChange: (nome: string) => void
   erro?: string
   modoReceitaAlta?: boolean
+  tipoItem?: string
 }
 
 export function BuscaMedicamentoEstoque({
@@ -33,6 +34,7 @@ export function BuscaMedicamentoEstoque({
   onNomeChange,
   erro,
   modoReceitaAlta = false,
+  tipoItem = 'MEDICAMENTO',
 }: BuscaMedicamentoEstoqueProps) {
   const [busca, setBusca] = useState(valorNome)
   const [resultados, setResultados] = useState<MedicamentoCatalogoItem[]>([])
@@ -45,17 +47,26 @@ export function BuscaMedicamentoEstoque({
   const buscarMedicamentos = useCallback(async (queryStr: string) => {
     setCarregando(true)
     try {
-      const res = await fetch(`/api/farmacia/medicamentos?q=${encodeURIComponent(queryStr.trim())}`)
+      const url = tipoItem
+        ? `/api/farmacia/medicamentos?tipoItem=${encodeURIComponent(tipoItem)}&q=${encodeURIComponent(queryStr.trim())}`
+        : `/api/farmacia/medicamentos?q=${encodeURIComponent(queryStr.trim())}`
+      const res = await fetch(url)
       const json = await res.json()
       if (json.sucesso && Array.isArray(json.dados)) {
-        setResultados(json.dados)
+        const dadosFiltrados = tipoItem && tipoItem.toUpperCase() === 'MEDICAMENTO'
+          ? json.dados.filter((m: any) => {
+              const tipo = (m.tipoItem || 'MEDICAMENTO').toUpperCase()
+              return tipo !== 'MATERIAL' && tipo !== 'INSUMO' && tipo !== 'PROCEDIMENTO'
+            })
+          : json.dados
+        setResultados(dadosFiltrados)
       }
     } catch {
       /* ignorar erro */
     } finally {
       setCarregando(false)
     }
-  }, [])
+  }, [tipoItem])
 
   useEffect(() => {
     setBusca(valorNome)

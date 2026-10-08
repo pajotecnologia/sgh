@@ -529,6 +529,7 @@ export function FormularioPrescricao({
                   <BuscaMedicamentoEstoque
                     valorNome={itensWatch[itemEmEdicao]?.nomeMedicamento ?? ''}
                     modoReceitaAlta={variantEfetivo === 'receita_alta'}
+                    tipoItem="MEDICAMENTO"
                     onNomeChange={(nome) => setValue(`itens.${itemEmEdicao}.nomeMedicamento`, nome, { shouldValidate: true })}
                     onSelecionarMedicamento={(med: MedicamentoCatalogoItem) => {
                       setValue(`itens.${itemEmEdicao}.nomeMedicamento`, med.nome, { shouldValidate: true })
