@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: 'Configurações do Sistema' };
 export default async function ConfiguracoesPage() {
   const sessao = await getServerSession(authOptions);
 
-  if (!sessao) redirect('/login');
+  if (!sessao?.usuario?.id || !sessao.usuario.role) redirect('/login?reason=session');
   if (sessao.usuario.role !== 'ADMIN') redirect('/acesso-negado');
 
   return (

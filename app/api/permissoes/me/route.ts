@@ -5,7 +5,9 @@ import { obterPermissoesEfetivas } from '@/lib/permissoes-usuario'
 
 export async function GET() {
   const sessao = await getServerSession(authOptions)
-  if (!sessao) return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 })
+  if (!sessao?.usuario?.id || !sessao.usuario.role) {
+    return NextResponse.json({ sucesso: false, erro: 'Sessão inválida ou expirada.' }, { status: 401 })
+  }
 
   try {
     const permissoes = await obterPermissoesEfetivas(sessao.usuario.id, sessao.usuario.role)

@@ -11,7 +11,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const sessao = await getServerSession(authOptions);
-  if (sessao?.usuario.role !== 'ADMIN') {
+  if (!sessao?.usuario?.id || sessao.usuario.role !== 'ADMIN') {
     return NextResponse.json({ sucesso: false, erro: 'Acesso negado.' }, { status: 403 });
   }
 
