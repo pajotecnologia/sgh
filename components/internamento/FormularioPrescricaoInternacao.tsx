@@ -11,6 +11,8 @@ import {
   Pencil,
   Pill,
   Trash2,
+  ClipboardList,
+  Plus,
 } from 'lucide-react'
 import { ModalInteracaoCritica, type InteracaoCritica } from '@/components/farmacia/ModalInteracaoCritica'
 import { ModalPrescricaoDuplicada, type PrescricaoDuplicada } from '@/components/prescricao/ModalPrescricaoDuplicada'
@@ -27,6 +29,37 @@ import type { ColunasPrescricaoModelo } from '@/lib/prescricao-modelo-colunas'
 import { isLinhaDuplaPrescricao } from '@/lib/prescricao-medica-padrao-map'
 import { schemaItemPrescricaoInternacao, type CriarPrescricaoForm } from '@/lib/validations/atendimento'
 import { cn } from '@/lib/utils'
+
+const MODELOS_PROCEDIMENTOS_CUIDADOS = [
+  {
+    categoria: 'Procedimentos de Enfermagem',
+    itens: [
+      'Curativo estéril oclusivo em ferida',
+      'Sondagem vesical de alívio',
+      'Sondagem vesical de demora (SVD)',
+      'Sondagem nasogástrica (SNG) aberta',
+      'Oxigenoterapia sob cateter nasal a 2 L/min',
+      'Nebulização com SF 0,9% 5ml',
+      'Punção de acesso venoso periférico calibroso',
+      'Aspiração de vias aéreas se necessário',
+      'Retirada de pontos cirúrgicos',
+      'Imobilização com tala gessada',
+    ],
+  },
+  {
+    categoria: 'Cuidados, Monitorização & Dieta',
+    itens: [
+      'Aferir sinais vitais (PA, FC, SpO2, Temp) de 4/4h',
+      'HGT / Glicemia capilar antes das principais refeições',
+      'Monitorização cardíaca contínua e oximetria',
+      'Manter cabeceira elevada a 30° - 45°',
+      'Repouso absoluto no leito com grades elevadas',
+      'Balanço hídrico rigoroso (anotar diurese e infusões)',
+      'Dieta branda / leve com líquidos à vontade',
+      'Dieta zero / Jejum para exames ou procedimentos',
+    ],
+  },
+]
 
 type ItemPrescricao = CriarPrescricaoForm['itens'][number]
 
@@ -660,17 +693,67 @@ export function FormularioPrescricaoInternacao({
         )}
       </div>
 
-      <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1 block">
-          Observações gerais (dieta, repouso, cuidados)
-        </label>
-        <textarea
-          value={observacoes}
-          onChange={(e) => setObservacoes(e.target.value)}
-          rows={3}
-          className={cn(inputClass(), 'resize-none')}
-          placeholder="Orientações gerais para a equipe de enfermagem…"
-        />
+      {/* Bloco Estruturado de Procedimentos e Cuidados de Enfermagem */}
+      <div className="p-4 bg-muted/20 border border-border rounded-xl space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-border/70">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-primary" />
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+              Procedimentos, Cuidados &amp; Orientações de Enfermagem
+            </span>
+          </div>
+          <span className="text-[11px] text-muted-foreground">
+            Clique nos modelos rápidos para inserir na prescrição
+          </span>
+        </div>
+
+        {/* Modelos rápidos categorizados */}
+        <div className="space-y-2">
+          {MODELOS_PROCEDIMENTOS_CUIDADOS.map((grupo) => (
+            <div key={grupo.categoria} className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 block">
+                {grupo.categoria}:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {grupo.itens.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => {
+                      if (observacoes.includes(item)) {
+                        toast.info('Item já incluído nas orientações.')
+                        return
+                      }
+                      const novoTexto = observacoes.trim()
+                        ? `${observacoes.trim()}\n• ${item}`
+                        : `• ${item}`
+                      setObservacoes(novoTexto)
+                      toast.success('Procedimento/Cuidado adicionado.')
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] bg-background hover:bg-primary/10 hover:border-primary/50 border border-border rounded-lg font-medium transition-all text-left shadow-2xs hover:text-primary"
+                    title="Adicionar à lista de procedimentos"
+                  >
+                    <Plus className="h-3 w-3 text-primary/70 shrink-0" />
+                    <span>{item}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div>
+          <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
+            Descrição dos procedimentos e cuidados prescritos:
+          </label>
+          <textarea
+            value={observacoes}
+            onChange={(e) => setObservacoes(e.target.value)}
+            rows={4}
+            className={cn(inputClass(), 'resize-y font-sans text-xs leading-relaxed')}
+            placeholder="Descreva procedimentos a serem realizados (ex.: curativos, sondagens, oxigênio, punções, monitorização de SSVV, dieta, repouso)..."
+          />
+        </div>
       </div>
 
       <div className="flex flex-wrap justify-end gap-2 pt-3 border-t border-border">
