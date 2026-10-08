@@ -15,7 +15,7 @@ COPY package*.json .npmrc* ./
 
 # 2. Instala todas as dependências necessárias para o build
 ENV NODE_ENV=development
-RUN npm install --legacy-peer-deps
+RUN npm install --legacy-peer-deps && npm cache clean --force
 
 # 3. Copia o schema do Prisma e gera o Prisma Client ANTES do build
 COPY prisma ./prisma
@@ -31,8 +31,9 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXTAUTH_SECRET="build-fallback-sgh-nextauth-secret-min-32-chars!!"
 ENV ENCRYPTION_KEY="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-RUN npm run build
-RUN node scripts/package-release.mjs
+RUN npm run build \
+  && node scripts/package-release.mjs \
+  && rm -rf .next/cache /root/.npm /tmp/*
 
 RUN chmod +x docker-entrypoint.sh
 
