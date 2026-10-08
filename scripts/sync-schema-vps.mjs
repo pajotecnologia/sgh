@@ -182,7 +182,7 @@ async function main() {
 
     await client.query(`
       DO $$ BEGIN
-        CREATE TYPE "StatusLaudoSolicitacao" AS ENUM ('RASCUNHO', 'SOLICITADO', 'AUTORIZADO', 'REJEITADO');
+        CREATE TYPE "StatusLaudoSolicitacao" AS ENUM ('RASCUNHO', 'EMITIDO', 'AUDITADO', 'CANCELADO');
       EXCEPTION
         WHEN duplicate_object THEN null;
       END $$;

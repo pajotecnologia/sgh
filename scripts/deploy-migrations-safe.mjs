@@ -4,11 +4,11 @@
  * Cenário suportado:
  * - banco criado anteriormente via db:push/db:bootstrap;
  * - schema já existente e compatível com prisma/schema.prisma;
- * - histórico _prisma_migrations ainda não inicializado.
+ * - histórico _prisma_migrations ainda não inicializado (P3005).
  *
- * Nesse caso, valida o schema com migrate diff, faz baseline e então
- * executa migrate deploy normalmente. Nunca faz baseline se houver
- * diferença estrutural entre o banco e o schema atual.
+ * Nesse caso, sincroniza as tabelas com segurança (IF NOT EXISTS),
+ * inicializa o baseline no _prisma_migrations de forma rápida e atômica,
+ * e então executa migrate deploy normalmente.
  */
 import './load-env.mjs';
 import { resolve } from 'node:path';
@@ -84,55 +84,7 @@ if ((syncScript.status ?? 1) !== 0) {
   fail('[migrate:deploy-safe] Falha ao sincronizar schema do PostgreSQL.');
 }
 
-console.log('[migrate:deploy-safe] Validando compatibilidade do schema...');
-
-const diff = runPrisma(
-  [
-    'migrate',
-    'diff',
-    '--from-config-datasource',
-    '--to-schema',
-    'prisma/schema.prisma',
-    '--exit-code',
-  ],
-  { capture: true },
-);
-
-if (diff.status !== 0) {
-  console.log('[migrate:deploy-safe] Ajustando diferenças estruturais pendentes de forma segura...');
-  // Gera o script SQL exato da diferença e aplica ao banco
-  const diffScript = runPrisma(
-    [
-      'migrate',
-      'diff',
-      '--from-config-datasource',
-      '--to-schema',
-      'prisma/schema.prisma',
-      '--script',
-    ],
-    { capture: true },
-  );
-
-  if (diffScript.status === 0 && diffScript.output.trim()) {
-    const fs = await import('node:fs');
-    const tmpSql = resolve(process.cwd(), 'prisma/temp_diff_deploy.sql');
-    fs.writeFileSync(tmpSql, diffScript.output, 'utf8');
-
-    const execResult = runPrisma(['db', 'execute', '--file', tmpSql], { capture: true });
-    try { fs.unlinkSync(tmpSql); } catch {}
-
-    if (execResult.status !== 0) {
-      console.warn('[migrate:deploy-safe] Aviso ao executar SQL de diff:', execResult.output);
-    } else {
-      console.log('[migrate:deploy-safe] Diferenças estruturais aplicadas com sucesso.');
-    }
-  }
-}
-
-if (diff.output.trim()) process.stdout.write(diff.output);
-
-console.log('[migrate:deploy-safe] Inicializando o histórico Prisma (baseline)...');
-// Executa o script existente, que marca todas as migrations reais como aplicadas.
+console.log('[migrate:deploy-safe] Inicializando o histórico Prisma (baseline rápido)...');
 const baselineScript = spawnSync(
   process.execPath,
   [resolve(process.cwd(), 'scripts/baseline-migrations.mjs')],

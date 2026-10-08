@@ -44,7 +44,7 @@ EXPOSE 3002
 
 # O entrypoint executa as migrações antes de iniciar o Next.js.
 # O start-period evita que o healthcheck do Docker/Coolify falhe durante essa etapa.
-HEALTHCHECK --interval=15s --timeout=5s --start-period=45s --retries=5 CMD curl -f http://127.0.0.1:3002/api/health || exit 1
+HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=5 CMD curl -f http://127.0.0.1:3002/api/health || exit 1
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["npm", "start"]
