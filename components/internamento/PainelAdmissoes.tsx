@@ -214,8 +214,22 @@ export function PainelAdmissoes() {
     setCarregando(true)
     try {
       const res = await fetch('/api/internamento/admissoes')
-      const json = await res.json()
-      if (!json.sucesso) {
+      const json = await res.json().catch(() => ({}))
+
+      if (res.status === 401) {
+        window.location.href = '/login?reason=session'
+        return
+      }
+
+      if (res.status === 403) {
+        toast.error('Você não possui permissão para acessar as Admissões.')
+        setPendentes([])
+        setInternados([])
+        setFichasHospitalares([])
+        return
+      }
+
+      if (!res.ok || !json.sucesso) {
         toast.error(json.erro ?? 'Erro ao carregar admissões.')
         setPendentes([])
         setInternados([])
@@ -251,8 +265,20 @@ export function PainelAdmissoes() {
       if (fim) q.set('dataFim', fim)
 
       const res = await fetch(`/api/internamento/hospitalar?${q.toString()}`)
-      const json = await res.json()
-      if (!json.sucesso) {
+      const json = await res.json().catch(() => ({}))
+
+      if (res.status === 401) {
+        window.location.href = '/login?reason=session'
+        return
+      }
+
+      if (res.status === 403) {
+        toast.error('Você não possui permissão para acessar o internamento hospitalar.')
+        setHospitalar([])
+        return
+      }
+
+      if (!res.ok || !json.sucesso) {
         toast.error(json.erro ?? 'Erro ao carregar internamento hospitalar.')
         setHospitalar([])
         return
