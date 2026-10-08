@@ -92,15 +92,6 @@ if (diff.status !== 0) {
 if (diff.output.trim()) process.stdout.write(diff.output);
 
 console.log('[migrate:deploy-safe] Schema compatível. Inicializando o histórico Prisma (baseline)...');
-
-const baseline = runPrisma(['migrate', 'resolve', '--applied', 'BASELINE_PLACEHOLDER']);
-if (baseline.status === 0) {
-  // Não deveria ser usado: o baseline real é feito pelo script que percorre
-  // todas as migrations. Este bloco existe apenas para evitar execução silenciosa
-  // caso o script de baseline seja alterado no futuro.
-  fail('[migrate:deploy-safe] Baseline inválido: migration placeholder não deveria ser aplicado.');
-}
-
 // Executa o script existente, que marca todas as migrations reais como aplicadas.
 const baselineScript = spawnSync(
   process.execPath,
