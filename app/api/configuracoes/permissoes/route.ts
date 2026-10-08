@@ -13,7 +13,9 @@ function admin(sessao: Session | null) {
 
 export async function GET(req: NextRequest) {
   const sessao = await getServerSession(authOptions)
-  if (!sessao) return NextResponse.json({ sucesso: false, erro: 'Não autorizado.' }, { status: 401 })
+  if (!sessao?.usuario?.id || !sessao.usuario.role) {
+    return NextResponse.json({ sucesso: false, erro: 'Sessão inválida ou expirada.' }, { status: 401 })
+  }
 
   const userId = req.nextUrl.searchParams.get('usuarioId') ?? sessao.usuario.id
   const somenteEu = userId === sessao.usuario.id
