@@ -20,6 +20,9 @@ import {
   Clock,
   LogOut,
   Sparkles,
+  Printer,
+  X,
+  ArrowLeft,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { HistoricoLongitudinalPacienteDTO, PassagemHistoricoDTO } from '@/lib/historico-paciente';
@@ -132,7 +135,31 @@ export function TimelineHistoricoPaciente({ pacienteId }: { pacienteId: string }
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-background hover:bg-muted text-foreground font-semibold text-xs transition-colors shadow-2xs print:hidden"
+              title="Imprimir prontuário do paciente"
+            >
+              <Printer className="h-3.5 w-3.5 text-primary" />
+              Imprimir
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  window.close();
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground font-semibold text-xs transition-colors shadow-2xs print:hidden"
+              title="Voltar / Fechar prontuário"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Voltar
+            </button>
             <div className="px-3.5 py-1.5 rounded-xl bg-muted/80 text-foreground font-semibold text-xs flex items-center gap-1.5">
               <History className="h-4 w-4 text-primary" />
               {dados.totalAtendimentos} {dados.totalAtendimentos === 1 ? 'passagem' : 'passagens'}
