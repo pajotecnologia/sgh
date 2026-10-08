@@ -41,6 +41,7 @@ import {
   Sparkles,
   Syringe,
   UserCheck,
+  History,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import type { Role, UsuarioSessao } from '@/types';
@@ -150,6 +151,12 @@ const GRUPOS_NAVEGACAO: GrupoNav[] = [
         label: 'Prontuário Enfermagem',
         href: '/evolucoes',
         icon: NotebookPen,
+        roles: ROLES_PRONTUARIO,
+      },
+      {
+        label: 'Altas Hospitalares',
+        href: '/internamento/altas',
+        icon: History,
         roles: ROLES_PRONTUARIO,
       },
     ],

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 import { FileText, Loader2, Save, UserCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -59,9 +61,12 @@ export function FormularioCondicoesAlta({
   atendimentoId: string
   numeroAtendimento: string
 }) {
+  const router = useRouter()
+  const { data: sessao } = useSession()
   const [carregando, setCarregando] = useState(true)
   const [enviando, setEnviando] = useState(false)
-  const [status, setStatus] = useState<FichaInternacaoAltaForm['status']>('RASCUNHO')
+  const [statusFicha, setStatusFicha] = useState<FichaInternacaoAltaForm['status']>('RASCUNHO')
+  const [statusAlta, setStatusAlta] = useState<FichaInternacaoAltaForm['statusAlta']>('RASCUNHO')
   const [nomePaciente, setNomePaciente] = useState('')
 
   const posInicial = camposPosInternacaoVazios()
@@ -95,7 +100,8 @@ export function FormularioCondicoesAlta({
           return
         }
         const prefill = json.dados.prefill as FichaInternacaoAltaPrefill
-        setStatus(prefill.status ?? 'RASCUNHO')
+        setStatusFicha(prefill.status ?? 'RASCUNHO')
+        setStatusAlta(prefill.statusAlta ?? 'RASCUNHO')
         setNomePaciente(prefill.nome ?? '')
         setAltaCurado(prefill.altaCurado ?? false)
         setAltaMelhorado(prefill.altaMelhorado ?? false)
@@ -122,7 +128,7 @@ export function FormularioCondicoesAlta({
     carregar()
   }, [atendimentoId])
 
-  async function salvar(statusSalvar: FichaInternacaoAltaForm['status']) {
+  async function salvar(statusSalvar: FichaInternacaoAltaForm['statusAlta']) {
     setEnviando(true)
     try {
       const res = await fetch(`/api/atendimento/${atendimentoId}/ficha-internacao-alta`, {
@@ -130,7 +136,8 @@ export function FormularioCondicoesAlta({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           secaoSalvar: 'ALTA',
-          status: statusSalvar,
+          status: statusFicha,
+          statusAlta: statusSalvar,
           nome: nomePaciente || 'Paciente',
           ...camposPosInternacaoVazios(),
           altaCurado,
@@ -158,12 +165,43 @@ export function FormularioCondicoesAlta({
         toast.error(json.erro ?? 'Erro ao salvar condições de alta.')
         return
       }
-      setStatus(statusSalvar)
-      toast.success(
-        statusSalvar === 'CONCLUIDA'
-          ? 'Condições de alta registradas.'
-          : 'Dados de alta salvos.'
-      )
+      setStatusAlta(statusSalvar)
+
+      if (statusSalvar === 'CONCLUIDA') {
+        const statusDestino = obito
+          ? 'OBITO'
+          : motivoTransferencia
+            ? 'TRANSFERIDO'
+            : 'ALTA'
+
+        const resStatus = await fetch(`/api/atendimento/${atendimentoId}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: statusDestino }),
+        })
+        const jsonStatus = await resStatus.json()
+
+        if (!jsonStatus.sucesso) {
+          toast.error(
+            jsonStatus.erro ??
+              'A ficha foi concluída, mas o desfecho do atendimento não pôde ser finalizado.'
+          )
+          return
+        }
+
+        toast.success(
+          statusDestino === 'OBITO'
+            ? 'Óbito registrado e atendimento encerrado.'
+            : statusDestino === 'TRANSFERIDO'
+              ? 'Transferência registrada e atendimento encerrado.'
+              : 'Alta hospitalar registrada e atendimento encerrado.'
+        )
+        router.push('/internamento/altas')
+        router.refresh()
+        return
+      }
+
+      toast.success('Dados de alta salvos.')
     } catch {
       toast.error('Erro de conexão ao salvar.')
     } finally {
@@ -180,8 +218,10 @@ export function FormularioCondicoesAlta({
     )
   }
 
+  const podeConcluirAlta = ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'].includes(sessao?.usuario?.role ?? '')
+
   const statusLabel =
-    status === 'CONCLUIDA' ? 'Concluída' : status === 'EM_ANDAMENTO' ? 'Em andamento' : 'Rascunho'
+    statusAlta === 'CONCLUIDA' ? 'Concluída' : statusAlta === 'EM_ANDAMENTO' ? 'Em andamento' : 'Rascunho'
 
   return (
     <div className="space-y-4">
@@ -333,10 +373,15 @@ export function FormularioCondicoesAlta({
         </button>
         <button
           type="button"
-          disabled={enviando}
+          disabled={enviando || !podeConcluirAlta}
           onClick={() => salvar('CONCLUIDA')}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 ml-auto"
           aria-label="Concluir alta"
+          title={
+            podeConcluirAlta
+              ? 'Finaliza a ficha e retira o paciente da lista de internados'
+              : 'Somente médico, diretor clínico ou administrador pode finalizar o desfecho'
+          }
         >
           {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <UserCheck className="h-4 w-4" aria-hidden />}
           Concluir alta

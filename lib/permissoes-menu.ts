@@ -11,6 +11,7 @@ export type ChavePermissao =
   | 'mapa-leitos'
   | 'prontuario-medico'
   | 'prontuario-enfermagem'
+  | 'internamento-altas'
   | 'farmacia'
   | 'farmacia-entradas'
   | 'farmacia-saidas'
@@ -78,6 +79,7 @@ export const MENU_PERMISSOES: ItemPermissao[] = [
   { chave: 'mapa-leitos', label: 'Mapa de Leitos', href: '/internamento/mapa-leitos', grupo: 'Atendimento & Clínica', rolesPadrao: ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM', 'RECEPCIONISTA', 'FARMACEUTICO'] },
   { chave: 'prontuario-medico', label: 'Prontuário Médico', href: '/prontuario', grupo: 'Atendimento & Clínica', rolesPadrao: PRONTUARIO },
   { chave: 'prontuario-enfermagem', label: 'Prontuário Enfermagem', href: '/evolucoes', grupo: 'Atendimento & Clínica', rolesPadrao: PRONTUARIO },
+  { chave: 'internamento-altas', label: 'Altas Hospitalares', href: '/internamento/altas', grupo: 'Atendimento & Clínica', rolesPadrao: PRONTUARIO },
 
   { chave: 'farmacia', label: 'Farmácia & Dispensação', href: '/farmacia', grupo: 'Farmácia & Suprimentos', rolesPadrao: ['ADMIN', 'FARMACEUTICO'] },
   { chave: 'farmacia-entradas', label: 'Entradas de NF', href: '/farmacia/entradas', grupo: 'Farmácia & Suprimentos', parent: 'farmacia', rolesPadrao: ['ADMIN', 'FARMACEUTICO'] },

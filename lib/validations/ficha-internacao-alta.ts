@@ -25,6 +25,7 @@ const schemaEvolucaoLinha = z.object({
 
 export const schemaFichaInternacaoAlta = z.object({
   status: z.enum(['RASCUNHO', 'EM_ANDAMENTO', 'CONCLUIDA']).default('RASCUNHO'),
+  statusAlta: z.enum(['RASCUNHO', 'EM_ANDAMENTO', 'CONCLUIDA']).default('RASCUNHO'),
   registroNumero: textoOpcional(30),
   dataInternacao: textoOpcional(20),
   horaInternacao: textoOpcional(10),
