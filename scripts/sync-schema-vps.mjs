@@ -2,7 +2,11 @@ import './load-env.mjs';
 import pg from 'pg';
 
 async function main() {
-  const url = process.env.DATABASE_URL || 'postgresql://postgres:JwxhBE6vwcBnsyzZI9RFJ03geeh0xwiVjTdNLuNukzeAHMHzYKtNhJz8lECEiHMm@169.58.246.70:5432/sgh';
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    console.warn('DATABASE_URL não definida; sincronização do schema VPS ignorada.');
+    return;
+  }
   const client = new pg.Client({ connectionString: url, connectionTimeoutMillis: 5000 });
   
   try {
