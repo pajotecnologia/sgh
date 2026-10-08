@@ -37,25 +37,36 @@ export function PermissoesUsuarios() {
   const usuarioSelecionado = usuarios.find((u) => u.id === usuarioId)
 
   useEffect(() => {
+    let ativo = true
     fetch('/api/configuracoes/usuarios')
       .then((res) => res.json())
       .then((json) => {
+        if (!ativo) return
         if (!json.sucesso) throw new Error(json.erro)
         const lista = (json.dados ?? []) as Usuario[]
         setUsuarios(lista)
         const primeiro = lista.find((u) => u.ativo && u.role !== 'ADMIN') ?? lista.find((u) => u.ativo)
         if (primeiro) setUsuarioId(primeiro.id)
       })
-      .catch((erro) => toast.error(erro instanceof Error ? erro.message : 'Erro ao carregar usuários.'))
-      .finally(() => setCarregandoUsuarios(false))
+      .catch((erro) => {
+        if (ativo) toast.error(erro instanceof Error ? erro.message : 'Erro ao carregar usuários.')
+      })
+      .finally(() => {
+        if (ativo) setCarregandoUsuarios(false)
+      })
+    return () => {
+      ativo = false
+    }
   }, [])
 
   useEffect(() => {
     if (!usuarioId) return
+    let ativo = true
     setCarregandoPermissoes(true)
     fetch(`/api/configuracoes/permissoes?usuarioId=${encodeURIComponent(usuarioId)}`)
       .then((res) => res.json())
       .then((json) => {
+        if (!ativo) return
         if (!json.sucesso) throw new Error(json.erro)
         setPermissoes(json.dados.permissoes ?? {})
         const mapaPadrao = Object.fromEntries(
@@ -64,8 +75,15 @@ export function PermissoesUsuarios() {
         setPadroes(mapaPadrao)
         setBloqueioAdmin(Boolean(json.dados.bloqueioAdmin))
       })
-      .catch((erro) => toast.error(erro instanceof Error ? erro.message : 'Erro ao carregar permissões.'))
-      .finally(() => setCarregandoPermissoes(false))
+      .catch((erro) => {
+        if (ativo) toast.error(erro instanceof Error ? erro.message : 'Erro ao carregar permissões.')
+      })
+      .finally(() => {
+        if (ativo) setCarregandoPermissoes(false)
+      })
+    return () => {
+      ativo = false
+    }
   }, [usuarioId])
 
   const grupos = useMemo(() => chavesPorGrupo(), [])
@@ -102,13 +120,36 @@ export function PermissoesUsuarios() {
       })
       const json = await res.json()
       if (!json.sucesso) throw new Error(json.erro)
-      setPermissoes(json.dados ?? permissoes)
-      toast.success(json.mensagem ?? 'Permissões salvas.')
+      if (json.dados) {
+        setPermissoes(json.dados)
+      }
+      toast.success(json.mensagem ?? 'Permissões salvas com sucesso!')
     } catch (erro) {
       toast.error(erro instanceof Error ? erro.message : 'Erro ao salvar permissões.')
     } finally {
       setSalvando(false)
     }
+  }
+
+  if (carregandoUsuarios) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm">Carregando usuários e perfis...</p>
+      </div>
+    )
+  }
+
+  if (usuarios.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-border p-12 text-center space-y-3">
+        <UserCog className="h-10 w-10 text-muted-foreground mx-auto" />
+        <h3 className="text-base font-semibold">Nenhum usuário cadastrado</h3>
+        <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+          Cadastre novos usuários na aba &quot;Usuários do Sistema&quot; para configurar permissões individuais.
+        </p>
+      </div>
+    )
   }
 
   return (
@@ -132,7 +173,7 @@ export function PermissoesUsuarios() {
                 value={usuarioId}
                 onChange={(e) => setUsuarioId(e.target.value)}
                 disabled={carregandoUsuarios}
-                className="w-full appearance-none pl-9 pr-9 py-2.5 rounded-lg border border-input bg-background text-sm"
+                className="w-full appearance-none pl-9 pr-9 py-2.5 rounded-lg border border-input bg-background text-sm cursor-pointer"
               >
                 {usuarios.map((usuario) => (
                   <option key={usuario.id} value={usuario.id}>

@@ -12,6 +12,7 @@ import { BotaoNovoAtendimento } from '@/components/recepcao/BotaoNovoAtendimento
 import { BannerPosCadastro } from '@/components/recepcao/BannerPosCadastro';
 import { PaginacaoLista } from '@/components/shared/PaginacaoLista';
 import { parsePaginacao } from '@/lib/paginacao';
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu';
 
 export const metadata: Metadata = { title: 'Recepção' };
 
@@ -28,6 +29,7 @@ export default async function PaginaRecepcao({
     porPagina?: string;
   }>;
 }) {
+  await exigirPermissaoMenu('recepcao');
   const params = await searchParams;
   const { pagina, porPagina, skip, take } = parsePaginacao(params);
   const busca = params.busca ?? '';

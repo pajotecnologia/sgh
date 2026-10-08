@@ -17,9 +17,12 @@ const FormularioCadastroPaciente = dynamic(
   }
 )
 
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
+
 export const metadata: Metadata = { title: 'Novo Paciente | Recepção' }
 
-export default function PaginaNovoPaciente() {
+export default async function PaginaNovoPaciente() {
+  await exigirPermissaoMenu('recepcao')
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>

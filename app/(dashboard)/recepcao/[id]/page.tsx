@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { descriptografar, mascararCpf } from '@/lib/encryption';
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu';
 import { FichaPacienteClient } from '@/components/recepcao/FichaPacienteClient';
 
 export const metadata: Metadata = { title: 'Ficha do Paciente' };
@@ -14,6 +15,7 @@ export default async function PaginaFichaPaciente({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await exigirPermissaoMenu('recepcao');
   const { id } = await params;
   const sessao = await getServerSession(authOptions);
 

@@ -275,10 +275,12 @@ export function Sidebar({ usuario }: SidebarProps) {
   };
 
   const permitido = (label: string, href: string, roles?: Role[]) => {
-    if (roles && !roles.includes(usuario.role)) return false;
     const item = MENU_PERMISSOES.find((x) => x.label === label && x.href === href);
+    if (item && permissoes && typeof permissoes[item.chave] === 'boolean') {
+      return permissoes[item.chave];
+    }
+    if (roles && !roles.includes(usuario.role)) return false;
     if (!item) return true;
-    if (permissoes) return permissoes[item.chave] !== false;
     return permissaoPadrao(item.chave, usuario.role);
   };
 
@@ -364,8 +366,16 @@ export function Sidebar({ usuario }: SidebarProps) {
           className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-4 text-xs scrollbar-thin scrollbar-thumb-slate-800"
           aria-label="Menu principal"
         >
-          {gruposFiltrados.map((grupo) => (
-            <div key={grupo.titulo} className="space-y-1">
+          {gruposFiltrados.length === 0 ? (
+            <div className="py-8 px-3 text-center space-y-2">
+              <ShieldCheck className="h-6 w-6 text-slate-500 mx-auto" />
+              <p className="text-[11px] text-slate-400">
+                Nenhum módulo liberado para este perfil.
+              </p>
+            </div>
+          ) : (
+            gruposFiltrados.map((grupo) => (
+              <div key={grupo.titulo} className="space-y-1">
               {!collapsed ? (
                 <p className="px-3 py-1 text-[10px] font-bold text-slate-400/90 uppercase tracking-wider">
                   {grupo.titulo}
@@ -463,7 +473,7 @@ export function Sidebar({ usuario }: SidebarProps) {
                 })}
               </div>
             </div>
-          ))}
+          )))}
         </nav>
 
         {/* Rodapé / Perfil do Usuário & Ações Rápidas */}

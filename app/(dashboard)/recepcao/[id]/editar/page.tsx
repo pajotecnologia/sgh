@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { FormularioCadastroPaciente } from '@/components/recepcao/FormularioCadastroPaciente'
 import { AlertTriangle } from 'lucide-react'
 
@@ -12,6 +13,7 @@ export default async function EditarPacientePage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  await exigirPermissaoMenu('recepcao')
   const sessao = await getServerSession(authOptions)
   if (!sessao) return notFound()
 
