@@ -7,7 +7,7 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { cn } from '@/lib/utils'
-import { ClipboardCheck, Package, FileDown, FileUp, Tags, Upload, BarChart3, Truck } from 'lucide-react'
+import { ClipboardCheck, Package, FileDown, FileUp, Tags, Upload, BarChart3, Truck, SlidersHorizontal } from 'lucide-react'
 
 export const metadata: Metadata = { title: { default: 'Farmácia', template: '%s | Farmácia' } }
 
@@ -15,6 +15,7 @@ const ROLES = ['ADMIN', 'FARMACEUTICO'] as const
 
 const SUBMENU_OPERACIONAL = [
   { href: '/farmacia', label: 'Dispensação', icon: ClipboardCheck },
+  { href: '/farmacia/ajuste-estoque', label: 'Ajuste de Estoque (Inventário)', icon: SlidersHorizontal },
   { href: '/farmacia/entradas', label: 'Entradas (NF)', icon: FileDown },
   { href: '/farmacia/entradas/importar-xml', label: 'Importar XML', icon: Upload },
   { href: '/farmacia/saidas', label: 'Saídas', icon: FileUp },

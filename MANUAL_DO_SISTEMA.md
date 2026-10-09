@@ -164,6 +164,12 @@ Classificação de risco clínico e estratificação de prioridade de acordo com
 - **Sinônimos Comerciais:** Associação de múltiplos nomes comerciais ao mesmo princípio ativo.
 - **Fornecedores:** Gestão de distribuidores com CNPJ e histórico de compras.
 
+### 5.4. Ajuste Dinâmico de Estoque & Inventário em Lote (`/farmacia/ajuste-estoque`)
+- **Inventário em Lote:** Permite listar todo o catálogo de medicamentos, materiais e insumos com base em filtros avançados (Busca rápida, Tipo de Item, Situação de Saldo, Localização/Prateleira).
+- **Lançamento Ágil de Contagem Física:** Permite lançar novos saldos físicos item a item ou gerenciar lotes e validades individualmente.
+- **Cálculo Automático de Divergências:** Exibe em tempo real o diferencial (+ entradas / - baixas) e destaca os itens modificados.
+- **Gravação Atômica em Massa:** O farmacêutico seleciona o motivo do ajuste (Inventário, Avaria, Vencimento, Transferência, etc.), informa a justificativa e salva todas as alterações de uma única vez em transação segura no banco de dados com registro no livro-razão (`TbFarmaciaMovimentacao`) e trilha de auditoria LGPD.
+
 ---
 
 ## 6. MÓDULO 5: INTERNAMENTO & GESTÃO DE LEITOS
