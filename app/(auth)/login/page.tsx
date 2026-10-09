@@ -125,15 +125,14 @@ export default function PaginaLogin() {
           <FormularioLogin />
         </div>
 
-        {/* Rodapé Alinhado à Esquerda com a Logomarca PAJO Tecnologia e Versão */}
-        <div className="pt-6 border-t border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <LogoPajo className="hover:opacity-100 transition-opacity" />
-          </div>
-          <div className="text-[11px] text-muted-foreground text-left sm:text-right flex items-center gap-2">
+        {/* Rodapé do Painel Direito com Informações de Sessão e Versão */}
+        <div className="pt-6 border-t border-border/60 flex items-center justify-between gap-4">
+          <div className="text-[11px] text-muted-foreground flex items-center gap-2 w-full justify-between">
             <span>Sessão segura com expiração automática</span>
-            <span className="text-muted-foreground/40">•</span>
-            <span className="font-mono text-[10px] text-muted-foreground/80">{VERSAO_SGH}</span>
+            <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/80">
+              <span className="text-muted-foreground/40">•</span>
+              <span>{VERSAO_SGH}</span>
+            </div>
           </div>
         </div>
       </div>
