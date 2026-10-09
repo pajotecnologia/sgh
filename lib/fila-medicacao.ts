@@ -1,17 +1,19 @@
 import type { Prisma, StatusAtendimento } from '@prisma/client'
 
-/** Atendimentos no PS/ambulatorial/internação com prescrição pendente de aplicação */
+/** Atendimentos no PS / Ambulatorial exclusivo (NÃO INTERNADOS) com prescrição pendente de aplicação */
 export const STATUS_MEDICACAO_ATIVOS: StatusAtendimento[] = [
   'AGUARDANDO_ATENDIMENTO',
   'EM_ATENDIMENTO',
-  'INTERNADO',
   'CONCLUIDO',
 ]
 
-/** Base para atendimentos no módulo Medicação (exclui internados) */
+/** Base para atendimentos no módulo Medicação (PS) — exclui explicitamente pacientes internados ou em trânsito para leito */
 export const whereAtendimentoMedicacaoBase: Prisma.AtendimentoWhereInput = {
   deletedAt: null,
   status: { in: STATUS_MEDICACAO_ATIVOS },
+  leitoId: null,
+  vaiInternar: false,
+  fichaInternacaoAlta: null,
   paciente: { deletedAt: null },
   prontuario: { is: {} },
 }
@@ -19,6 +21,9 @@ export const whereAtendimentoMedicacaoBase: Prisma.AtendimentoWhereInput = {
 export const whereMedicacaoPendente: Prisma.AtendimentoWhereInput = {
   deletedAt: null,
   status: { in: STATUS_MEDICACAO_ATIVOS },
+  leitoId: null,
+  vaiInternar: false,
+  fichaInternacaoAlta: null,
   paciente: { deletedAt: null },
   prontuario: {
     is: {
@@ -33,6 +38,7 @@ export const whereMedicacaoPendente: Prisma.AtendimentoWhereInput = {
     },
   },
 }
+
 
 export const includeAtendimentoMedicacao = {
   paciente: {

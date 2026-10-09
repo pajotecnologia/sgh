@@ -59,17 +59,29 @@ export async function POST(
 
     const atendimento = await prisma.atendimento.findFirst({
       where: { id: atendimentoId, deletedAt: null },
-      select: { status: true },
+      select: {
+        status: true,
+        leitoId: true,
+        vaiInternar: true,
+        fichaInternacaoAlta: { select: { id: true } },
+      },
     });
     if (!atendimento) {
       return NextResponse.json({ sucesso: false, erro: 'Atendimento não encontrado.' }, { status: 404 });
     }
+
+    const estaInternado =
+      atendimento.status === 'INTERNADO' ||
+      atendimento.status === 'AGUARDANDO_INTERNACAO' ||
+      Boolean(atendimento.leitoId) ||
+      Boolean(atendimento.vaiInternar);
+
     if (contexto === 'medicacao') {
-      if (atendimento.status === 'INTERNADO') {
+      if (estaInternado) {
         return NextResponse.json(
           {
             sucesso: false,
-            erro: 'Paciente internado: aplique a medicação no prontuário em Internação (aba Instruções / Enfermagem).',
+            erro: 'Paciente internado: a medicação deve ser administrada exclusivamente no prontuário de Internação (aba Instruções / Enfermagem).',
           },
           { status: 403 }
         );
@@ -84,11 +96,11 @@ export async function POST(
         );
       }
     } else {
-      if (atendimento.status !== 'INTERNADO') {
+      if (!estaInternado && atendimento.status !== 'INTERNADO') {
         return NextResponse.json(
           {
             sucesso: false,
-            erro: 'Aplicação no prontuário da internação permitida somente para pacientes internados.',
+            erro: 'Aplicação no prontuário da internação permitida somente para pacientes em regime de internação.',
           },
           { status: 403 }
         );

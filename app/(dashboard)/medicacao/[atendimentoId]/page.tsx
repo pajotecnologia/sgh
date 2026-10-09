@@ -36,6 +36,7 @@ export default function PaginaMedicacaoAtendimento({
   params: Promise<{ atendimentoId: string }>
 }) {
   const { atendimentoId } = use(params)
+  const [pacienteInternado, setPacienteInternado] = useState(false)
   const [dados, setDados] = useState<{
     atendimento: {
       id: string
@@ -54,10 +55,16 @@ export default function PaginaMedicacaoAtendimento({
 
   const carregar = useCallback(async () => {
     setCarregando(true)
+    setPacienteInternado(false)
     try {
       const res = await fetch(`/api/medicacao/${atendimentoId}`, { cache: 'no-store' })
       const json = await res.json()
       if (!json.sucesso) {
+        if (json.pacienteInternado) {
+          setPacienteInternado(true)
+          setDados(null)
+          return
+        }
         toast.error(json.erro ?? 'Erro ao carregar dados.')
         setDados(null)
         return
@@ -80,6 +87,36 @@ export default function PaginaMedicacaoAtendimento({
       <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3 text-muted-foreground text-xs">
         <Loader2 className="h-7 w-7 animate-spin" />
         <p>Carregando prescrições…</p>
+      </div>
+    )
+  }
+
+  if (pacienteInternado) {
+    return (
+      <div className="max-w-lg mx-auto p-6 space-y-4">
+        <Link href="/medicacao" className="text-xs text-primary hover:underline">
+          ← Voltar à Medicação (PS)
+        </Link>
+        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-lg p-5 text-center space-y-3">
+          <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 flex items-center justify-center mx-auto text-lg font-bold">
+            🏥
+          </div>
+          <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+            Paciente em Regime de Internação
+          </h2>
+          <p className="text-xs text-amber-800/90 dark:text-amber-300/90">
+            Este paciente está internado (ou em processo de internação). As medicações hospitalares contínuas são
+            administradas e checadas exclusivamente no leito através do Prontuário de Internação (Enfermagem).
+          </p>
+          <div className="pt-2">
+            <Link
+              href={`/evolucoes/${atendimentoId}?aba=INSTRUCOES_ENFERMAGEM`}
+              className="inline-flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-md shadow hover:bg-primary/90 transition-colors"
+            >
+              Abrir Prontuário de Internação (Enfermagem)
+            </Link>
+          </div>
+        </div>
       </div>
     )
   }
@@ -187,7 +224,7 @@ export default function PaginaMedicacaoAtendimento({
                   {new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(
                     new Date(ap.aplicadoEm)
                   )}{' '}
-                  · {ap.aplicadoPor.nome.split(' ')[0]}
+                  · {ap.aplicadoPor.nome}
                 </span>
               </li>
             ))}

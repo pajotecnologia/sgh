@@ -26,11 +26,35 @@ export async function GET(
     const hoje = new Date()
     hoje.setHours(0, 0, 0, 0)
 
+    const atendimentoChecagem = await prisma.atendimento.findFirst({
+      where: { id: atendimentoId, deletedAt: null },
+      select: { id: true, status: true, leitoId: true, vaiInternar: true },
+    })
+
+    if (
+      atendimentoChecagem?.status === 'INTERNADO' ||
+      atendimentoChecagem?.status === 'AGUARDANDO_INTERNACAO' ||
+      atendimentoChecagem?.leitoId ||
+      atendimentoChecagem?.vaiInternar
+    ) {
+      return NextResponse.json(
+        {
+          sucesso: false,
+          erro: 'Paciente internado. A administração e checagem de medicamentos devem ser realizadas exclusivamente no prontuário de Internação (Enfermagem / Instruções).',
+          pacienteInternado: true,
+          atendimentoId,
+        },
+        { status: 400 }
+      )
+    }
+
     const atendimento = await prisma.atendimento.findFirst({
       where: {
         id: atendimentoId,
         deletedAt: null,
         status: { in: STATUS_MEDICACAO_ATIVOS },
+        leitoId: null,
+        vaiInternar: false,
       },
       include: {
         paciente: { select: { nomeExibicao: true, nomeCriptografado: true } },
@@ -39,6 +63,7 @@ export async function GET(
         prontuario: {
           select: {
             prescricoes: {
+              where: { tipo: 'PS' },
               orderBy: { emitidaEm: 'desc' },
               select: {
                 id: true,
@@ -65,10 +90,11 @@ export async function GET(
 
     if (!atendimento?.prontuario) {
       return NextResponse.json(
-        { sucesso: false, erro: 'Atendimento não encontrado ou não elegível para Medicação.' },
+        { sucesso: false, erro: 'Atendimento não encontrado ou não elegível para Medicação (PS).' },
         { status: 404 }
       )
     }
+
 
     const itemIds = atendimento.prontuario.prescricoes.flatMap((p) => p.itens.map((i) => i.id))
 

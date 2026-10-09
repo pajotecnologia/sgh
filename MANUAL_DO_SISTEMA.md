@@ -1,6 +1,6 @@
 # 🏥 MANUAL OFICIAL DO SISTEMA DE GESTÃO HOSPITALAR (SGH)
 
-> **Versão do Sistema:** v2.7.14  
+> **Versão do Sistema:** v2.7.24  
 > **Classificação:** Manual de Operação, Funcionalidades, Regras de Negócio e Telas  
 > **Público-Alvo:** Médicos, Enfermeiros, Técnicos de Enfermagem, Farmacêuticos, Recepcionistas, Diretores Clínicos e Administradores.
 
@@ -374,6 +374,24 @@ Diferente de modelos estáticos com espaços em branco, os botões de 1-clique g
 - **🏥 Puérpera - Pós-Cesariana (D1/D2):** Injeta dados da ferida operatória, ruídos hidroaéreos, diurese e deambulação precoce.
 
 ---
-*Manual técnico e operacional consolidado para o SGH v2.7.21.*
+
+## 14. SEGREGAÇÃO ESTRITA: MEDICAÇÃO DO PRONTO-SOCORRO (PS) VS. INTERNAMENTO HOSPITALAR
+
+O SGH adota uma arquitetura de **isolamento clínico total** entre as medicações administradas no atendimento de urgência/emergência (Pronto-Socorro) e as medicações prescritas para pacientes em regime de internação hospitalar (Enfermaria / Leitos).
+
+### 14.1. Medicação do Pronto-Socorro (PS) — Rota `/medicacao`:
+- **Público:** Destinado exclusivamente a pacientes ambulatoriais e de pronto atendimento (`AGUARDANDO_ATENDIMENTO`, `EM_ATENDIMENTO`, `CONCLUIDO`) que estão na sala de medicação rápida do PS.
+- **Fila de Espera:** Lista apenas prescrições do tipo `PS`.
+- **Filtro de Bloqueio Automático:** Pacientes com status `INTERNADO`, `AGUARDANDO_INTERNACAO`, com leito atribuído (`leitoId`) ou flag de internação médica ativada (`vaiInternar`) **são omitidos 100% da fila da sala de medicação do PS**.
+- **Acesso Direto Bloqueado:** Se um profissional tentar acessar a rota `/medicacao/[atendimentoId]` de um paciente internado, o sistema exibe um aviso explicativo e oferece botão de redirecionamento para o Prontuário de Internação da Enfermagem.
+- **Validação de Backend:** A rota de aplicação (`/api/atendimento/[id]/aplicacao`) rejeita qualquer tentativa de aplicação via contexto `medicacao` para pacientes internados, retornando `HTTP 403 Forbidden`.
+
+### 14.2. Medicação da Internação Hospitalar — Rota `/evolucoes/[atendimentoId]`:
+- **Público:** Pacientes admitidos em leitos hospitalares.
+- **Administração Beira-Leito:** O controle de doses, aprazamento (horários de 24h/48h), checagem de enfermagem e balanço é feito exclusivamente dentro da aba **Instruções / Enfermagem** (`AbaInstrucoesEnfermagem.tsx`) no Prontuário de Internação do paciente.
+- **Rastreabilidade e Segurança:** Assegura que prescrições hospitalares complexas (antibioticoterapia contínua, analgésicos aprazados, hidratação venosa) não se misturem com a fila de procedimentos rápidos da sala de medicação da porta de entrada do PS.
+
+---
+*Manual técnico e operacional consolidado para o SGH v2.7.24.*
 
 
