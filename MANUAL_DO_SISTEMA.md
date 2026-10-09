@@ -252,4 +252,97 @@ Classificação de risco clínico e estratificação de prioridade de acordo com
 - Registros de auditoria são imutáveis e protegidos contra edição.
 
 ---
-*Manual atualizado em conformidade com as diretrizes hospitalares do SGH v2.7.14.*
+
+## 10. CONDIÇÕES E CRITÉRIOS DE ACESSO POR PERFIL DE USUÁRIO (RBAC)
+
+O SGH implementa uma rigorosa política de **Controle de Acesso Baseado em Funções (RBAC)**, com separação explícita de responsabilidades médicas, assistenciais e administrativas:
+
+### 10.1. Critérios de Acesso por Módulo e Função:
+1. **Administrador (`ADMIN`):**
+   - Acesso irrestrito a todos os módulos, cadastros, configurações do hospital (CNES/IBGE), logs de auditoria, permissões de usuários e relatórios financeiros/gerenciais.
+2. **Diretor Clínico (`DIRETOR_CLINICO`):**
+   - Autoridade médica máxima. Pode prescrever, evoluir, conceder alta, transferir/interditar leitos, assinar laudos AIH, aprovar protocolos clínicos e auditar registros de qualquer médico ou setor.
+3. **Médico Assistente (`MEDICO`):**
+   - Acesso completo ao Consultório (PS/Ambulatório), Prontuário Médico de Internação (`/prontuario/[id]`), Prescrição de Medicamentos e Procedimentos, Diagnósticos CID-10, Pedidos de Exames, Laudos de Solicitação AIH e **concessão exclusiva de Alta Hospitalar**.
+   - Restrição: Não edita configurações globais nem acessa dispensação física da farmácia.
+4. **Enfermeiro (`ENFERMEIRO`):**
+   - Acesso total à Triagem Manchester, Prontuário de Enfermagem (`/evolucoes/[id]`), Checagem e Aprazamento de Medicamentos, Balanço Hídrico, SAE, CCIH, Sinais Vitais e Admissão de Leitos.
+   - Restrição: Leitura de prescrições médicas; **estritamente bloqueado para prescrever medicamentos/procedimentos médicos ou conceder alta hospitalar**.
+5. **Técnico de Enfermagem (`TECNICO_ENFERMAGEM`):**
+   - Acesso à checagem de administração de medicamentos aplicados e registro de sinais vitais.
+   - Restrição: Bloqueado para triagem de risco Manchester, SAE e prescrição.
+6. **Farmacêutico / Almoxarife (`FARMACEUTICO`):**
+   - Acesso completo à gestão de estoque, importação de NFe (XML), controle de lotes/validades, **dispensação de medicamentos, procedimentos e kits de insumos**.
+   - Restrição: Sem acesso a edição de prontuários clínicos.
+7. **Recepcionista (`RECEPCIONISTA`):**
+   - Acesso ao cadastro de pacientes, validação de CPF/SUS, abertura de atendimentos e emissão de fichas de admissão física.
+   - Restrição: Sem acesso a dados clínicos confidenciais (prontuário, prescrições, evoluções).
+
+---
+
+## 11. RELACIONAMENTOS DE DADOS E FLUXO INTERMODULAR
+
+O SGH trabalha em uma malha de dados relacional altamente integrada. Abaixo está o mapeamento de como as entidades se relacionam:
+
+```
+[Paciente] 
+   └── 1:N [Atendimento]
+             ├── 1:1 [Triagem] (Sinais Vitais, Cor Manchester, Alerta Obstétrico)
+             ├── 1:1 [Prontuario]
+             │         ├── 1:N [Prescricao]
+             │         │         ├── Itens Medicamentos ──> Estoque Farmácia (Lotes/PEPS)
+             │         │         └── Itens Procedimentos ──> Vinculação com Kits de Insumos ──> Dispensação
+             │         ├── 1:N [Diagnostico] (CID-10 Principal + Hipóteses)
+             │         ├── 1:N [Evolucao] (Médica, Enfermagem, Multiprofissional)
+             │         ├── 1:N [RequisicaoExame] (Laboratório / Imagem)
+             │         └── 1:N [Encaminhamento] (Ambulatório ou INTERNAÇÃO)
+             ├── 1:1 [Leito] (Livre -> Ocupado -> Higienização)
+             ├── 1:1 [FichaInternacaoAlta] (Condições de Alta + Declaração de Óbito)
+             ├── 1:1 [FichaInternacaoObstetrica] (Partograma, DUM, BCF, Dilatação)
+             └── 1:1 [FichaBercario] (Cuidados e Aprazamento Neonatal)
+```
+
+### 11.1. Ciclo Integrado de Prescrição, Kits e Dispensação:
+1. O **Médico** prescreve um procedimento (ex: *Curativo Especial Grau 3* ou *Sondagem Vesical de Demora*).
+2. O sistema vincula automaticamente o **Kit de Insumos** correspondente cadastrado no hospital (ex.: Sonda Foley, Bolsa Coletora, Seringa 20ml, Água Destilada, Luva Estéril, Clorexidina).
+3. A **Farmácia** recebe a solicitação em `/farmacia/dispensacao` identificando o leito/paciente e os materiais componentes do kit.
+4. O Farmacêutico confere e clica em *Dispensar*, que debita os lotes pelo critério FEFO/PEPS e libera os insumos para a Enfermagem executar o procedimento.
+
+### 11.2. Ciclo Integrado de Admissão, Internação e Desfecho:
+1. O **Médico do PS** indica *Internação* no Encaminhamento do atendimento.
+2. O status do atendimento muda para `AGUARDANDO_INTERNACAO`.
+3. O posto de **Admissões de Leitos** visualiza a solicitação, seleciona um leito com status `LIVRE` e confirma a admissão.
+4. O leito passa para status `OCUPADO`, vinculando paciente, médico assistente e abrindo os workspaces `/prontuario/[id]` e `/evolucoes/[id]`.
+5. Durante o internamento, médico e enfermagem registram evoluções diárias, aprazamentos e laudo AIH.
+6. Na melhora clínica, o **Médico** acessa a aba `CONDICOES_ALTA` no Prontuário Médico, preenche o diagnóstico definitivo, seleciona o motivo e clica em **Concluir Alta**.
+7. O atendimento é finalizado (`status = 'ALTA'`), e o leito é alterado automaticamente para status `HIGIENIZACAO`.
+
+---
+
+## 12. CRÍTICAS, TRAVAS DE SEGURANÇA E VALIDAÇÕES DO SISTEMA
+
+O SGH implementa críticas ativas em tempo real para impedir falhas de assistência, erros de medicação e inconformidades regulatórias:
+
+### 12.1. Travas Clínicas e de Atendimento:
+- **Trava de Alta com Medicação Pendente no PS:** O sistema impede o médico de finalizar a consulta se houver medicação prescrita para uso no PS que ainda esteja com status `PENDENTE` de aplicação pela enfermagem. Após a aplicação, o sistema exige o registro da **Evolução Pós-Medicação** antes de liberar o botão *Finalizar Atendimento*.
+- **Trava de Prontuário Encerrado (Imutabilidade CFM):** Atendimentos com status `CONCLUIDO`, `ALTA`, `OBITO` ou `TRANSFERIDO` tornam-se imediatamente somente-leitura. Nenhuma nova prescrição, evolução ou diagnóstico pode ser sobrescrito, preservando o valor jurídico do prontuário.
+- **Trava de Concessão de Alta (RBAC Restrito):** A gravação das Condições de Alta e o encerramento da internação são bloqueados no backend para perfis que não sejam `MEDICO`, `DIRETOR_CLINICO` ou `ADMIN`. O botão não é exibido e a API retorna `403 Forbidden`.
+- **Trava de Elegibilidade Obstétrica:** A flag obstétrica e os acessos às fichas `/internacao-obstetrica` e `/bercario` exigem validação de sexo biológico `FEMININO`. O sistema impede a ativação para pacientes do sexo masculino.
+
+### 12.2. Travas de Farmácia e Estoque:
+- **Bloqueio de Itens Vencidos:** Medicamentos com data de validade ultrapassada são bloqueados automaticamente para prescrição médica e dispensação farmacêutica.
+- **Rastreabilidade Obrigatória de Lote:** Nenhuma entrada ou saída de medicamento pode ser realizada sem o número do lote e data de expiração.
+- **Alerta de Estoque Mínimo:** Ao atingir o ponto de reposição, o item é sinalizado em vermelho na listagem para compras imediatas.
+
+### 12.3. Travas de Cadastro e Recepção:
+- **Validação Algorítmica de CPF:** Aplica validação de Módulo 11 nos 11 dígitos do CPF para bloquear documentos falsos ou com erros de digitação.
+- **Validação de Cartão SUS:** Exige 15 dígitos numéricos válidos para garantir integração com BPA e AIH do DataSUS.
+- **Alerta de Duplicidade no Dia:** Caso seja aberto um atendimento para um paciente que já possui atendimento em aberto na data, o sistema emite aviso sonoro/visual para evitar abertura de fichas duplicadas.
+
+### 12.4. Travas de Leitos e Hospitalização:
+- **Bloqueio de Dupla Ocupação:** Um leito com status `OCUPADO` ou `INTERDITADO` não pode receber nova admissão.
+- **Transição Obrigatória de Higienização:** Um leito desocupado após alta médica não pode ser diretamente ocupado até que o serviço de hotelaria/limpeza confirme a higienização do leito no mapa.
+
+---
+*Manual técnico e operacional consolidado para o SGH v2.7.15.*
+

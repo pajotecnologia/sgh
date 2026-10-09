@@ -368,6 +368,72 @@ const SECOES_MANUAL: SecaoManual[] = [
       },
     ],
   },
+  {
+    id: 'criterios-criticas',
+    label: 'Critérios, Acessos & Travas',
+    icone: ShieldCheck,
+    itens: [
+      {
+        titulo: 'Matriz de Critérios de Acesso e Responsabilidade Profissional (RBAC)',
+        tela: 'Controle Global em todas as rotas e APIs do SGH',
+        resumo: 'Definição explícita de quem pode acessar, visualizar, prescrever, aprazar, dispensar e concluir ações clínicas e administrativas.',
+        campos: [
+          { nome: 'ADMIN (Administrador)', obrigatorio: true, formato: 'Acesso Irrestrito', descricao: 'Gestão total do sistema, permissões, auditoria, configurações hospitalares e faturamento.', particularidade: 'Pode gerenciar todas as tabelas e usuários do hospital.' },
+          { nome: 'DIRETOR_CLINICO (Direção Médica)', obrigatorio: true, formato: 'Autoridade Médica Máxima', descricao: 'Supervisão técnica, prescrição, alta, protocolos clínicos, regulação e auditoria médica.', particularidade: 'Acesso completo a qualquer prontuário e autorização de condutas especiais.' },
+          { nome: 'MEDICO (Médico Assistente)', obrigatorio: true, formato: 'Prontuário + Prescrição + Alta', descricao: 'Consultório, internação, pedidos de exames, diagnósticos CID-10 e concessão exclusiva de alta.', particularidade: 'Somente médicos e diretores clínicos podem registrar desfecho e conceder alta hospitalar.' },
+          { nome: 'ENFERMEIRO (Enfermagem Superior)', obrigatorio: true, formato: 'Triagem + Evoluções + SAE + CCIH', descricao: 'Classificação de risco Manchester, SAE, balanço hídrico, admissões e aprazamentos.', particularidade: 'Estritamente bloqueado para prescrever medicamentos/procedimentos médicos ou conceder alta.' },
+          { nome: 'TECNICO_ENFERMAGEM (Técnico)', obrigatorio: true, formato: 'Checagem de Doses + Sinais', descricao: 'Aplicação de medicações, checagem e aferição de sinais vitais de rotina.', particularidade: 'Acesso operacional sob supervisão do enfermeiro.' },
+          { nome: 'FARMACEUTICO (Farmácia & Estoque)', obrigatorio: true, formato: 'Estoque + NFe + Dispensação', descricao: 'Entrada por XML, gestão de lotes/validades e dispensação de medicamentos e kits.', particularidade: 'Não edita prontuários nem dados clínicos de pacientes.' },
+          { nome: 'RECEPCIONISTA (Recepção)', obrigatorio: true, formato: 'Cadastro + Admissão', descricao: 'Identificação de pacientes, validação de CPF/SUS e abertura de atendimentos.', particularidade: 'Sem acesso a dados clínicos sigilosos de prontuário.' },
+        ],
+        opcoesBotões: [
+          { acao: 'Troca de Perfil de Teste (Ambiente Dev)', funcao: 'Permite alternar perfis para validação de fluxos e permissões.' },
+        ],
+        regrasNegocio: [
+          'Ações de concessão de alta hospitalar exigem CRM ativo do profissional.',
+          'Tentativas de gravação por perfis não autorizados são rejeitadas pela API com código HTTP 403 Forbidden.',
+        ],
+        dica: 'Cada profissional deve sempre utilizar seu próprio login individual para fins de responsabilidade ética e jurídica.',
+      },
+      {
+        titulo: 'Relacionamentos de Dados e Fluxo Integrado entre Módulos',
+        tela: 'Integração: Recepção ➔ Triagem ➔ Consultório ➔ Farmácia ➔ Internação ➔ Alta ➔ PEP',
+        resumo: 'Como os dados de pacientes, atendimentos, prescrições, kits, leitos e lotes se conectam e fluem de ponta a ponta no hospital.',
+        campos: [
+          { nome: 'Paciente ➔ Atendimento ➔ Prontuário', obrigatorio: true, formato: 'Relacionamento 1:N e 1:1', descricao: 'O paciente possui múltiplos atendimentos; cada atendimento possui uma triagem e um prontuário.', particularidade: 'Garante o histórico longitudinal acumulativo de toda a vida do paciente no hospital.' },
+          { nome: 'Prescrição de Procedimentos ➔ Kits ➔ Farmácia', obrigatorio: true, formato: 'Vinculação Automática', descricao: 'Ao prescrever um procedimento com kit, os materiais necessários são enviados à tela de dispensação.', particularidade: 'A farmácia separa o kit completo e dá baixa rastreável por lote no estoque.' },
+          { nome: 'Encaminhamento de Internação ➔ Leito ➔ Prontuário', obrigatorio: true, formato: 'Admissão e Ocupação', descricao: 'A solicitação de internação gera o leito ocupado e abre as visões /prontuario e /evolucoes.', particularidade: 'Ao concluir a alta médica, o leito é liberado automaticamente para higienização.' },
+        ],
+        opcoesBotões: [
+          { acao: 'Rastrear Histórico Completo', funcao: 'Exibe a linha do tempo desde a triagem na recepção até o sumário de alta hospitalar.' },
+        ],
+        regrasNegocio: [
+          'Todos os dados clínicos de consultas e internações alimentam instantaneamente o Histórico Longitudinal (PEP).',
+        ],
+        dica: 'A vinculação de kits a procedimentos reduz em até 80% o tempo de digitação de materiais pela equipe.',
+      },
+      {
+        titulo: 'Críticas, Travas de Integridade e Validações em Tempo Real',
+        tela: 'Mecanismos de Defesa Clínica e Operacional do SGH',
+        resumo: 'Travas automáticas projetadas para impedir erros de assistência, trocas de medicamentos, fraudes cadastrais e inconsistências.',
+        campos: [
+          { nome: 'Trava de Medicação Pendente no PS', obrigatorio: true, formato: 'Bloqueio de Finalização', descricao: 'Impede alta médica se houver doses de medicamentos para uso no PS não aplicadas.', particularidade: 'Exige confirmação da enfermagem e evolução médica pós-aplicação.' },
+          { nome: 'Trava de Prontuário Encerrado', obrigatorio: true, formato: 'Imutabilidade Legal', descricao: 'Atendimentos finalizados (Alta, Óbito, Concluído) tornam-se somente-leitura.', particularidade: 'Impede alteração retroativa de condutas e prescrições médicas.' },
+          { nome: 'Trava de Elegibilidade Obstétrica', obrigatorio: true, formato: 'Validação Biológica', descricao: 'Ficha obstétrica e berçário disponíveis somente para sexo biológico feminino.', particularidade: 'Previne abertura indevida de fichas obstétricas em pacientes masculinos.' },
+          { nome: 'Trava de Lotes e Validades', obrigatorio: true, formato: 'Bloqueio de Dispensação', descricao: 'Medicamentos vencidos são bloqueados para prescrição e baixa.', particularidade: 'Dispensação automática segue critério PEPS/FEFO.' },
+          { nome: 'Validação de CPF e Cartão SUS', obrigatorio: true, formato: 'Módulo 11 + 15 Dígitos', descricao: 'Verificação matemática de documentos oficiais.', particularidade: 'Bloqueia cadastros com dígitos verificadores incorretos.' },
+          { nome: 'Trava de Leitos (Dupla Ocupação e Higienização)', obrigatorio: true, formato: 'Status de Leito', descricao: 'Impede admitir em leito ocupado ou antes da confirmação de higienização.', particularidade: 'Garante o controle de infecção hospitalar (CCIH).' },
+        ],
+        opcoesBotões: [
+          { acao: 'Consultar Auditoria', funcao: 'Exibe o log detalhado com IP, usuário, data e hora de qualquer tentativa de alteração.' },
+        ],
+        regrasNegocio: [
+          'Nenhuma crítica pode ser burlada sem autorização explícita registrada em log de auditoria.',
+        ],
+        dica: 'As travas de segurança do SGH garantem conformidade com as normas do CFM, COFEN, CRF, ANVISA e Ministério da Saúde.',
+      },
+    ],
+  },
 ];
 
 export function ModalManualSistema({ open, onOpenChange }: ModalManualSistemaProps) {
