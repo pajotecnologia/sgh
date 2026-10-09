@@ -71,7 +71,7 @@ const RELATORIOS: Role[] = [
 export const MENU_PERMISSOES: ItemPermissao[] = [
   { chave: 'dashboard', label: 'Dashboard', href: '/dashboard', grupo: 'Atendimento & Clínica', rolesPadrao: TODAS_ROLES },
   { chave: 'minha-fila', label: 'Minha Fila', href: '/minha-fila', grupo: 'Atendimento & Clínica', rolesPadrao: TODAS_ROLES },
-  { chave: 'recepcao', label: 'Recepção', href: '/recepcao', grupo: 'Atendimento & Clínica', rolesPadrao: ['ADMIN', 'RECEPCIONISTA'] },
+  { chave: 'recepcao', label: 'Recepção', href: '/recepcao', grupo: 'Atendimento & Clínica', rolesPadrao: ['ADMIN', 'RECEPCIONISTA', 'ENFERMEIRO', 'MEDICO', 'DIRETOR_CLINICO'] },
   { chave: 'triagem', label: 'Triagem (Manchester)', href: '/triagem', grupo: 'Atendimento & Clínica', rolesPadrao: ['ADMIN', 'ENFERMEIRO', 'MEDICO'] },
   { chave: 'atendimento-medico', label: 'Atendimento Médico', href: '/atendimento', grupo: 'Atendimento & Clínica', rolesPadrao: ['ADMIN', 'MEDICO', 'DIRETOR_CLINICO'] },
   { chave: 'medicacao-ps', label: 'Medicação (PS)', href: '/medicacao', grupo: 'Atendimento & Clínica', rolesPadrao: ['ADMIN', 'ENFERMEIRO', 'TECNICO_ENFERMAGEM'] },

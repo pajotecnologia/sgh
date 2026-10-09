@@ -109,7 +109,7 @@ const GRUPOS_NAVEGACAO: GrupoNav[] = [
         label: 'Recepção',
         href: '/recepcao',
         icon: Users,
-        roles: ['ADMIN', 'RECEPCIONISTA'],
+        roles: ['ADMIN', 'RECEPCIONISTA', 'ENFERMEIRO'],
       },
       {
         label: 'Triagem (Manchester)',
