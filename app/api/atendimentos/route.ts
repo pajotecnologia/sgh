@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     // Verificar se o paciente existe
     const paciente = await prisma.paciente.findUnique({
       where: { id: pacienteId },
-      select: { id: true, nomeExibicao: true, nomeCriptografado: true, sexoBiologico: true }
+      select: { id: true, nomeExibicao: true, nomeCriptografado: true, sexoBiologico: true, nomeMae: true }
     });
 
     if (!paciente) {
@@ -104,6 +104,52 @@ export async function POST(req: NextRequest) {
           vaiInternar: Boolean(vaiInternar),
         },
       });
+
+      // Se o paciente for um RN, atualizar o número do prontuário/atendimento na ficha de berçário da mãe
+      if (paciente && (paciente.nomeMae || paciente.nomeExibicao.toUpperCase().startsWith('RN '))) {
+        const queryMae = paciente.nomeMae?.trim() || paciente.nomeExibicao.replace(/^RN (DE )?/i, '').trim();
+        const atendimentoMae = await tx.atendimento.findFirst({
+          where: {
+            deletedAt: null,
+            paciente: {
+              OR: [
+                { nomeExibicao: { equals: queryMae, mode: 'insensitive' } },
+                { nomeExibicao: { contains: queryMae, mode: 'insensitive' } },
+              ],
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, fichaBercario: true },
+        });
+
+        if (atendimentoMae) {
+          const camposBercarioAtuais = (atendimentoMae.fichaBercario?.campos as Record<string, string>) || {};
+          await tx.fichaBercario.upsert({
+            where: { atendimentoId: atendimentoMae.id },
+            create: {
+              atendimentoId: atendimentoMae.id,
+              campos: {
+                ...camposBercarioAtuais,
+                rn_vinculado_nome: paciente.nomeExibicao,
+                rn_vinculado_prontuario: numeroAtendimento,
+                rn_vinculado_atendimento_id: novoAtendimento.id,
+                rn_vinculado_paciente_id: pacienteId,
+                rn_filiacaoMae: queryMae,
+              },
+            },
+            update: {
+              campos: {
+                ...camposBercarioAtuais,
+                rn_vinculado_nome: paciente.nomeExibicao,
+                rn_vinculado_prontuario: numeroAtendimento,
+                rn_vinculado_atendimento_id: novoAtendimento.id,
+                rn_vinculado_paciente_id: pacienteId,
+                rn_filiacaoMae: queryMae,
+              },
+            },
+          });
+        }
+      }
 
       await tx.logAuditoria.create({
         data: {

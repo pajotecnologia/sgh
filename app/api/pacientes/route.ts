@@ -301,8 +301,54 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Opcional: pode-se registrar um log de auditoria específico ou apenas retornar o paciente
+      // Se for RN (com nomeMae ou nome iniciando com 'RN '), sincronizar com a Ficha de Berçário da mãe
+      const nomeMaeStr = dadosPessoais.nomeMae?.trim();
+      if (nomeMaeStr || nomeExibicao.toUpperCase().startsWith('RN ')) {
+        const queryMae = nomeMaeStr || nomeExibicao.replace(/^RN (DE )?/i, '').trim();
+        const atendimentoMae = await tx.atendimento.findFirst({
+          where: {
+            deletedAt: null,
+            paciente: {
+              OR: [
+                { nomeExibicao: { equals: queryMae, mode: 'insensitive' } },
+                { nomeExibicao: { contains: queryMae, mode: 'insensitive' } },
+              ],
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, fichaBercario: true },
+        });
 
+        if (atendimentoMae) {
+          const sexoFormatado = dadosPessoais.sexoBiologico === 'FEMININO' ? 'Feminino' : 'Masculino';
+          const camposBercarioAtuais = (atendimentoMae.fichaBercario?.campos as Record<string, string>) || {};
+
+          await tx.fichaBercario.upsert({
+            where: { atendimentoId: atendimentoMae.id },
+            create: {
+              atendimentoId: atendimentoMae.id,
+              campos: {
+                ...camposBercarioAtuais,
+                rn_vinculado_nome: nomeExibicao,
+                rn_vinculado_paciente_id: paciente.id,
+                rn_sexo: sexoFormatado,
+                rn_nascidoEm: new Date(dadosPessoais.dataNascimento).toISOString().split('T')[0],
+                rn_filiacaoMae: queryMae,
+              },
+            },
+            update: {
+              campos: {
+                ...camposBercarioAtuais,
+                rn_vinculado_nome: nomeExibicao,
+                rn_vinculado_paciente_id: paciente.id,
+                rn_sexo: sexoFormatado,
+                rn_nascidoEm: new Date(dadosPessoais.dataNascimento).toISOString().split('T')[0],
+                rn_filiacaoMae: queryMae,
+              },
+            },
+          });
+        }
+      }
 
       // Registrar na trilha de auditoria
       await tx.logAuditoria.create({

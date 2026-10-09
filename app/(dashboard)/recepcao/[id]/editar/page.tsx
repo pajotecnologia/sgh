@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
@@ -6,7 +7,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { exigirPermissaoMenu } from '@/lib/exigir-permissao-menu'
 import { FormularioCadastroPaciente } from '@/components/recepcao/FormularioCadastroPaciente'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Loader2 } from 'lucide-react'
 
 export default async function EditarPacientePage({
   params,
@@ -34,7 +35,16 @@ export default async function EditarPacientePage({
           <h2 className="text-2xl font-bold">Editar Cadastro: {nomeTitulo}</h2>
         </div>
 
-        <FormularioCadastroPaciente pacienteId={id} />
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center py-24 text-muted-foreground gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+              Carregando formulário…
+            </div>
+          }
+        >
+          <FormularioCadastroPaciente pacienteId={id} />
+        </Suspense>
       </div>
     )
   } catch (erro) {

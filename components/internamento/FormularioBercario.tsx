@@ -144,11 +144,15 @@ export function FormularioBercario({ atendimentoId }: { atendimentoId: string })
     )
   }
 
-  const nomeRnSugerido = identificacao.nome ? `RN de ${identificacao.nome}` : 'Recém-Nascido'
+  const nomeRnSugerido = campos['rn_vinculado_nome'] || (identificacao.nome ? `RN de ${identificacao.nome}` : 'Recém-Nascido')
+  const prontuarioRn = campos['rn_vinculado_prontuario'] || ''
+  const atendimentoIdRn = campos['rn_vinculado_atendimento_id'] || ''
   const pesoRn = campos['rn_peso'] || campos['peso_nascimento'] || ''
   const apgar1 = campos['rn_apgar1'] || ''
   const apgar5 = campos['rn_apgar5'] || ''
   const sexoRn = campos['rn_sexo'] || 'Não informado'
+
+  const urlCadastroRn = `/recepcao/novo?nomeMae=${encodeURIComponent(identificacao.nome)}&origem=bercario&atendimentoMaeId=${encodeURIComponent(atendimentoId)}&sexo=${encodeURIComponent(sexoRn)}&peso=${encodeURIComponent(pesoRn)}&apgar1=${encodeURIComponent(apgar1)}&apgar5=${encodeURIComponent(apgar5)}`
 
   return (
     <div className="space-y-5">
@@ -168,22 +172,40 @@ export function FormularioBercario({ atendimentoId }: { atendimentoId: string })
       <section className="bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950/30 dark:to-purple-950/30 border border-pink-200 dark:border-pink-900 rounded-xl p-5 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-pink-200 dark:border-pink-900/60 pb-3">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-pink-700 dark:text-pink-300">
-              Vínculo Materno-Infantil (RN)
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-pink-700 dark:text-pink-300">
+                Vínculo Materno-Infantil (RN)
+              </span>
+              {prontuarioRn ? (
+                <span className="text-[11px] font-mono font-semibold bg-pink-100 dark:bg-pink-900/60 text-pink-800 dark:text-pink-200 px-2 py-0.5 rounded">
+                  Prontuário RN: {prontuarioRn}
+                </span>
+              ) : null}
+            </div>
             <h4 className="text-base font-bold text-foreground mt-0.5">
               {nomeRnSugerido}
             </h4>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {atendimentoIdRn ? (
+              <a
+                href={`/evolucoes/${atendimentoIdRn}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 shadow-sm transition-colors"
+              >
+                <Baby className="h-4 w-4" />
+                Abrir Prontuário do RN
+              </a>
+            ) : null}
             <a
-              href={`/recepcao/novo?nomeMae=${encodeURIComponent(identificacao.nome)}&origem=bercario`}
+              href={urlCadastroRn}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-pink-600 text-white text-xs font-semibold hover:bg-pink-700 shadow-sm transition-colors"
             >
               <Baby className="h-4 w-4" />
-              Gerar Prontuário do Recém-Nascido (RN)
+              {prontuarioRn ? 'Atualizar Cadastro do RN' : 'Gerar Prontuário do Recém-Nascido (RN)'}
             </a>
           </div>
         </div>
@@ -207,7 +229,7 @@ export function FormularioBercario({ atendimentoId }: { atendimentoId: string })
             <span className="text-muted-foreground block text-[11px]">Status do Vínculo</span>
             <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-400">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              Vinculado à Mãe
+              {prontuarioRn ? `Vinculado & Cadastrado (${prontuarioRn})` : 'Vinculado à Mãe'}
             </span>
           </div>
         </div>

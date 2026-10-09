@@ -46,6 +46,7 @@ export const includeAtendimentoInternacao = {
       sexoBiologico: true,
       cns: true,
       nomeMae: true,
+      racaCor: true,
       telefoneCriptografado: true,
       endereco: true,
       alergias: { select: { descricao: true, gravidade: true } },

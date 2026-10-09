@@ -5,7 +5,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -128,6 +128,14 @@ const Campo = ({
 
 export function FormularioCadastroPaciente({ pacienteId }: { pacienteId?: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nomeMaeParam = searchParams?.get('nomeMae') ?? '';
+  const origemParam = searchParams?.get('origem') ?? '';
+  const sexoParam = searchParams?.get('sexo') ?? '';
+  const pesoParam = searchParams?.get('peso') ?? '';
+  const apgar1Param = searchParams?.get('apgar1') ?? '';
+  const apgar5Param = searchParams?.get('apgar5') ?? '';
+
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [novaAlergia, setNovaAlergia] = useState('');
   const [carregandoEdicao, setCarregandoEdicao] = useState(!!pacienteId);
@@ -184,6 +192,29 @@ export function FormularioCadastroPaciente({ pacienteId }: { pacienteId?: string
   const alergias = form.watch('dadosSaude.alergias') || [];
 
   const idadeCalculada = useMemo(() => calcularIdade(dataNascimentoValue), [dataNascimentoValue]);
+
+  // Autopreenchimento para cadastro de Recém-Nascido vindo do Berçário / Maternidade
+  useEffect(() => {
+    if (pacienteId) return;
+    if (nomeMaeParam || origemParam === 'bercario') {
+      const nomeRn = nomeMaeParam ? `RN de ${nomeMaeParam}` : '';
+      const sexoBio = sexoParam.toLowerCase().startsWith('f') ? 'FEMININO' : 'MASCULINO';
+      const hoje = new Date().toISOString().split('T')[0];
+
+      const obsPartes: string[] = ['[Recém-Nascido]'];
+      if (nomeMaeParam) obsPartes.push(`Mãe: ${nomeMaeParam}`);
+      if (pesoParam) obsPartes.push(`Peso: ${pesoParam}g`);
+      if (apgar1Param || apgar5Param) obsPartes.push(`APGAR: 1ºm=${apgar1Param || '-'} / 5ºm=${apgar5Param || '-'}`);
+
+      form.setValue('dadosPessoais.nome', nomeRn);
+      form.setValue('dadosPessoais.nomeMae', nomeMaeParam);
+      form.setValue('dadosPessoais.acompanhanteNome', nomeMaeParam);
+      form.setValue('dadosPessoais.dataNascimento', hoje);
+      form.setValue('dadosPessoais.sexoBiologico', sexoBio as 'MASCULINO' | 'FEMININO');
+      form.setValue('observacoesIniciais', obsPartes.join(' | '));
+      toast.info(`Dados do Recém-Nascido da mãe "${nomeMaeParam}" preenchidos automaticamente!`);
+    }
+  }, [pacienteId, nomeMaeParam, origemParam, sexoParam, pesoParam, apgar1Param, apgar5Param, form]);
 
   // Carregar lista de origens para recepção
   useEffect(() => {
