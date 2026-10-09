@@ -470,7 +470,7 @@ export function WorkspaceInternacao({
           <FormularioEvolucaoDiurnaNoturna atendimentoId={atendimentoId} />
         ) : null}
 
-        {modo === 'evolucoes' && abaExibida === 'CONDICOES_ALTA' ? (
+        {modo === 'prontuario' && abaExibida === 'CONDICOES_ALTA' ? (
           <FormularioCondicoesAlta
             atendimentoId={atendimentoId}
             numeroAtendimento={atendimento.numeroAtendimento}

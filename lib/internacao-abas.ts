@@ -105,6 +105,7 @@ export const ABAS_PRONTUARIO: AbaConfig[] = [
   { id: 'FICHA_EVOLUCAO', label: 'Evolução Médica', icon: NotebookPen },
   { id: 'PRESCRICAO_ENFERMARIA', label: 'Prescrições', icon: Pill },
   { id: 'EXAMES', label: 'Exames', icon: FlaskConical },
+  { id: 'CONDICOES_ALTA', label: 'Condições de alta', icon: LogOut },
   { id: 'LAUDO_MEDICO', label: 'Laudo Solicitação', icon: Stethoscope },
 ]
 
@@ -126,7 +127,6 @@ export const ABAS_EVOLUCOES: AbaConfig[] = [
   { id: 'CCIH', label: 'CCIH', icon: Shield },
   { id: 'SINAIS_VITAIS', label: 'Ficha Sinais Vitais', icon: Activity },
   { id: 'EVOLUCAO_DIURNA_NOTURNA', label: 'Evolução Noite/Dia', icon: SunMoon },
-  { id: 'CONDICOES_ALTA', label: 'Condições de alta', icon: LogOut },
   { id: 'SAE', label: 'SAE', icon: ClipboardList },
   { id: 'MULTIDISCIPLINAR', label: 'Multidisciplinar', icon: Users },
   { id: 'LAUDO_MEDICO', label: 'Laudo Solicitação', icon: Stethoscope },

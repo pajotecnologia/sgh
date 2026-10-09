@@ -1,17 +1,16 @@
-'use client'
-
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
-import { FileText, Loader2, Save, UserCheck } from 'lucide-react'
+import { FileText, Loader2, Save, UserCheck, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { camposPosInternacaoVazios, type FichaInternacaoAltaPrefill } from '@/lib/ficha-internacao-alta'
 import type { FichaInternacaoAltaForm } from '@/lib/validations/ficha-internacao-alta'
 
 const inputCls =
-  'mt-1 w-full border border-input rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors'
+  'mt-1 w-full border border-input rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors disabled:opacity-60 disabled:cursor-not-allowed'
 const labelCls = 'text-xs font-semibold text-muted-foreground uppercase tracking-wide'
-const checkCls = 'rounded border-input text-primary focus:ring-primary/30'
+const checkCls = 'rounded border-input text-primary focus:ring-primary/30 disabled:cursor-not-allowed'
 
 function Campo({
   label,
@@ -34,16 +33,19 @@ function CheckField({
   label,
   checked,
   onChange,
+  disabled,
 }: {
   label: string
   checked: boolean
   onChange: (v: boolean) => void
+  disabled?: boolean
 }) {
   return (
-    <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+    <label className={cn('inline-flex items-center gap-2 text-sm', disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer')}>
       <input
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
         className={checkCls}
       />
@@ -59,6 +61,10 @@ export function FormularioCondicoesAlta({
   atendimentoId: string
   numeroAtendimento: string
 }) {
+  const { data: session } = useSession()
+  const role = session?.usuario?.role ?? ''
+  const podeDarAlta = role === 'ADMIN' || role === 'MEDICO' || role === 'DIRETOR_CLINICO'
+
   const [carregando, setCarregando] = useState(true)
   const [enviando, setEnviando] = useState(false)
   const [status, setStatus] = useState<FichaInternacaoAltaForm['status']>('RASCUNHO')
@@ -123,6 +129,10 @@ export function FormularioCondicoesAlta({
   }, [atendimentoId])
 
   async function salvar(statusSalvar: FichaInternacaoAltaForm['status']) {
+    if (!podeDarAlta) {
+      toast.error('Somente médicos e diretores clínicos possuem permissão para registrar ou conceder alta.')
+      return
+    }
     setEnviando(true)
     try {
       const res = await fetch(`/api/atendimento/${atendimentoId}/ficha-internacao-alta`, {
@@ -185,6 +195,15 @@ export function FormularioCondicoesAlta({
 
   return (
     <div className="space-y-4">
+      {!podeDarAlta && (
+        <div className="rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50/90 dark:bg-amber-950/40 p-4 text-xs sm:text-sm text-amber-950 dark:text-amber-100 flex items-center gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+          <div>
+            <span className="font-bold">Acesso Restrito ao Prontuário Médico:</span> Somente médicos e diretores clínicos possuem autorização para registrar condições de alta e conceder alta hospitalar ao paciente.
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-3 rounded-xl border border-teal-500/20 bg-teal-500/5 px-4 py-3">
         <FileText className="h-5 w-5 text-teal-600 shrink-0" aria-hidden />
         <div className="flex-1 min-w-0">
@@ -224,21 +243,22 @@ export function FormularioCondicoesAlta({
         <div>
           <p className={labelCls}>Condições de alta</p>
           <div className="mt-2 flex flex-wrap gap-4">
-            <CheckField label="Curado" checked={altaCurado} onChange={setAltaCurado} />
-            <CheckField label="Melhorado" checked={altaMelhorado} onChange={setAltaMelhorado} />
-            <CheckField label="Internado" checked={altaInternado} onChange={setAltaInternado} />
-            <CheckField label="Piorado" checked={altaPiorado} onChange={setAltaPiorado} />
+            <CheckField label="Curado" checked={altaCurado} onChange={setAltaCurado} disabled={!podeDarAlta || enviando} />
+            <CheckField label="Melhorado" checked={altaMelhorado} onChange={setAltaMelhorado} disabled={!podeDarAlta || enviando} />
+            <CheckField label="Internado" checked={altaInternado} onChange={setAltaInternado} disabled={!podeDarAlta || enviando} />
+            <CheckField label="Piorado" checked={altaPiorado} onChange={setAltaPiorado} disabled={!podeDarAlta || enviando} />
           </div>
         </div>
 
         <div className="space-y-2">
-          <CheckField label="Óbito" checked={obito} onChange={setObito} />
+          <CheckField label="Óbito" checked={obito} onChange={setObito} disabled={!podeDarAlta || enviando} />
           {obito ? (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pl-6">
               <Campo label="Data óbito">
                 <input
                   type="date"
                   value={obitoData}
+                  disabled={!podeDarAlta || enviando}
                   onChange={(e) => setObitoData(e.target.value)}
                   className={inputCls}
                   aria-label="Data óbito"
@@ -248,14 +268,15 @@ export function FormularioCondicoesAlta({
                 <input
                   type="time"
                   value={obitoHora}
+                  disabled={!podeDarAlta || enviando}
                   onChange={(e) => setObitoHora(e.target.value)}
                   className={inputCls}
                   aria-label="Hora óbito"
                 />
               </Campo>
               <div className="sm:col-span-2 flex flex-wrap items-end gap-4 pb-1">
-                <CheckField label="+ 48 horas" checked={obitoMais48h} onChange={setObitoMais48h} />
-                <CheckField label="- 48 horas" checked={obitoMenos48h} onChange={setObitoMenos48h} />
+                <CheckField label="+ 48 horas" checked={obitoMais48h} onChange={setObitoMais48h} disabled={!podeDarAlta || enviando} />
+                <CheckField label="- 48 horas" checked={obitoMenos48h} onChange={setObitoMenos48h} disabled={!podeDarAlta || enviando} />
               </div>
             </div>
           ) : null}
@@ -264,10 +285,10 @@ export function FormularioCondicoesAlta({
         <div>
           <p className={labelCls}>Motivo da alta</p>
           <div className="mt-2 flex flex-wrap gap-4">
-            <CheckField label="Decisão médica" checked={motivoDecisaoMedica} onChange={setMotivoDecisaoMedica} />
-            <CheckField label="Alta pedida" checked={motivoAltaPedida} onChange={setMotivoAltaPedida} />
-            <CheckField label="Transferência" checked={motivoTransferencia} onChange={setMotivoTransferencia} />
-            <CheckField label="Indisciplina" checked={motivoIndisciplina} onChange={setMotivoIndisciplina} />
+            <CheckField label="Decisão médica" checked={motivoDecisaoMedica} onChange={setMotivoDecisaoMedica} disabled={!podeDarAlta || enviando} />
+            <CheckField label="Alta pedida" checked={motivoAltaPedida} onChange={setMotivoAltaPedida} disabled={!podeDarAlta || enviando} />
+            <CheckField label="Transferência" checked={motivoTransferencia} onChange={setMotivoTransferencia} disabled={!podeDarAlta || enviando} />
+            <CheckField label="Indisciplina" checked={motivoIndisciplina} onChange={setMotivoIndisciplina} disabled={!podeDarAlta || enviando} />
           </div>
         </div>
 
@@ -275,6 +296,7 @@ export function FormularioCondicoesAlta({
           <input
             type="text"
             value={transferenciaPara}
+            disabled={!podeDarAlta || enviando}
             onChange={(e) => setTransferenciaPara(e.target.value)}
             className={inputCls}
             aria-label="Transferência para"
@@ -284,6 +306,7 @@ export function FormularioCondicoesAlta({
           <textarea
             rows={4}
             value={diagnosticoDefinitivo}
+            disabled={!podeDarAlta || enviando}
             onChange={(e) => setDiagnosticoDefinitivo(e.target.value)}
             className={cn(inputCls, 'resize-y')}
             aria-label="Diagnóstico definitivo"
@@ -293,6 +316,7 @@ export function FormularioCondicoesAlta({
           <textarea
             rows={3}
             value={observacaoAlta}
+            disabled={!podeDarAlta || enviando}
             onChange={(e) => setObservacaoAlta(e.target.value)}
             className={cn(inputCls, 'resize-y')}
             aria-label="Observação alta"
@@ -303,6 +327,7 @@ export function FormularioCondicoesAlta({
             <input
               type="date"
               value={dataAlta}
+              disabled={!podeDarAlta || enviando}
               onChange={(e) => setDataAlta(e.target.value)}
               className={inputCls}
               aria-label="Data alta"
@@ -312,6 +337,7 @@ export function FormularioCondicoesAlta({
             <input
               type="text"
               value={medicoCremepeAlta}
+              disabled={!podeDarAlta || enviando}
               onChange={(e) => setMedicoCremepeAlta(e.target.value)}
               className={inputCls}
               aria-label="Médico alta"
@@ -320,28 +346,30 @@ export function FormularioCondicoesAlta({
         </div>
       </section>
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          disabled={enviando}
-          onClick={() => salvar('EM_ANDAMENTO')}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted disabled:opacity-50"
-          aria-label="Salvar condições de alta"
-        >
-          {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />}
-          Salvar
-        </button>
-        <button
-          type="button"
-          disabled={enviando}
-          onClick={() => salvar('CONCLUIDA')}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 ml-auto"
-          aria-label="Concluir alta"
-        >
-          {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <UserCheck className="h-4 w-4" aria-hidden />}
-          Concluir alta
-        </button>
-      </div>
+      {podeDarAlta && (
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            disabled={enviando}
+            onClick={() => salvar('EM_ANDAMENTO')}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted disabled:opacity-50"
+            aria-label="Salvar condições de alta"
+          >
+            {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />}
+            Salvar
+          </button>
+          <button
+            type="button"
+            disabled={enviando}
+            onClick={() => salvar('CONCLUIDA')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 ml-auto"
+            aria-label="Concluir alta"
+          >
+            {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <UserCheck className="h-4 w-4" aria-hidden />}
+            Concluir alta
+          </button>
+        </div>
+      )}
     </div>
   )
 }

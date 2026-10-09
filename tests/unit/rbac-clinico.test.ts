@@ -29,5 +29,13 @@ describe('RBAC clínico', () => {
     expect(podeExecutarAcaoClinica('DIRETOR_CLINICO', 'INTERDITAR_LEITO')).toBe(true)
     expect(podeExecutarAcaoClinica('MEDICO', 'INTERDITAR_LEITO')).toBe(false)
   })
+  it('permite concessão de alta apenas para médico, diretor clínico e admin', () => {
+    expect(podeExecutarAcaoClinica('MEDICO', 'CONCEDER_ALTA')).toBe(true)
+    expect(podeExecutarAcaoClinica('DIRETOR_CLINICO', 'CONCEDER_ALTA')).toBe(true)
+    expect(podeExecutarAcaoClinica('ADMIN', 'CONCEDER_ALTA')).toBe(true)
+    expect(podeExecutarAcaoClinica('ENFERMEIRO', 'CONCEDER_ALTA')).toBe(false)
+    expect(podeExecutarAcaoClinica('TECNICO_ENFERMAGEM', 'CONCEDER_ALTA')).toBe(false)
+    expect(podeExecutarAcaoClinica('RECEPCIONISTA', 'CONCEDER_ALTA')).toBe(false)
+  })
 })
 

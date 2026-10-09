@@ -27,6 +27,12 @@ const ROLES_ESCRITA = [
   'RECEPCIONISTA',
 ] as const
 
+const ROLES_ALTA = [
+  'ADMIN',
+  'MEDICO',
+  'DIRETOR_CLINICO',
+] as const
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ atendimentoId: string }> }
@@ -109,6 +115,16 @@ export async function PUT(
     }
 
     const { secaoSalvar, ...dadosRecebidos } = parsed.data
+    if (secaoSalvar === 'ALTA' && !ROLES_ALTA.includes(sessao.usuario.role as (typeof ROLES_ALTA)[number])) {
+      return NextResponse.json(
+        {
+          sucesso: false,
+          erro: 'Sem permissão. Somente médicos ou diretores clínicos podem registrar ou conceder alta hospitalar.',
+        },
+        { status: 403 }
+      )
+    }
+
     let dadosFinais = dadosRecebidos as FichaInternacaoAltaForm
 
     if (secaoSalvar === 'ALTA' && !atendimento.fichaInternacaoAlta) {
