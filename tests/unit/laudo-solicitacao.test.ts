@@ -63,4 +63,22 @@ describe('Laudo Médico para Solicitação', () => {
       expect(resultado.data.diariaAcompanhante).toBe(false)
     }
   })
+
+  it('deve aceitar datas em formato brasileiro e strings vazias', () => {
+    const payload = {
+      nomePaciente: 'Paciente Teste Data',
+      dataSolicitacao: '09/10/2026',
+      dataAuditoria: '',
+      mudancaProcedimento: 'true' as any,
+    }
+
+    const resultado = schemaLaudoSolicitacao.safeParse(payload)
+    expect(resultado.success).toBe(true)
+    if (resultado.success) {
+      expect(resultado.data.dataSolicitacao).toBe('09/10/2026')
+      expect(resultado.data.dataAuditoria).toBe('')
+      expect(resultado.data.mudancaProcedimento).toBe(true)
+    }
+  })
 })
+

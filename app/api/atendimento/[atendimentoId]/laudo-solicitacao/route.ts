@@ -23,6 +23,38 @@ const ROLES_ESCRITA = [
   'ENFERMEIRO',
 ] as const
 
+function parseDateSafe(val?: string | null): Date | null {
+  if (!val || typeof val !== 'string' || !val.trim()) return null
+  const trimmed = val.trim()
+  
+  // DD/MM/YYYY or DD-MM-YYYY
+  if (/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/.test(trimmed)) {
+    const match = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/)
+    if (match) {
+      const d = parseInt(match[1], 10)
+      const m = parseInt(match[2], 10)
+      const y = parseInt(match[3], 10)
+      const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+      return isNaN(dt.getTime()) ? null : dt
+    }
+  }
+
+  // YYYY-MM-DD
+  if (/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/.test(trimmed)) {
+    const match = trimmed.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/)
+    if (match) {
+      const y = parseInt(match[1], 10)
+      const m = parseInt(match[2], 10)
+      const d = parseInt(match[3], 10)
+      const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+      return isNaN(dt.getTime()) ? null : dt
+    }
+  }
+
+  const dt = new Date(trimmed)
+  return isNaN(dt.getTime()) ? null : dt
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ atendimentoId: string }> }
@@ -77,7 +109,13 @@ export async function PUT(
 
   try {
     const atendimento = await prisma.atendimento.findFirst({
-      where: { id: atendimentoId, deletedAt: null },
+      where: {
+        deletedAt: null,
+        OR: [
+          { id: atendimentoId },
+          { numeroAtendimento: atendimentoId },
+        ],
+      },
       select: { id: true, laudoSolicitacao: { select: { id: true } } },
     })
 
@@ -94,10 +132,11 @@ export async function PUT(
     const body = await req.json()
     const validacao = schemaLaudoSolicitacao.safeParse(body)
     if (!validacao.success) {
+      console.warn('[PUT laudo-solicitacao] Validação falhou:', validacao.error.flatten().fieldErrors)
       return NextResponse.json(
         {
           sucesso: false,
-          erro: 'Dados inválidos.',
+          erro: 'Dados inválidos ao salvar laudo.',
           detalhes: validacao.error.flatten().fieldErrors,
         },
         { status: 400 }
@@ -117,20 +156,20 @@ export async function PUT(
       crmMedicoSolicitante: d.crmMedicoSolicitante ?? null,
       cpfMedicoSolicitante: d.cpfMedicoSolicitante ?? null,
 
-      mudancaProcedimento: d.mudancaProcedimento,
-      diariaUti: d.diariaUti,
-      diariaAcompanhante: d.diariaAcompanhante,
-      vacinaAntiRh: d.vacinaAntiRh,
-      usoProteseOtica: d.usoProteseOtica,
-      usoFatoresCoagulacao: d.usoFatoresCoagulacao,
-      usoOrdenadores: d.usoOrdenadores,
-      nutricaoParenteral: d.nutricaoParenteral,
+      mudancaProcedimento: Boolean(d.mudancaProcedimento),
+      diariaUti: Boolean(d.diariaUti),
+      diariaAcompanhante: Boolean(d.diariaAcompanhante),
+      vacinaAntiRh: Boolean(d.vacinaAntiRh),
+      usoProteseOtica: Boolean(d.usoProteseOtica),
+      usoFatoresCoagulacao: Boolean(d.usoFatoresCoagulacao),
+      usoOrdenadores: Boolean(d.usoOrdenadores),
+      nutricaoParenteral: Boolean(d.nutricaoParenteral),
 
       justificativa: d.justificativa ?? null,
 
-      dataSolicitacao: d.dataSolicitacao ? new Date(d.dataSolicitacao) : null,
+      dataSolicitacao: parseDateSafe(d.dataSolicitacao) ?? new Date(),
       nomeAcompanhante: d.nomeAcompanhante ?? null,
-      dataAuditoria: d.dataAuditoria ? new Date(d.dataAuditoria) : null,
+      dataAuditoria: parseDateSafe(d.dataAuditoria),
       parecerAuditor: d.parecerAuditor ?? null,
       nomeAuditor: d.nomeAuditor ?? null,
       crmAuditor: d.crmAuditor ?? null,
@@ -153,11 +192,11 @@ export async function PUT(
           valorNovo: validacao.data.status,
           ipOrigem: req.headers.get('x-forwarded-for') ?? null,
         },
-      })
+      }).catch((err) => console.warn('[LogAuditoria LaudoSolicitacao Update]', err))
     } else {
       laudo = await prisma.laudoSolicitacao.create({
         data: {
-          atendimentoId,
+          atendimentoId: atendimento.id,
           ...dadosPrisma,
         },
       })
@@ -170,7 +209,7 @@ export async function PUT(
           valorNovo: validacao.data.status,
           ipOrigem: req.headers.get('x-forwarded-for') ?? null,
         },
-      })
+      }).catch((err) => console.warn('[LogAuditoria LaudoSolicitacao Create]', err))
     }
 
     return NextResponse.json({ sucesso: true, dados: laudo })

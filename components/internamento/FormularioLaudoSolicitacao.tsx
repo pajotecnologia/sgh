@@ -56,6 +56,23 @@ const MODELOS_JUSTIFICATIVA = [
   },
 ]
 
+function formatarDataInput(val?: string | null): string {
+  if (!val || typeof val !== 'string') return ''
+  const trimmed = val.trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
+  if (trimmed.includes('T')) return trimmed.split('T')[0]
+  if (/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/.test(trimmed)) {
+    const match = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/)
+    if (match) {
+      const d = match[1].padStart(2, '0')
+      const m = match[2].padStart(2, '0')
+      const y = match[3]
+      return `${y}-${m}-${d}`
+    }
+  }
+  return ''
+}
+
 export function FormularioLaudoSolicitacao({
   atendimentoId,
   atendimentoContexto,
@@ -120,17 +137,20 @@ export function FormularioLaudoSolicitacao({
       const res = await fetch(`/api/atendimento/${atendimentoId}/laudo-solicitacao`)
       const json = await res.json()
       if (json.sucesso && json.dados?.prefill) {
+        const pf = json.dados.prefill
         setForm((prev) => ({
           ...prev,
-          ...json.dados.prefill,
-          nomeHospital: json.dados.prefill.nomeHospital || prev.nomeHospital,
-          cnpjHospital: json.dados.prefill.cnpjHospital || prev.cnpjHospital,
-          nomePaciente: json.dados.prefill.nomePaciente || prev.nomePaciente,
-          numeroAih: json.dados.prefill.numeroAih || prev.numeroAih,
-          procedimentoAnterior: json.dados.prefill.procedimentoAnterior || prev.procedimentoAnterior,
-          procedimentoSolicitado: json.dados.prefill.procedimentoSolicitado || prev.procedimentoSolicitado,
-          nomeMedicoSolicitante: json.dados.prefill.nomeMedicoSolicitante || prev.nomeMedicoSolicitante,
-          justificativa: json.dados.prefill.justificativa || prev.justificativa,
+          ...pf,
+          nomeHospital: pf.nomeHospital || prev.nomeHospital,
+          cnpjHospital: pf.cnpjHospital || prev.cnpjHospital,
+          nomePaciente: pf.nomePaciente || prev.nomePaciente,
+          numeroAih: pf.numeroAih || prev.numeroAih,
+          procedimentoAnterior: pf.procedimentoAnterior || prev.procedimentoAnterior,
+          procedimentoSolicitado: pf.procedimentoSolicitado || prev.procedimentoSolicitado,
+          nomeMedicoSolicitante: pf.nomeMedicoSolicitante || prev.nomeMedicoSolicitante,
+          justificativa: pf.justificativa || prev.justificativa,
+          dataSolicitacao: formatarDataInput(pf.dataSolicitacao) || prev.dataSolicitacao || new Date().toISOString().split('T')[0],
+          dataAuditoria: formatarDataInput(pf.dataAuditoria) || '',
         }))
       } else if (json.erro) {
         toast.error(json.erro)
@@ -162,7 +182,16 @@ export function FormularioLaudoSolicitacao({
 
       const json = await res.json()
       if (!res.ok || !json.sucesso) {
-        toast.error(json.erro || 'Erro ao salvar laudo de solicitação.')
+        const detalheMsg = json.detalhes
+          ? Object.entries(json.detalhes)
+              .map(([c, errs]) => `${c}: ${(errs as string[]).join(', ')}`)
+              .join(' | ')
+          : null
+        toast.error(
+          detalheMsg
+            ? `${json.erro || 'Erro ao salvar'}: ${detalheMsg}`
+            : json.erro || 'Erro ao salvar laudo de solicitação.'
+        )
         return
       }
 
@@ -581,7 +610,7 @@ export function FormularioLaudoSolicitacao({
             <label className={labelCls}>Data da Solicitação</label>
             <input
               type="date"
-              value={form.dataSolicitacao || ''}
+              value={formatarDataInput(form.dataSolicitacao)}
               onChange={(e) => setForm((f) => ({ ...f, dataSolicitacao: e.target.value }))}
               className={inputCls}
             />
@@ -614,7 +643,7 @@ export function FormularioLaudoSolicitacao({
             <label className={labelCls}>Data da Auditoria</label>
             <input
               type="date"
-              value={form.dataAuditoria || ''}
+              value={formatarDataInput(form.dataAuditoria)}
               onChange={(e) => setForm((f) => ({ ...f, dataAuditoria: e.target.value }))}
               className={inputCls}
             />
