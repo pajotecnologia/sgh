@@ -27,6 +27,7 @@ import {
 import { toast } from 'sonner';
 import type { HistoricoLongitudinalPacienteDTO, PassagemHistoricoDTO } from '@/lib/historico-paciente';
 import { VisualizadorResultadoExame } from '@/components/atendimento/VisualizadorResultadoExame';
+import { formatarIdadeExtenso } from '@/lib/formatar-idade';
 
 export function TimelineHistoricoPaciente({ pacienteId }: { pacienteId: string }) {
   const [dados, setDados] = useState<HistoricoLongitudinalPacienteDTO | null>(null);
@@ -120,7 +121,7 @@ export function TimelineHistoricoPaciente({ pacienteId }: { pacienteId: string }
                 </span>
                 <span>•</span>
                 <span>
-                  Idade: <strong className="text-foreground">{paciente.idadeAnos} anos</strong> (
+                  Idade: <strong className="text-foreground">{formatarIdadeExtenso(paciente.dataNascimento) || `${paciente.idadeAnos} anos`}</strong> (
                   {new Date(paciente.dataNascimento).toLocaleDateString('pt-BR')})
                 </span>
                 <span>•</span>

@@ -34,6 +34,7 @@ import { schemaCriarPaciente, type CriarPacienteForm } from '@/lib/validations/p
 import { buscarCep } from '@/lib/cep';
 import { cn } from '@/lib/utils';
 import { notificarFilaAtualizada } from '@/lib/fila-triagem-sync';
+import { formatarIdadeExtenso } from '@/lib/formatar-idade';
 
 const TIPO_SANGUINEO_OPTIONS = [
   { value: 'DESCONHECIDO', label: 'Não informado' },
@@ -83,16 +84,7 @@ function mascaraCns(valor: string) {
 }
 
 function calcularIdade(dataNascStr?: string): string {
-  if (!dataNascStr) return '';
-  const nasc = new Date(dataNascStr);
-  if (isNaN(nasc.getTime())) return '';
-  const hoje = new Date();
-  let anos = hoje.getFullYear() - nasc.getFullYear();
-  const m = hoje.getMonth() - nasc.getMonth();
-  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) {
-    anos--;
-  }
-  return anos >= 0 ? `${anos} anos` : '';
+  return formatarIdadeExtenso(dataNascStr);
 }
 
 // Componente de Campo Reutilizável

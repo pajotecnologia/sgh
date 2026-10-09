@@ -919,7 +919,7 @@ export function MapaLeitosVisual() {
               <div className="grid grid-cols-2 gap-2 text-xs bg-muted/40 p-3 rounded-lg">
                 <div>
                   <span className="text-muted-foreground">Idade / Sexo:</span>
-                  <p className="font-semibold">{leitoDetalhes.pacienteAtual.idadeAnos ? `${leitoDetalhes.pacienteAtual.idadeAnos} anos` : 'N/I'} • {leitoDetalhes.pacienteAtual.sexo}</p>
+                  <p className="font-semibold">{leitoDetalhes.pacienteAtual.idadeFormatada || (leitoDetalhes.pacienteAtual.idadeAnos ? `${leitoDetalhes.pacienteAtual.idadeAnos} anos` : 'N/I')} • {leitoDetalhes.pacienteAtual.sexo}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Tipo Sanguíneo:</span>

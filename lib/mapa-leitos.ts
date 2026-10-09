@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { formatarIdadeExtenso } from '@/lib/formatar-idade'
 import type { TipoLeitoHospitalar, StatusLeitoHospitalar, CorTriagem } from '@/types'
 
 export interface PacienteLeitoMapa {
@@ -8,6 +9,8 @@ export interface PacienteLeitoMapa {
   nome: string
   sexo: string
   idadeAnos: number | null
+  idadeFormatada?: string
+  dataNascimento?: string | null
   tipoSanguineo: string
   dataInternacao: string
   tempoInternacaoFormatado: string
@@ -180,6 +183,8 @@ export async function obterDadosMapaLeitos(filtros?: {
         idadeAnos: atendimentoAtivo.paciente.dataNascimento
           ? calcularIdade(new Date(atendimentoAtivo.paciente.dataNascimento))
           : null,
+        idadeFormatada: formatarIdadeExtenso(atendimentoAtivo.paciente.dataNascimento),
+        dataNascimento: atendimentoAtivo.paciente.dataNascimento?.toISOString() ?? null,
         tipoSanguineo: atendimentoAtivo.paciente.tipoSanguineo,
         dataInternacao: dataInternacao.toISOString(),
         tempoInternacaoFormatado: formatarTempoInternacao(horasInternado),

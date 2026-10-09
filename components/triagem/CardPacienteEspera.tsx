@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { BadgeManchester } from './BadgeManchester';
 import { alertaTempoManchester } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { formatarIdadeExtenso } from '@/lib/formatar-idade';
 import type { CorTriagem } from '@/types';
 import type { TipoAtendimentoInfo } from '@/lib/senhas';
 
@@ -17,6 +18,8 @@ interface CardPacienteEsperaProps {
   senha?: string;
   tipoAtendimento?: TipoAtendimentoInfo;
   idadeAnos?: number | null;
+  dataNascimento?: Date | string | null;
+  idadeTexto?: string;
   nomePaciente: string;
   corTriagem: CorTriagem | null;
   labelCor: string;
@@ -46,6 +49,8 @@ export function CardPacienteEspera({
   senha,
   tipoAtendimento,
   idadeAnos,
+  dataNascimento,
+  idadeTexto,
   nomePaciente,
   corTriagem,
   labelCor,
@@ -131,9 +136,13 @@ export function CardPacienteEspera({
               <span className={cn('font-bold text-foreground truncate', compacto ? 'text-xs' : 'text-sm')}>
                 {nomePaciente}
               </span>
-              {idadeAnos !== undefined && idadeAnos !== null && (
-                <span className="text-[10px] text-muted-foreground">({idadeAnos} anos)</span>
-              )}
+              {dataNascimento ? (
+                <span className="text-[10px] text-muted-foreground">({formatarIdadeExtenso(dataNascimento)})</span>
+              ) : idadeTexto ? (
+                <span className="text-[10px] text-muted-foreground">({idadeTexto})</span>
+              ) : idadeAnos !== undefined && idadeAnos !== null ? (
+                <span className="text-[10px] text-muted-foreground">({idadeAnos === 1 ? '1 ano' : `${idadeAnos} anos`})</span>
+              ) : null}
             </div>
             {corTriagem && <BadgeManchester cor={corTriagem} size="sm" />}
           </div>

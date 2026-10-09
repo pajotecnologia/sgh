@@ -13,6 +13,7 @@ import { ModalChamarPaciente } from '@/components/triagem/ModalChamarPaciente'
 import { getPusherCliente, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher'
 import { escutarFilaAtualizada, fetchFilaTriagem } from '@/lib/fila-triagem-sync'
 import { EnvoltorioListaPaginada } from '@/components/shared/EnvoltorioListaPaginada'
+import { formatarIdadeExtenso } from '@/lib/formatar-idade'
 
 import type { TipoAtendimentoInfo } from '@/lib/senhas'
 
@@ -119,7 +120,11 @@ function CardPaciente({
       </div>
 
       <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground mb-1.5">
-        <span>{nascimento && isValid(nascimento) ? format(nascimento, 'dd/MM/yyyy') : '—'}</span>
+        <span>
+          {nascimento && isValid(nascimento)
+            ? `${format(nascimento, 'dd/MM/yyyy')} (${formatarIdadeExtenso(nascimento)})`
+            : '—'}
+        </span>
         {p.sexoBiologico && (
           <span>{p.sexoBiologico.charAt(0) + p.sexoBiologico.slice(1).toLowerCase()}</span>
         )}

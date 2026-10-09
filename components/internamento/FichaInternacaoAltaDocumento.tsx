@@ -180,7 +180,7 @@ export function FichaInternacaoAltaDocumento({ dados }: { dados: DadosFichaInter
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 mt-2.5 pt-2 border-t border-slate-100">
-              <ItemDado rotulo="Idade" valor={f.idade ? `${f.idade} anos` : null} />
+              <ItemDado rotulo="Idade" valor={(f as { idadeFormatada?: string }).idadeFormatada || (f.idade ? (parseInt(String(f.idade)) === 1 ? '1 ano' : `${f.idade} anos`) : null)} />
               <ItemDado rotulo="Sexo" valor={f.sexo} />
               <ItemDado rotulo="Cor / Etnia" valor={f.cor} />
               <ItemDado rotulo="Estado Civil" valor={f.estadoCivil} />

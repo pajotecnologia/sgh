@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { descriptografar } from '@/lib/encryption';
 import { CID10_BASE } from '@/lib/cid10';
+import { formatarIdadeExtenso } from '@/lib/formatar-idade';
 
 export interface PassagemHistoricoDTO {
   atendimentoId: string;
@@ -88,6 +89,7 @@ export interface HistoricoLongitudinalPacienteDTO {
     cpf: string;
     dataNascimento: string;
     idadeAnos: number;
+    idadeFormatada?: string;
     sexoBiologico: string;
     tipoSanguineo: string;
     alergias: Array<{ id: string; descricao: string; gravidade?: string | null }>;
@@ -329,6 +331,7 @@ export async function carregarHistoricoLongitudinal(
       cpf: cpfDec,
       dataNascimento: paciente.dataNascimento.toISOString(),
       idadeAnos: calcularIdade(paciente.dataNascimento),
+      idadeFormatada: formatarIdadeExtenso(paciente.dataNascimento),
       sexoBiologico: paciente.sexoBiologico,
       tipoSanguineo: paciente.tipoSanguineo,
       alergias: paciente.alergias.map((a) => ({

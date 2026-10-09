@@ -4,6 +4,7 @@ import { format, differenceInCalendarDays } from 'date-fns'
 import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao'
 import { exameFisicoParaTexto } from '@/lib/ficha-urgencia'
 import { formatarDosePrescricao, separarDoseUnidade } from '@/lib/prescricao-ui'
+import { formatarIdadeExtenso } from '@/lib/formatar-idade'
 
 /** Preenche com `padrao` quando `atual` estiver vazio */
 export function preencherSeVazio(atual: string | null | undefined, padrao: string): string {
@@ -461,6 +462,7 @@ export function identificacaoPacienteInternacao(atendimento: AtendimentoCtx) {
     numeroAtendimento: atendimento.numeroAtendimento,
     atendimentoId: atendimento.id,
     nomeMae: (atendimento.paciente as PacienteCtx)?.nomeMae ?? '',
+    idadeFormatada: formatarIdadeExtenso(atendimento.paciente?.dataNascimento),
   }
 }
 

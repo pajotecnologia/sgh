@@ -271,6 +271,12 @@ export function WorkspaceInternacao({
               {atendimento.numeroAtendimento}
             </p>
             <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1 text-xs text-muted-foreground">
+              {identificacao.idadeFormatada ? (
+                <span>
+                  <span className="font-medium text-foreground">Idade:</span>{' '}
+                  {identificacao.idadeFormatada}
+                </span>
+              ) : null}
               {identificacao.setorUnidade || atendimento.setor ? (
                 <span>
                   <span className="font-medium text-foreground">Setor:</span>{' '}

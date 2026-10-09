@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ArrowLeft, Printer, Pencil, Trash2, X, Check, Loader2, Plus, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatarIdadeExtenso } from '@/lib/formatar-idade';
 import { BotaoNovoAtendimento } from '@/components/recepcao/BotaoNovoAtendimento';
 
 interface DadosPaciente {
@@ -165,7 +166,7 @@ export function FichaPacienteClient({ dados }: { dados: DadosPaciente }) {
           <Info label="Nome Completo" valor={dados.nomeCompleto} />
           <Info label="CPF" valor={dados.cpf} />
           <Info label="RG" valor={dados.rg} />
-          <Info label="Nascimento" valor={format(new Date(dados.dataNascimento), 'dd/MM/yyyy')} />
+          <Info label="Nascimento / Idade" valor={`${format(new Date(dados.dataNascimento), 'dd/MM/yyyy')} (${formatarIdadeExtenso(dados.dataNascimento)})`} />
           <Info label="Sexo Biológico" valor={dados.sexoBiologico.charAt(0) + dados.sexoBiologico.slice(1).toLowerCase()} />
           <Info label="Gênero" valor={dados.genero} />
           <Info label="Telefone" valor={dados.telefone} />
