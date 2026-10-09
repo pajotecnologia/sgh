@@ -104,17 +104,17 @@ export function Header({ usuario }: HeaderProps) {
             className="flex items-center gap-2.5 pl-2 border-l border-border hover:opacity-80 transition-opacity"
             title="Meu Cadastro & Segurança"
           >
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-semibold text-foreground leading-tight">
-                {usuario?.nome ? usuario.nome.split(' ')[0] : 'Usuário'}
+            <div className="text-right hidden sm:block max-w-[240px]">
+              <p className="text-xs font-semibold text-foreground leading-tight truncate">
+                {usuario?.nome?.trim() ? usuario.nome : 'Usuário'}
               </p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[10px] text-muted-foreground truncate">
                 {usuario?.email ?? ''}
               </p>
             </div>
-            <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
               <span className="text-primary text-xs font-bold">
-                {usuario?.nome ? usuario.nome.charAt(0).toUpperCase() : 'U'}
+                {usuario?.nome ? usuario.nome.trim().charAt(0).toUpperCase() : 'U'}
               </span>
             </div>
           </Link>
