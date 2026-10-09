@@ -1,6 +1,6 @@
 {
   "name": "sgh",
-  "version": "2.7.28",
+  "version": "2.7.29",
   "private": true,
   "scripts": {
     "predev": "node scripts/run-prisma.mjs generate",

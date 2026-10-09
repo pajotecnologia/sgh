@@ -186,7 +186,7 @@ export function FormularioLaudoSolicitacao({
           ? Object.entries(json.detalhes)
               .map(([c, errs]) => `${c}: ${(errs as string[]).join(', ')}`)
               .join(' | ')
-          : null
+          : json.detalhe || null
         toast.error(
           detalheMsg
             ? `${json.erro || 'Erro ao salvar'}: ${detalheMsg}`

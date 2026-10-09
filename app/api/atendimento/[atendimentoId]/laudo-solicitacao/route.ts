@@ -23,6 +23,65 @@ const ROLES_ESCRITA = [
   'ENFERMEIRO',
 ] as const
 
+let tabelaGarantida = false
+export async function garantirTabelaLaudoSolicitacao() {
+  if (tabelaGarantida) return
+  try {
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        CREATE TYPE "StatusLaudoSolicitacao" AS ENUM ('RASCUNHO', 'EMITIDO', 'AUDITADO', 'CANCELADO');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "laudos_solicitacao" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "atendimentoId" TEXT NOT NULL UNIQUE,
+        "status" "StatusLaudoSolicitacao" NOT NULL DEFAULT 'RASCUNHO',
+        "nomeHospital" TEXT,
+        "cnpjHospital" TEXT,
+        "nomePaciente" TEXT,
+        "numeroAih" TEXT,
+        "procedimentoAnterior" TEXT,
+        "procedimentoSolicitado" TEXT,
+        "nomeMedicoSolicitante" TEXT,
+        "crmMedicoSolicitante" TEXT,
+        "cpfMedicoSolicitante" TEXT,
+        "mudancaProcedimento" BOOLEAN NOT NULL DEFAULT false,
+        "diariaUti" BOOLEAN NOT NULL DEFAULT false,
+        "diariaAcompanhante" BOOLEAN NOT NULL DEFAULT false,
+        "vacinaAntiRh" BOOLEAN NOT NULL DEFAULT false,
+        "usoProteseOtica" BOOLEAN NOT NULL DEFAULT false,
+        "usoFatoresCoagulacao" BOOLEAN NOT NULL DEFAULT false,
+        "usoOrdenadores" BOOLEAN NOT NULL DEFAULT false,
+        "nutricaoParenteral" BOOLEAN NOT NULL DEFAULT false,
+        "justificativa" TEXT,
+        "dataSolicitacao" TIMESTAMP(3),
+        "nomeAcompanhante" TEXT,
+        "dataAuditoria" TIMESTAMP(3),
+        "parecerAuditor" TEXT,
+        "nomeAuditor" TEXT,
+        "crmAuditor" TEXT,
+        "preenchidoPorId" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "laudos_solicitacao" ADD CONSTRAINT "laudos_solicitacao_atendimentoId_fkey"
+        FOREIGN KEY ("atendimentoId") REFERENCES "atendimentos"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `)
+    tabelaGarantida = true
+  } catch (e) {
+    console.warn('[garantirTabelaLaudoSolicitacao]', e)
+  }
+}
+
 function parseDateSafe(val?: string | null): Date | null {
   if (!val || typeof val !== 'string' || !val.trim()) return null
   const trimmed = val.trim()
@@ -69,6 +128,7 @@ export async function GET(
   }
 
   try {
+    await garantirTabelaLaudoSolicitacao()
     const dados = await carregarDadosLaudoSolicitacao(atendimentoId, {
       nome: sessao.usuario.nome,
       crm: sessao.usuario.crm,
@@ -108,6 +168,8 @@ export async function PUT(
   }
 
   try {
+    await garantirTabelaLaudoSolicitacao()
+
     const atendimento = await prisma.atendimento.findFirst({
       where: {
         deletedAt: null,
@@ -116,7 +178,7 @@ export async function PUT(
           { numeroAtendimento: atendimentoId },
         ],
       },
-      select: { id: true, laudoSolicitacao: { select: { id: true } } },
+      select: { id: true },
     })
 
     if (!atendimento) {
@@ -146,15 +208,15 @@ export async function PUT(
     const d = validacao.data
     const dadosPrisma = {
       status: d.status,
-      nomeHospital: d.nomeHospital ?? null,
-      cnpjHospital: d.cnpjHospital ?? null,
-      nomePaciente: d.nomePaciente ?? null,
-      numeroAih: d.numeroAih ?? null,
-      procedimentoAnterior: d.procedimentoAnterior ?? null,
-      procedimentoSolicitado: d.procedimentoSolicitado ?? null,
-      nomeMedicoSolicitante: d.nomeMedicoSolicitante ?? null,
-      crmMedicoSolicitante: d.crmMedicoSolicitante ?? null,
-      cpfMedicoSolicitante: d.cpfMedicoSolicitante ?? null,
+      nomeHospital: d.nomeHospital?.trim() || null,
+      cnpjHospital: d.cnpjHospital?.trim() || null,
+      nomePaciente: d.nomePaciente?.trim() || null,
+      numeroAih: d.numeroAih?.trim() || null,
+      procedimentoAnterior: d.procedimentoAnterior?.trim() || null,
+      procedimentoSolicitado: d.procedimentoSolicitado?.trim() || null,
+      nomeMedicoSolicitante: d.nomeMedicoSolicitante?.trim() || null,
+      crmMedicoSolicitante: d.crmMedicoSolicitante?.trim() || null,
+      cpfMedicoSolicitante: d.cpfMedicoSolicitante?.trim() || null,
 
       mudancaProcedimento: Boolean(d.mudancaProcedimento),
       diariaUti: Boolean(d.diariaUti),
@@ -165,24 +227,28 @@ export async function PUT(
       usoOrdenadores: Boolean(d.usoOrdenadores),
       nutricaoParenteral: Boolean(d.nutricaoParenteral),
 
-      justificativa: d.justificativa ?? null,
+      justificativa: d.justificativa?.trim() || null,
 
       dataSolicitacao: parseDateSafe(d.dataSolicitacao) ?? new Date(),
-      nomeAcompanhante: d.nomeAcompanhante ?? null,
+      nomeAcompanhante: d.nomeAcompanhante?.trim() || null,
       dataAuditoria: parseDateSafe(d.dataAuditoria),
-      parecerAuditor: d.parecerAuditor ?? null,
-      nomeAuditor: d.nomeAuditor ?? null,
-      crmAuditor: d.crmAuditor ?? null,
+      parecerAuditor: d.parecerAuditor?.trim() || null,
+      nomeAuditor: d.nomeAuditor?.trim() || null,
+      crmAuditor: d.crmAuditor?.trim() || null,
 
-      preenchidoPorId: sessao.usuario.id,
+      preenchidoPorId: sessao.usuario?.id ?? null,
     }
 
-    let laudo
-    if (atendimento.laudoSolicitacao) {
-      laudo = await prisma.laudoSolicitacao.update({
-        where: { id: atendimento.laudoSolicitacao.id },
-        data: dadosPrisma,
-      })
+    const laudo = await prisma.laudoSolicitacao.upsert({
+      where: { atendimentoId: atendimento.id },
+      create: {
+        atendimentoId: atendimento.id,
+        ...dadosPrisma,
+      },
+      update: dadosPrisma,
+    })
+
+    if (sessao.usuario?.id) {
       await prisma.logAuditoria.create({
         data: {
           usuarioId: sessao.usuario.id,
@@ -192,31 +258,19 @@ export async function PUT(
           valorNovo: validacao.data.status,
           ipOrigem: req.headers.get('x-forwarded-for') ?? null,
         },
-      }).catch((err) => console.warn('[LogAuditoria LaudoSolicitacao Update]', err))
-    } else {
-      laudo = await prisma.laudoSolicitacao.create({
-        data: {
-          atendimentoId: atendimento.id,
-          ...dadosPrisma,
-        },
-      })
-      await prisma.logAuditoria.create({
-        data: {
-          usuarioId: sessao.usuario.id,
-          acao: 'CRIACAO',
-          entidade: 'LaudoSolicitacao',
-          entidadeId: laudo.id,
-          valorNovo: validacao.data.status,
-          ipOrigem: req.headers.get('x-forwarded-for') ?? null,
-        },
-      }).catch((err) => console.warn('[LogAuditoria LaudoSolicitacao Create]', err))
+      }).catch((err) => console.warn('[LogAuditoria LaudoSolicitacao Upsert]', err))
     }
 
     return NextResponse.json({ sucesso: true, dados: laudo })
   } catch (erro) {
     console.error('[PUT laudo-solicitacao]', erro)
+    const detalheErro = erro instanceof Error ? erro.message : String(erro)
     return NextResponse.json(
-      { sucesso: false, erro: 'Erro ao salvar laudo de solicitação.' },
+      {
+        sucesso: false,
+        erro: 'Erro ao salvar laudo de solicitação.',
+        detalhe: detalheErro,
+      },
       { status: 500 }
     )
   }
