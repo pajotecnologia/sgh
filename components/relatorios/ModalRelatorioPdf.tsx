@@ -57,7 +57,7 @@ export function ModalRelatorioPdf({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -65,8 +65,8 @@ export function ModalRelatorioPdf({
       aria-modal="true"
       aria-label={safeTitle}
     >
-      <div className="bg-card w-full max-w-5xl h-[min(90vh,820px)] rounded-2xl shadow-2xl border border-border m-4 flex flex-col overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between p-4 border-b border-border gap-2">
+      <div className="bg-card w-full max-w-5xl h-[min(90vh,820px)] max-h-[90vh] rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden my-auto">
+        <div className="flex flex-wrap items-center justify-between p-4 border-b border-border gap-2 shrink-0">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground truncate">{safeTitle}</p>
             <p className="text-[11px] text-muted-foreground truncate">{nomeArquivo}</p>

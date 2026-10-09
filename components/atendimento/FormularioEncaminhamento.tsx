@@ -389,35 +389,37 @@ export function FormularioEncaminhamento({
 
       {confirmarExternoAberto ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[1px]"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-externo-titulo"
         >
-          <div className="bg-card border border-border rounded-xl max-w-md w-full p-5 space-y-4">
-            <div className="flex items-start justify-between gap-3">
-              <h2 id="modal-externo-titulo" className="text-lg font-bold text-foreground flex items-center gap-2">
+          <div className="bg-card border border-border rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+            <div className="p-5 border-b border-border flex items-start justify-between gap-3 shrink-0">
+              <h2 id="modal-externo-titulo" className="text-base font-bold text-foreground flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-amber-500" aria-hidden />
                 Finalizar com encaminhamento externo
               </h2>
               <button
                 type="button"
                 onClick={() => setConfirmarExternoAberto(false)}
-                className="p-1 rounded-md hover:bg-muted text-muted-foreground"
+                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
                 aria-label="Fechar"
               >
-                <X className="h-5 w-5" aria-hidden />
+                <X className="h-4 w-4" aria-hidden />
               </button>
             </div>
 
-            <p className="text-sm text-muted-foreground">
-              Ao confirmar, o encaminhamento externo para{' '}
-              <strong className="text-foreground">{especialidade.trim() || 'o serviço informado'}</strong> será
-              registrado e o <strong className="text-foreground">atendimento será finalizado</strong>. Esta ação não
-              pode ser desfeita.
-            </p>
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
+              <p className="text-sm text-muted-foreground">
+                Ao confirmar, o encaminhamento externo para{' '}
+                <strong className="text-foreground">{especialidade.trim() || 'o serviço informado'}</strong> será
+                registrado e o <strong className="text-foreground">atendimento será finalizado</strong>. Esta ação não
+                pode ser desfeita.
+              </p>
+            </div>
 
-            <div className="flex flex-wrap gap-2 justify-end pt-2">
+            <div className="p-4 border-t border-border bg-muted/20 flex flex-wrap gap-2 justify-end shrink-0">
               <button
                 type="button"
                 onClick={() => setConfirmarExternoAberto(false)}

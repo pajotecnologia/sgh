@@ -407,7 +407,7 @@ export function ModalManualSistema({ open, onOpenChange }: ModalManualSistemaPro
               </div>
 
               {/* Conteúdo da Aba Ativa */}
-              <div className="flex-1 mt-4 overflow-y-auto pr-2 max-h-[520px]">
+              <div className="flex-1 mt-4 overflow-y-auto pr-2">
                 {(termoBusca ? secoesFiltradas : SECOES_MANUAL)
                   .filter((secao) => secao.id === abaSelecionadaId)
                   .map((secao) => (

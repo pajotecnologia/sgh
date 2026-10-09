@@ -430,9 +430,9 @@ export function TabelaListagemMedicamentos({ medicamentos }: TabelaListagemMedic
 
       {/* MODAL DE CARGA DO CATÁLOGO OFICIAL */}
       {modalImportarAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-150">
-            <div className="flex items-start justify-between gap-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in duration-150">
+            <div className="p-5 border-b border-border flex items-start justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
                   <Database className="h-6 w-6" />
@@ -450,13 +450,13 @@ export function TabelaListagemMedicamentos({ medicamentos }: TabelaListagemMedic
                 type="button"
                 onClick={() => setModalImportarAberto(false)}
                 disabled={importando}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-muted transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
+            <div className="p-5 space-y-4 overflow-y-auto flex-1 text-xs text-slate-600 dark:text-slate-300">
               <p>
                 Esta rotina insere no sistema o catálogo padronizado com os principais medicamentos hospitalares, soluções parenterais, antibióticos e materiais médicos essenciais.
               </p>
@@ -515,7 +515,7 @@ export function TabelaListagemMedicamentos({ medicamentos }: TabelaListagemMedic
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="p-4 border-t border-border bg-muted/20 flex items-center justify-end gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setModalImportarAberto(false)}

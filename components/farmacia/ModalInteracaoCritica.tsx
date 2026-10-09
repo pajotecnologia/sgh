@@ -43,7 +43,7 @@ export function ModalInteracaoCritica({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget && !enviando) onClose()
       }}
@@ -51,8 +51,8 @@ export function ModalInteracaoCritica({
       aria-modal="true"
       aria-labelledby="modal-interacao-critica-titulo"
     >
-      <div className="bg-card w-full max-w-2xl rounded-2xl shadow-2xl border border-red-300 dark:border-red-900 m-4">
-        <div className="flex items-center justify-between p-6 border-b border-border">
+      <div className="bg-card w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-red-300 dark:border-red-900 overflow-hidden my-auto">
+        <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-200">
               <AlertOctagon className="h-5 w-5" aria-hidden />
@@ -77,7 +77,7 @@ export function ModalInteracaoCritica({
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-5 space-y-4 overflow-y-auto flex-1">
           <div className="rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50/60 dark:bg-red-950/20 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-red-700 dark:text-red-200">
               Item novo digitado
@@ -133,12 +133,12 @@ export function ModalInteracaoCritica({
           </div>
         </div>
 
-        <div className="p-6 pt-0 flex flex-wrap gap-3 justify-end">
+        <div className="p-4 border-t border-border bg-muted/20 flex flex-wrap gap-2 justify-end shrink-0">
           <button
             type="button"
             onClick={onClose}
             disabled={enviando}
-            className="px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted disabled:opacity-50"
+            className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -147,7 +147,7 @@ export function ModalInteracaoCritica({
             onClick={handleConfirmar}
             disabled={!valido || enviando}
             className={cn(
-              'px-4 py-2.5 rounded-lg text-sm font-semibold text-white',
+              'px-4 py-2 rounded-lg text-sm font-semibold text-white',
               'bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:hover:bg-red-600',
               'inline-flex items-center gap-2'
             )}

@@ -228,15 +228,15 @@ export function ListaTriagemFarmacia({
 
       {itemModal ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
           onClick={(e) => {
             if (e.target === e.currentTarget && !salvando) setItemModal(null)
           }}
           role="dialog"
           aria-modal="true"
         >
-          <div className="bg-card w-full max-w-2xl rounded-2xl shadow-2xl border border-border m-4">
-            <div className="p-6 border-b border-border flex items-start justify-between">
+          <div className="bg-card w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-border overflow-hidden my-auto">
+            <div className="p-5 border-b border-border flex items-start justify-between shrink-0">
               <div>
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Triagem Farmacêutica</p>
                 <h3 className="text-base font-bold text-foreground mt-0.5">
@@ -254,7 +254,7 @@ export function ListaTriagemFarmacia({
               </div>
               <BadgeStatus status={itemModal.status} />
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
               {/* Alerta Crítico de Estoque Insuficiente */}
               {itemModal.saldoInfo && (!itemModal.saldoInfo.saldoSuficiente || (itemModal.saldoInfo.saldoAtual ?? 0) < itemModal.item.quantidadeSolicitada) ? (
                 <div className="rounded-xl border-2 border-red-500 bg-red-50 dark:bg-red-950/40 p-4 space-y-3 shadow-sm">
@@ -391,12 +391,12 @@ export function ListaTriagemFarmacia({
                 />
               </div>
             </div>
-            <div className="p-6 pt-0 flex flex-wrap gap-2 justify-end">
+            <div className="p-4 border-t border-border bg-muted/20 flex flex-wrap gap-2 justify-end shrink-0">
               <button
                 type="button"
                 onClick={() => setItemModal(null)}
                 disabled={salvando}
-                className="px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted disabled:opacity-50"
+                className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted disabled:opacity-50"
               >
                 Fechar
               </button>
@@ -404,7 +404,7 @@ export function ListaTriagemFarmacia({
                 type="button"
                 onClick={() => atualizar('REJEITADO')}
                 disabled={salvando}
-                className="px-4 py-2.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 inline-flex items-center gap-2"
+                className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 inline-flex items-center gap-2"
               >
                 {salvando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <XCircle className="h-4 w-4" aria-hidden />}
                 Rejeitar
@@ -413,7 +413,7 @@ export function ListaTriagemFarmacia({
                 type="button"
                 onClick={() => atualizar('APROVADO')}
                 disabled={salvando || (itemModal.saldoInfo != null && !itemModal.saldoInfo.saldoSuficiente)}
-                className="px-4 py-2.5 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50 inline-flex items-center gap-2"
+                className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50 inline-flex items-center gap-2"
                 title={itemModal.saldoInfo && !itemModal.saldoInfo.saldoSuficiente ? 'Saldo insuficiente' : undefined}
               >
                 {salvando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <CheckCircle2 className="h-4 w-4" aria-hidden />}

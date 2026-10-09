@@ -467,10 +467,11 @@ export function GestaoSinonimosFarmacia({ medicamentos }: { medicamentos: Medica
       </div>
 
       {/* Modal de Edição / Correção */}
+      {/* Modal de Edição / Correção */}
       {sinonimoEmEdicao && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-2xl max-w-lg w-full space-y-4">
-            <div className="flex items-start justify-between gap-2 border-b border-border pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden my-auto">
+            <div className="flex items-start justify-between gap-2 border-b border-border p-5 shrink-0">
               <div>
                 <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                   <Pencil className="h-4 w-4 text-primary" />
@@ -483,14 +484,14 @@ export function GestaoSinonimosFarmacia({ medicamentos }: { medicamentos: Medica
               <button
                 type="button"
                 onClick={() => setSinonimoEmEdicao(null)}
-                className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted"
+                className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition-colors"
                 aria-label="Fechar modal"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="p-5 space-y-3 overflow-y-auto flex-1">
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">
                   Nome Comercial / Sinônimo / Abreviação <span className="text-red-500">*</span>
@@ -545,7 +546,7 @@ export function GestaoSinonimosFarmacia({ medicamentos }: { medicamentos: Medica
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-border bg-muted/20 shrink-0">
               <button
                 type="button"
                 onClick={() => setSinonimoEmEdicao(null)}
@@ -579,9 +580,9 @@ export function GestaoSinonimosFarmacia({ medicamentos }: { medicamentos: Medica
 
       {/* Modal de Confirmação de Exclusão */}
       {sinonimoParaExcluir && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-2xl max-w-md w-full space-y-4">
-            <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden my-auto">
+            <div className="flex items-center gap-3 text-red-600 dark:text-red-400 p-5 border-b border-border shrink-0">
               <div className="p-2.5 rounded-full bg-red-100 dark:bg-red-950/50">
                 <AlertTriangle className="h-6 w-6" />
               </div>
@@ -591,16 +592,18 @@ export function GestaoSinonimosFarmacia({ medicamentos }: { medicamentos: Medica
               </div>
             </div>
 
-            <p className="text-sm text-foreground">
-              Deseja realmente excluir o sinônimo{' '}
-              <strong className="text-red-600 dark:text-red-400">
-                &ldquo;{sinonimoParaExcluir.sinonimo}&rdquo;
-              </strong>{' '}
-              vinculado ao medicamento{' '}
-              <strong>{sinonimoParaExcluir.medicamento?.nome}</strong>?
-            </p>
+            <div className="p-5 space-y-3 overflow-y-auto flex-1">
+              <p className="text-sm text-foreground">
+                Deseja realmente excluir o sinônimo{' '}
+                <strong className="text-red-600 dark:text-red-400">
+                  &ldquo;{sinonimoParaExcluir.sinonimo}&rdquo;
+                </strong>{' '}
+                vinculado ao medicamento{' '}
+                <strong>{sinonimoParaExcluir.medicamento?.nome}</strong>?
+              </p>
+            </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-border bg-muted/20 shrink-0">
               <button
                 type="button"
                 onClick={() => setSinonimoParaExcluir(null)}

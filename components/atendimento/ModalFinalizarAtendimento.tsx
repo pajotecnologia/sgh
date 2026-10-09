@@ -65,92 +65,94 @@ export const ModalFinalizarAtendimento = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-finalizar-titulo"
     >
-      <div className="bg-card border border-border rounded-xl max-w-md w-full p-5 space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <h2 id="modal-finalizar-titulo" className="text-lg font-bold text-foreground">
+      <div className="bg-card border border-border rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+        <div className="p-5 border-b border-border flex items-start justify-between gap-3 shrink-0">
+          <h2 id="modal-finalizar-titulo" className="text-base font-bold text-foreground">
             {modoInternacao ? 'Confirmar paciente para internamento' : 'Finalizar atendimento'}
           </h2>
           <button
             type="button"
             onClick={onFechar}
-            className="p-1 rounded-md hover:bg-muted text-muted-foreground"
+            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
             aria-label="Fechar"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <p className="text-sm text-muted-foreground">
-          Paciente: <strong className="text-foreground">{nomePaciente}</strong>
-        </p>
+        <div className="p-5 space-y-4 overflow-y-auto flex-1">
+          <p className="text-sm text-muted-foreground">
+            Paciente: <strong className="text-foreground">{nomePaciente}</strong>
+          </p>
 
-        {modoInternacao ? (
-          <div className="rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/80 dark:bg-indigo-950/30 p-3 space-y-2 text-sm">
-            <p className="font-semibold text-foreground flex items-center gap-2">
-              <BedDouble className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-              Encaminhamento para internação
-            </p>
-            <p className="text-xs text-muted-foreground">
-              O atendimento no PS será encerrado. O paciente seguirá para a fila de{' '}
-              <strong className="text-foreground">Admissões — Enfermagem</strong>, onde será recebido,
-              alocado em leito e terá a ficha SUS preenchida. Não há receita de alta neste desfecho.
-            </p>
-            {encaminhamentoInternacaoId ? (
-              <Link
-                href={`/atendimento/encaminhamento/imprimir/${encaminhamentoInternacaoId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 text-xs font-semibold hover:bg-indigo-100/60 dark:hover:bg-indigo-900/40"
-              >
-                <Printer className="h-3.5 w-3.5" />
-                Imprimir solicitação de internação
-              </Link>
-            ) : null}
-          </div>
-        ) : (
-          <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2 text-sm">
-            <p className="font-semibold text-foreground flex items-center gap-2">
-              <Pill className="h-4 w-4 text-primary" />
-              Receita de alta
-            </p>
-            {ultimaReceita ? (
-              <p className="text-xs text-muted-foreground">
-                Receita #{ultimaReceita.numeroPrescricao} já registrada. Imprima para entrega ao paciente.
+          {modoInternacao ? (
+            <div className="rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/80 dark:bg-indigo-950/30 p-3 space-y-2 text-sm">
+              <p className="font-semibold text-foreground flex items-center gap-2">
+                <BedDouble className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                Encaminhamento para internação
               </p>
-            ) : (
               <p className="text-xs text-muted-foreground">
-                Nenhuma receita de alta registrada. Você pode emitir depois em Atendidos hoje.
+                O atendimento no PS será encerrado. O paciente seguirá para a fila de{' '}
+                <strong className="text-foreground">Admissões — Enfermagem</strong>, onde será recebido,
+                alocado em leito e terá a ficha SUS preenchida. Não há receita de alta neste desfecho.
               </p>
-            )}
-            <div className="flex flex-wrap gap-2 pt-1">
-              {ultimaReceita ? (
+              {encaminhamentoInternacaoId ? (
                 <Link
-                  href={`/atendimento/receita/imprimir/${ultimaReceita.id}`}
+                  href={`/atendimento/encaminhamento/imprimir/${encaminhamentoInternacaoId}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/40 text-primary text-xs font-semibold hover:bg-primary/5"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 text-xs font-semibold hover:bg-indigo-100/60 dark:hover:bg-indigo-900/40"
                 >
                   <Printer className="h-3.5 w-3.5" />
-                  Imprimir receita
+                  Imprimir solicitação de internação
                 </Link>
               ) : null}
-              <Link
-                href={`/atendimento/${atendimentoId}?aba=RECEITA_ALTA`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary hover:underline"
-                onClick={onFechar}
-              >
-                {ultimaReceita ? 'Nova receita' : 'Emitir receita de alta'}
-              </Link>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2 text-sm">
+              <p className="font-semibold text-foreground flex items-center gap-2">
+                <Pill className="h-4 w-4 text-primary" />
+                Receita de alta
+              </p>
+              {ultimaReceita ? (
+                <p className="text-xs text-muted-foreground">
+                  Receita #{ultimaReceita.numeroPrescricao} já registrada. Imprima para entrega ao paciente.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Nenhuma receita de alta registrada. Você pode emitir depois em Atendidos hoje.
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {ultimaReceita ? (
+                  <Link
+                    href={`/atendimento/receita/imprimir/${ultimaReceita.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/40 text-primary text-xs font-semibold hover:bg-primary/5"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    Imprimir receita
+                  </Link>
+                ) : null}
+                <Link
+                  href={`/atendimento/${atendimentoId}?aba=RECEITA_ALTA`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary hover:underline"
+                  onClick={onFechar}
+                >
+                  {ultimaReceita ? 'Nova receita' : 'Emitir receita de alta'}
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
 
-        <div className="flex flex-wrap gap-2 justify-end pt-2">
+        <div className="p-4 border-t border-border bg-muted/20 flex flex-wrap gap-2 justify-end shrink-0">
           <button
             type="button"
             onClick={onFechar}

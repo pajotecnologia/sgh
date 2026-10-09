@@ -43,7 +43,7 @@ export function ModalPrescricaoDuplicada({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget && !enviando) onClose()
       }}
@@ -51,8 +51,8 @@ export function ModalPrescricaoDuplicada({
       aria-modal="true"
       aria-labelledby="modal-prescricao-duplicada-titulo"
     >
-      <div className="bg-card w-full max-w-lg rounded-2xl shadow-2xl border border-amber-300 dark:border-amber-900 m-4">
-        <div className="flex items-center justify-between p-6 border-b border-border">
+      <div className="bg-card w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-amber-300 dark:border-amber-900 overflow-hidden my-auto">
+        <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
               <AlertTriangle className="h-5 w-5" aria-hidden />
@@ -77,7 +77,7 @@ export function ModalPrescricaoDuplicada({
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-5 space-y-4 overflow-y-auto flex-1">
           <div className="rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/20 p-4 space-y-1">
             <p className="text-sm text-foreground">
               Já existe a prescrição
@@ -112,12 +112,12 @@ export function ModalPrescricaoDuplicada({
           ) : null}
         </div>
 
-        <div className="p-6 pt-0 flex flex-wrap gap-3 justify-end">
+        <div className="p-4 border-t border-border bg-muted/20 flex flex-wrap gap-2 justify-end shrink-0">
           <button
             type="button"
             onClick={onClose}
             disabled={enviando}
-            className="px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted disabled:opacity-50"
+            className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -125,7 +125,7 @@ export function ModalPrescricaoDuplicada({
             type="button"
             onClick={handleConfirmar}
             disabled={enviando}
-            className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 inline-flex items-center gap-2"
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 inline-flex items-center gap-2"
           >
             {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
             Emitir mesmo assim

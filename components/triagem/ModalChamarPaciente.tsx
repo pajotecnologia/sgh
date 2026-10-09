@@ -107,15 +107,15 @@ export function ModalChamarPaciente({ atendimentoId, onClose, onSuccess }: Modal
   return (
     // Overlay
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-chamar-titulo"
     >
-      <div className="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border m-4 animate-fade-in-up">
+      <div className="bg-card w-full max-w-md max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-border overflow-hidden my-auto animate-fade-in-up">
         {/* Cabeçalho do modal */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2 bg-primary/10 rounded-lg">
               <Monitor className="h-5 w-5 text-primary" />
@@ -136,7 +136,7 @@ export function ModalChamarPaciente({ atendimentoId, onClose, onSuccess }: Modal
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+        <form id="form-chamar-paciente" onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {/* Sala de destino */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
@@ -207,30 +207,31 @@ export function ModalChamarPaciente({ atendimentoId, onClose, onSuccess }: Modal
               O painel deve estar aberto em <code className="bg-muted px-1 rounded">/painel?setor=GERAL</code>
             </p>
           </div>
-
-          {/* Botões */}
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || !salaAtual}
-              id="btn-confirmar-chamada"
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60"
-            >
-              {isSubmitting ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Chamando...</>
-              ) : (
-                <><Monitor className="h-4 w-4" /> Chamar agora</>
-              )}
-            </button>
-          </div>
         </form>
+
+        {/* Botões */}
+        <div className="flex gap-3 p-4 sm:p-6 border-t border-border bg-muted/20 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            form="form-chamar-paciente"
+            type="submit"
+            disabled={isSubmitting || !salaAtual}
+            id="btn-confirmar-chamada"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60"
+          >
+            {isSubmitting ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Chamando...</>
+            ) : (
+              <><Monitor className="h-4 w-4" /> Chamar agora</>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

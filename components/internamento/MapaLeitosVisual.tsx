@@ -730,9 +730,9 @@ export function MapaLeitosVisual() {
 
       {/* Modal: Transferência de Leito */}
       {leitoTransferencia && podeTransferir && leitoTransferencia.pacienteAtual && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl shadow-xl max-w-lg w-full p-5 space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-card border border-border rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden my-auto animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between p-4 sm:p-5 pb-3 border-b border-border shrink-0">
               <div className="flex items-center gap-2 text-primary font-bold text-base">
                 <ArrowRightLeft className="h-5 w-5" />
                 <span>Transferência de Leito</span>
@@ -746,77 +746,80 @@ export function MapaLeitosVisual() {
               </button>
             </div>
 
-            <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-1">
-              <p><strong>Paciente:</strong> {leitoTransferencia.pacienteAtual.nome}</p>
-              <p><strong>Leito Atual:</strong> {leitoTransferencia.ala} — {leitoTransferencia.codigo} ({leitoTransferencia.clinicaNome})</p>
-              <p><strong>Tempo Internado:</strong> {leitoTransferencia.pacienteAtual.tempoInternacaoFormatado}</p>
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+              <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-1">
+                <p><strong>Paciente:</strong> {leitoTransferencia.pacienteAtual.nome}</p>
+                <p><strong>Leito Atual:</strong> {leitoTransferencia.ala} — {leitoTransferencia.codigo} ({leitoTransferencia.clinicaNome})</p>
+                <p><strong>Tempo Internado:</strong> {leitoTransferencia.pacienteAtual.tempoInternacaoFormatado}</p>
+              </div>
+
+              <form id="form-transferencia-leito" onSubmit={handleTransferir} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold mb-1">
+                    Selecione o Leito de Destino <span className="text-destructive">*</span>
+                  </label>
+                  <select
+                    value={leitoDestinoSelecionado}
+                    onChange={(e) => setLeitoDestinoSelecionado(e.target.value)}
+                    required
+                    className="w-full text-sm rounded-lg border border-border bg-background p-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="">Selecione um leito disponível...</option>
+                    {leitosDisponiveis.map((ld) => (
+                      <option key={ld.id} value={ld.id}>
+                        {ld.clinicaNome} — Ala {ld.ala} | Leito {ld.codigo} ({ld.tipo})
+                      </option>
+                    ))}
+                  </select>
+                  {leitosDisponiveis.length === 0 && (
+                    <p className="text-[11px] text-destructive mt-1">
+                      Nenhum outro leito disponível no momento no hospital.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold mb-1">
+                    Motivo da Transferência
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={motivoTransferencia}
+                    onChange={(e) => setMotivoTransferencia(e.target.value)}
+                    placeholder="Ex.: Mudança para leito de isolamento, melhor acomodação, proximidade ao posto..."
+                    className="w-full text-xs rounded-lg border border-border bg-background p-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </form>
             </div>
 
-            <form onSubmit={handleTransferir} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold mb-1">
-                  Selecione o Leito de Destino <span className="text-destructive">*</span>
-                </label>
-                <select
-                  value={leitoDestinoSelecionado}
-                  onChange={(e) => setLeitoDestinoSelecionado(e.target.value)}
-                  required
-                  className="w-full text-sm rounded-lg border border-border bg-background p-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value="">Selecione um leito disponível...</option>
-                  {leitosDisponiveis.map((ld) => (
-                    <option key={ld.id} value={ld.id}>
-                      {ld.clinicaNome} — Ala {ld.ala} | Leito {ld.codigo} ({ld.tipo})
-                    </option>
-                  ))}
-                </select>
-                {leitosDisponiveis.length === 0 && (
-                  <p className="text-[11px] text-destructive mt-1">
-                    Nenhum outro leito disponível no momento no hospital.
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold mb-1">
-                  Motivo da Transferência
-                </label>
-                <textarea
-                  rows={2}
-                  value={motivoTransferencia}
-                  onChange={(e) => setMotivoTransferencia(e.target.value)}
-                  placeholder="Ex.: Mudança para leito de isolamento, melhor acomodação, proximidade ao posto..."
-                  className="w-full text-xs rounded-lg border border-border bg-background p-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => setLeitoTransferencia(null)}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-muted"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={transferindo || !leitoDestinoSelecionado}
-                  className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {transferindo && <RefreshCw className="h-3 w-3 animate-spin" />}
-                  Confirmar Transferência
-                </button>
-              </div>
-            </form>
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-border bg-muted/20 shrink-0">
+              <button
+                type="button"
+                onClick={() => setLeitoTransferencia(null)}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-muted"
+              >
+                Cancelar
+              </button>
+              <button
+                form="form-transferencia-leito"
+                type="submit"
+                disabled={transferindo || !leitoDestinoSelecionado}
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {transferindo && <RefreshCw className="h-3 w-3 animate-spin" />}
+                Confirmar Transferência
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Modal: Interdição / Liberação */}
       {leitoStatusModal && podeInterditar && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl shadow-xl max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-card border border-border rounded-xl shadow-xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden my-auto animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between p-4 sm:p-5 pb-3 border-b border-border shrink-0">
               <div className="flex items-center gap-2 font-bold text-base text-foreground">
                 <ShieldAlert className="h-5 w-5 text-amber-500" />
                 <span>
@@ -832,56 +835,59 @@ export function MapaLeitosVisual() {
               </button>
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              Leito: <strong>{leitoStatusModal.ala} — {leitoStatusModal.codigo}</strong> ({leitoStatusModal.clinicaNome})
-            </p>
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Leito: <strong>{leitoStatusModal.ala} — {leitoStatusModal.codigo}</strong> ({leitoStatusModal.clinicaNome})
+              </p>
 
-            <form onSubmit={handleMudarStatus} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold mb-1">
-                  Motivo / Observação {novoStatus === 'INTERDITADO' && <span className="text-destructive">*</span>}
-                </label>
-                <textarea
-                  rows={2}
-                  value={motivoStatus}
-                  onChange={(e) => setMotivoStatus(e.target.value)}
-                  required={novoStatus === 'INTERDITADO'}
-                  placeholder={
-                    novoStatus === 'INTERDITADO'
-                      ? 'Ex.: Higienização terminal, manutenção na rede de oxigênio...'
-                      : 'Ex.: Higienização concluída, liberado para internação.'
-                  }
-                  className="w-full text-xs rounded-lg border border-border bg-background p-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
+              <form id="form-mudar-status-leito" onSubmit={handleMudarStatus} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold mb-1">
+                    Motivo / Observação {novoStatus === 'INTERDITADO' && <span className="text-destructive">*</span>}
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={motivoStatus}
+                    onChange={(e) => setMotivoStatus(e.target.value)}
+                    required={novoStatus === 'INTERDITADO'}
+                    placeholder={
+                      novoStatus === 'INTERDITADO'
+                        ? 'Ex.: Higienização terminal, manutenção na rede de oxigênio...'
+                        : 'Ex.: Higienização concluída, liberado para internação.'
+                    }
+                    className="w-full text-xs rounded-lg border border-border bg-background p-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </form>
+            </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => setLeitoStatusModal(null)}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-muted"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={salvandoStatus}
-                  className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {salvandoStatus && <RefreshCw className="h-3 w-3 animate-spin" />}
-                  Confirmar
-                </button>
-              </div>
-            </form>
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-border bg-muted/20 shrink-0">
+              <button
+                type="button"
+                onClick={() => setLeitoStatusModal(null)}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-muted"
+              >
+                Cancelar
+              </button>
+              <button
+                form="form-mudar-status-leito"
+                type="submit"
+                disabled={salvandoStatus}
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {salvandoStatus && <RefreshCw className="h-3 w-3 animate-spin" />}
+                Confirmar
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Modal: Detalhes Rápidos do Paciente no Leito */}
       {leitoDetalhes && leitoDetalhes.pacienteAtual && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl shadow-xl max-w-lg w-full p-5 space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-card border border-border rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden my-auto animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between p-4 sm:p-5 pb-3 border-b border-border shrink-0">
               <div className="flex items-center gap-2 text-foreground font-bold text-base">
                 <BedDouble className="h-5 w-5 text-primary" />
                 <span>Leito {leitoDetalhes.codigo} — {leitoDetalhes.ala}</span>
@@ -895,7 +901,7 @@ export function MapaLeitosVisual() {
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-sm sm:text-base text-foreground">
@@ -945,7 +951,7 @@ export function MapaLeitosVisual() {
             </div>
 
             {/* Links Rápidos de Acesso */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t border-border">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-4 border-t border-border bg-muted/20 shrink-0">
               <Link
                 href={`/prontuario/${leitoDetalhes.pacienteAtual.atendimentoId}`}
                 className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
