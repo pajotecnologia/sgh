@@ -48,3 +48,38 @@ Em caso de container `unhealthy`, diagnosticar primeiro entrypoint, migrations e
 
 Consultar o registro em `docs/incidentes-producao.md`.
 
+## 6. Diretrizes de Memória & Regras de Negócio Estabelecidas
+
+1. **Versionamento Contínuo**:
+   - Toda e qualquer alteração no código DEVE ser acompanhada pelo bump de versão executando:
+     ```bash
+     node scripts/atualizar-versao.mjs --bump
+     ```
+   - O versionamento atualiza automaticamente `package.json` e `lib/versao.ts`.
+
+2. **Prevenção de Telas Estouradas (Layout & Responsividade)**:
+   - Nenhuma tela deve apresentar estouro de layout (horizontal overflow).
+   - Tabelas extensas devem estar contidas em `overflow-x-auto` dentro de containers com `w-full max-w-full`.
+   - Textos longos devem utilizar `break-words` ou `truncate`.
+   - Utilizar classes Tailwind responsivas (`flex-wrap`, `grid-cols-1 sm:grid-cols-2`, `min-w-0`).
+
+3. **Prescrições Médicas e Farmácia**:
+   - O médico pode prescrever **Medicamentos** e **Procedimentos & Cuidados de Enfermagem** (curativos, sondagens, punção, etc.).
+   - Procedimentos podem vincular **Kits de Insumos/Materiais** cadastrados na farmácia.
+   - Na tela de **Dispensação da Farmácia** (`/farmacia/dispensacao`), os materiais e kits dos procedimentos prescritos aparecem de forma clara e estruturada para separação e baixa.
+   - Prescrições de uso imediato no PS bloqueiam a finalização do atendimento até a checagem da enfermagem e evolução pós-uso.
+
+4. **Histórico Longitudinal do Paciente (PEP)**:
+   - Visualização do prontuário histórico aberta em página dedicada, limpa e sem menus redundantes para máxima usabilidade médica.
+
+5. **Obstetrícia & Berçário**:
+   - Pacientes obstétricas (sexo biológico feminino) têm dados carregados em todas as fases (Triagem, Consultório PS e Internação).
+   - A aba `INTERNACAO_OBSTETRICA` e o toggle obstétrico atualizam de forma reativa e instantânea.
+   - Cuidados e aprazamentos de recém-nascidos são geridos na aba `MEDICACAO_BERCARIO`.
+
+6. **Condições de Alta & Encerramento Hospitalar**:
+   - A aba **Condições de alta** pertence exclusivamente ao menu de **Prontuário Médico** (`ABAS_PRONTUARIO`).
+   - Apenas médicos (`MEDICO`), diretores clínicos (`DIRETOR_CLINICO`) e administradores (`ADMIN`) possuem autorização para registrar condições de alta e conceder alta hospitalar (ação RBAC `CONCEDER_ALTA`).
+   - Perfis de enfermagem e recepção têm acesso de edição estritamente bloqueado.
+
+

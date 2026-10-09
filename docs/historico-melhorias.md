@@ -205,3 +205,31 @@ A correção de código está na `main`. A validação final depende de novo dep
 
 Para detalhes operacionais, consultar `docs/incidentes-producao.md`.
 
+---
+
+## 16. Implementações e Melhorias Recentes (v2.7.10 a v2.7.14) — Outubro/2026
+
+### 16.1 Prescrição de Procedimentos & Cuidados de Enfermagem com Kits de Insumos
+- Médicos podem prescrever tanto **Medicamentos** quanto **Procedimentos & Cuidados de Enfermagem** (curativos, sondagens, punções, nebulização, etc.).
+- Procedimentos agora suportam a vinculação de **Kits de Insumos/Materiais** cadastrados na farmácia.
+- Na tela de **Dispensação da Farmácia** (`/farmacia/dispensacao`), os materiais e kits dos procedimentos prescritos aparecem de forma clara e estruturada para conferência, separação e baixa automática de estoque.
+- No Pronto-Socorro (PS), filtragem e separação inteligente entre medicamentos e procedimentos.
+
+### 16.2 Prontuário Eletrônico do Paciente (PEP Longitudinal)
+- A tela de **Histórico Longitudinal** foi desacoplada de menus de navegação redundantes, abrindo em página isolada e limpa para foco total na linha do tempo clínica do paciente.
+
+### 16.3 Obstetrícia e Neonatologia Desbloqueadas em Todas as Etapas
+- Pacientes obstétricas (sexo biológico feminino) têm suas informações e fichas clínicas acessíveis em todas as fases (Triagem, Consultório PS, Internação).
+- As rotas `/api/atendimento/[id]/internacao-obstetrica` e `/api/atendimento/[id]/bercario` foram ajustadas para permitir carregamento e gravação em qualquer status ativo.
+- O componente `ToggleObstetrico` tornou-se reativo com atualização em tempo real de abas (`INTERNACAO_OBSTETRICA` e `MEDICACAO_BERCARIO`).
+
+### 16.4 Condições de Alta & Encerramento Hospitalar Restritas ao Prontuário Médico
+- A aba **Condições de alta** foi movida do menu de Enfermagem (`ABAS_EVOLUCOES`) para o menu de **Prontuário Médico** (`ABAS_PRONTUARIO`).
+- Restrição estrita de RBAC aplicada no backend e frontend: apenas `ADMIN`, `MEDICO` e `DIRETOR_CLINICO` possuem autorização para registrar condições de saída e conceder alta hospitalar (ação `CONCEDER_ALTA`).
+- Acesso de gravação bloqueado para perfis de enfermagem e recepção, com exibição de banner informativo.
+
+### 16.5 Responsividade e Prevenção de Estouro de Telas (Layout Overflow)
+- Ajustes globais em todas as telas com tabelas responsivas (`overflow-x-auto`), textos com quebra de linha (`break-words`), flex-wrap e grids adaptativos para prevenir qualquer estouro horizontal de tela.
+- Atualização contínua do manual interativo interno (`ModalManualSistema.tsx`) e manual master (`MANUAL_DO_SISTEMA.md`).
+
+
