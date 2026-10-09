@@ -350,5 +350,30 @@ O SGH implementa críticas ativas em tempo real para impedir falhas de assistên
 - **Transição Obrigatória de Higienização:** Um leito desocupado após alta médica não pode ser diretamente ocupado até que o serviço de hotelaria/limpeza confirme a higienização do leito no mapa.
 
 ---
-*Manual técnico e operacional consolidado para o SGH v2.7.15.*
+
+## 13. INTELIGÊNCIA CLÍNICA E ASSISTENTE NA EVOLUÇÃO MÉDICA OBSTÉTRICA
+
+O SGH conta com um **Módulo Especializado de Assistência Obstétrica de Alta Performance** (`FormularioEvolucao.tsx`), desenhado sob o princípio de **Zero Redundância de Dados (Single Source of Truth)**.
+
+### 13.1. Autopreenchimento Inteligente e Sincronização em Tempo Real:
+Ao abrir a evolução médica de uma paciente obstétrica (no PS ou na Enfermaria de Internação), o sistema sincroniza automaticamente:
+1. **DUM & Idade Gestacional (IG):** Extrai a data da última menstruação registrada na Admissão/Ficha Obstétrica e calcula instantaneamente a IG precisa em semanas e dias até a data de hoje.
+2. **Paridade (GPA):** Formata automaticamente o histórico reprodutivo (ex.: `G3P2A0`) a partir da anamnese obstétrica.
+3. **Sinais Vitais:** Importa Pressão Arterial, Frequência Cardíaca e Temperatura corporal aferidos na Triagem ou na última checagem de enfermagem.
+4. **Parâmetros de Partograma:** Puxa a última dilatação cervical, apagamento, apresentação/De Lee e BCF auscultado.
+5. **Reconhecimento de Puerpério:** Detecta automaticamente se o parto já foi realizado (via data/hora do parto ou tabela de puerpério), exibindo a insígnia `🤱 Paciente em Puerpério` e sugerindo a conduta pós-parto imediato.
+
+### 13.2. Modelos Especializados com Interpolação Dinâmica (1-Clique):
+Diferente de modelos estáticos com espaços em branco, os botões de 1-clique geram textos completos **já preenchidos com os dados reais da paciente**:
+- **🤰 Trabalho de Parto (Fase Ativa):** Injeta IG atual, sinais vitais, BCF com checagem de arritmia, contrações de dinâmica uterina, dilatação, De Lee, bolsa e abertura de partograma.
+- **⏱️ Fase Latente / Admissão:** Injeta parâmetros de colo posterior/móvel, dinâmica incipiente e plano de reavaliação.
+- **💧 Rotura Prematura (RUPREME):** Injeta IG, BCF, ausência de sinais de corioamnionite e protocolo de vigilância / antibioprofilaxia.
+- **⚠️ Pré-Eclâmpsia / Síndrome Hipertensiva:** Injeta PA atual, ausência/presença de sinais premonitórios e conduta para rastreio laboratorial.
+- **🩺 Avaliação de Vitalidade Fetal:** Injeta BCF sonar/cardiotoco, movimentação fetal e acelerações transitórias.
+- **🤱 Puérpera - Parto Vaginal (D1/D2):** Injeta involução uterina (Pinard), características dos lóquios, integridade do períneo e amamentação.
+- **🏥 Puérpera - Pós-Cesariana (D1/D2):** Injeta dados da ferida operatória, ruídos hidroaéreos, diurese e deambulação precoce.
+
+---
+*Manual técnico e operacional consolidado para o SGH v2.7.21.*
+
 

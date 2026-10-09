@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import {
   Loader2,
@@ -15,8 +15,12 @@ import {
   Stethoscope,
   Clock,
   ShieldAlert,
+  RotateCw,
+  CheckCircle2,
+  Calendar,
+  AlertCircle,
 } from 'lucide-react'
-import { format, differenceInDays } from 'date-fns'
+import { format, differenceInDays, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { textoCadastroMaiusculo } from '@/lib/cadastro-maiusculo'
 import { cn } from '@/lib/utils'
@@ -29,50 +33,225 @@ interface EvolucaoItem {
   autor: { nome: string; crm: string | null }
 }
 
-const MODELOS_OBSTETRICOS = [
+interface ContextoObstetricoDinamico {
+  gpa: string
+  dumData: string
+  igTexto: string
+  pa: string
+  fc: string
+  tax: string
+  bcf: string
+  alertaBcf: boolean
+  du: string
+  au: string
+  dilatacao: string
+  apagamento: string
+  deLee: string
+  bolsa: string
+  movFetal: string
+  uteroPuerperio: string
+  loquios: string
+  fo: string
+  mamas: string
+}
+
+const MODELOS_OBSTETRICOS_CONFIG: {
+  id: string
+  titulo: string
+  badge: string
+  tipo: 'gestante' | 'puerpera' | 'geral'
+  gerar: (c: ContextoObstetricoDinamico) => string
+}[] = [
   {
+    id: 'parto_ativo',
     titulo: 'Trabalho de Parto (Fase Ativa)',
     badge: 'Parto Ativo',
-    texto:
-      'GESTAÇÃO A TERMO EM TRABALHO DE PARTO ATIVO. BOM ESTADO GERAL, EUPNEICA, CORADA. PA: 110/70 MMHG, FC: 78 BPM, TAX: 36.4°C. BCF: 140 BPM, RÍTMICO, SEM DESACELERAÇÕES. DU: 3 CONTRAÇÕES DE 40 SEGUNDOS EM 10 MINUTOS (3/10\' 40"). AU: 33 CM. TOQUE VAGINAL: COLO CENTRALIZADO, 100% APAGADO, DILATAÇÃO DE 6 CM, APRESENTAÇÃO CEFÁLICA EM PLANO 0 DE DE LEE. BOLSA ÍNTEGRA. MOVIMENTAÇÃO FETAL PRESENTE. CONDUTA: PARTOGRAMA ABERTO, MÉTODOS NÃO FARMACOLÓGICOS DE ALÍVIO DA DOR, DEAMBULAÇÃO ESTIMULADA, MONITORIZAÇÃO INTERMITENTE DE BCF E DU A CADA 30 MINUTOS.',
+    tipo: 'gestante',
+    gerar: (c) => {
+      const gpaStr = c.gpa ? `${c.gpa}, ` : ''
+      const igStr = c.igTexto ? `IG (DUM): ${c.igTexto}, ` : ''
+      const svStr = [
+        c.pa ? `PA: ${c.pa} MMHG` : '',
+        c.fc ? `FC: ${c.fc} BPM` : '',
+        c.tax ? `TAX: ${c.tax}°C` : '',
+      ]
+        .filter(Boolean)
+        .join(', ')
+
+      const toqueStr = [
+        c.dilatacao ? `DILATAÇÃO ${c.dilatacao} CM` : 'DILATAÇÃO 6 CM',
+        c.apagamento ? `APAGAMENTO ${c.apagamento}` : 'APAGAMENTO 80-100%',
+        c.deLee ? `APRESENTAÇÃO ${c.deLee}` : 'CEFÁLICA EM PLANO 0',
+        c.bolsa ? `BOLSA ${c.bolsa.toUpperCase()}` : 'BOLSA ÍNTEGRA',
+      ].join(', ')
+
+      return (
+        `GESTANTE ${gpaStr}${igStr}EM TRABALHO DE PARTO ATIVO (FASE ATIVA). BOM ESTADO GERAL, LÚCIDA, ORIENTADA, EUPNEICA, CORADA.\n` +
+        `SINAIS VITAIS: ${svStr || 'ESTÁVEIS'}.\n` +
+        `BCF: ${c.bcf || '140'} BPM (${c.alertaBcf ? '⚠️ ALERTA DE FREQUÊNCIA' : 'RÍTMICO, SEM DESACELERAÇÕES'}).\n` +
+        `DINÂMICA UTERINA (DU): ${c.du || '3 CONTRAÇÕES DE 40" EM 10 MIN'}.\n` +
+        `ALTURA UTERINA (AU): ${c.au ? `${c.au} CM` : 'COMPATÍVEL COM A IG'}.\n` +
+        `TOQUE VAGINAL: COLO CENTRALIZADO, ${toqueStr}.\n` +
+        `MOVIMENTAÇÃO FETAL: ${c.movFetal.toUpperCase()}.\n` +
+        `CONDUTA: PARTOGRAMA ATIVO, MÉTODOS NÃO FARMACOLÓGICOS DE ALÍVIO DA DOR, DEAMBULAÇÃO ESTIMULADA, MONITORIZAÇÃO INTERMITENTE DE BCF E DU A CADA 30 MINUTOS.`
+      )
+    },
   },
   {
+    id: 'fase_latente',
     titulo: 'Fase Latente / Admissão',
     badge: 'Fase Latente',
-    texto:
-      'GESTAÇÃO A TERMO EM FASE LATENTE DE TRABALHO DE PARTO. CONSCIENTE, ORIENTADA, SINAIS VITAIS ESTÁVEIS. BCF: 138 BPM RÍTMICO. DU: 1-2 CONTRAÇÕES DE 25" EM 10 MINUTOS (IRREGULARES). AU: 32 CM. TOQUE: COLO POSTERIOR, PARCIALMENTE APAGADO (50%), DILATAÇÃO DE 2-3 CM, APRESENTAÇÃO CEFÁLICA ALTA E MÓVEL (DE LEE -2). BOLSA ÍNTEGRA, SEM PERDAS VAGINAIS SUSPEITAS. CONDUTA: ORIENTADA SOBRE SINAIS DE ALARME E FASE ATIVA, HIDRATAÇÃO ORAL, REAVALIAÇÃO CLÍNICO-OBSTÉTRICA EM 2 HORAS.',
+    tipo: 'gestante',
+    gerar: (c) => {
+      const gpaStr = c.gpa ? `${c.gpa}, ` : ''
+      const igStr = c.igTexto ? `IG (DUM): ${c.igTexto}, ` : ''
+      const svStr = [
+        c.pa ? `PA: ${c.pa} MMHG` : '',
+        c.fc ? `FC: ${c.fc} BPM` : '',
+      ]
+        .filter(Boolean)
+        .join(', ')
+
+      return (
+        `GESTANTE ${gpaStr}${igStr}EM FASE LATENTE DE TRABALHO DE PARTO. CONSCIENTE, ORIENTADA, SINAIS VITAIS: ${svStr || 'ESTÁVEIS'}.\n` +
+        `BCF: ${c.bcf || '138'} BPM RÍTMICO.\n` +
+        `DU: ${c.du || '1-2 CONTRAÇÕES DE 25" EM 10 MIN (IRREGULARES)'}. AU: ${c.au ? `${c.au} CM` : 'COMPATÍVEL COM IG'}.\n` +
+        `TOQUE VAGINAL: COLO POSTERIOR/INTERMEDIÁRIO, APAGAMENTO ${c.apagamento || '50%'}, DILATAÇÃO DE ${c.dilatacao ? `${c.dilatacao} CM` : '2-3 CM'}, APRESENTAÇÃO ${c.deLee || 'CEFÁLICA ALTA E MÓVEL (DE LEE -2)'}, BOLSA ${c.bolsa.toUpperCase()}.\n` +
+        `SEM PERDAS VAGINAIS SUSPEITAS. MOVIMENTAÇÃO FETAL: ${c.movFetal.toUpperCase()}.\n` +
+        `CONDUTA: ORIENTADA SOBRE SINAIS DE ALARME E FASE ATIVA, HIDRATAÇÃO ORAL, ESTIMULADA DEAMBULAÇÃO, REAVALIAÇÃO CLÍNICO-OBSTÉTRICA EM 2 HORAS.`
+      )
+    },
   },
   {
+    id: 'rupreme',
     titulo: 'Rotura Prematura (RUPREME)',
     badge: 'Bolsa Rota',
-    texto:
-      'GESTANTE ADMITIDA COM HISTÓRIA DE PERDA SÚBITA DE LÍQUIDO VIA VAGINAL. EXAME ESPECULAR: SAÍDA DE LÍQUIDO AMNIÓTICO CLARO COM GRUMOS PELO ORIFÍCIO EXTERNO DO COLO À MANOBRA DE VALSALVA (+). AUSÊNCIA DE SINAIS DE CORIOAMNIONITE (AFEBRIL, TAX 36.6°C, SEM TAQUICARDIA FETAL/MATERNA, SEM ODOR FÉTIDO). BCF: 142 BPM REGULAR. DU AUSENTE. CONDUTA: INTERNAÇÃO EM ENFERMARIA OBSTÉTRICA, REPOUSO RELATIVO, CONTROLE TÉRMICO E DE SINAIS VITAIS 4/4H, AVALIAR PROFILAXIA PARA GBS E INDUÇÃO/RESOLUÇÃO CONFORME PROTOCOLO.',
+    tipo: 'gestante',
+    gerar: (c) => {
+      const gpaStr = c.gpa ? `${c.gpa}, ` : ''
+      const igStr = c.igTexto ? `IG (DUM): ${c.igTexto}, ` : ''
+      const svStr = [
+        c.pa ? `PA: ${c.pa} MMHG` : '',
+        c.fc ? `FC: ${c.fc} BPM` : '',
+        c.tax ? `TAX: ${c.tax}°C` : '',
+      ]
+        .filter(Boolean)
+        .join(', ')
+
+      return (
+        `GESTANTE ${gpaStr}${igStr}ADMITIDA COM HISTÓRIA DE PERDA SÚBITA DE LÍQUIDO VIA VAGINAL. SINAIS VITAIS: ${svStr || 'ESTÁVEIS'}.\n` +
+        `EXAME ESPECULAR: SAÍDA DE LÍQUIDO AMNIÓTICO CLARO COM GRUMOS PELO ORIFÍCIO EXTERNO DO COLO À MANOBRA DE VALSALVA (+).\n` +
+        `AUSÊNCIA DE SINAIS DE CORIOAMNIONITE (AFEBRIL, SEM TAQUICARDIA FETAL OU MATERNA, SEM ODOR FÉTIDO).\n` +
+        `BCF: ${c.bcf || '142'} BPM RÍTMICO. DU: ${c.du || 'AUSENTE'}. BOLSA: ROTA.\n` +
+        `CONDUTA: INTERNAÇÃO EM ENFERMARIA OBSTÉTRICA, REPOUSO RELATIVO, CONTROLE TÉRMICO E DE SINAIS VITAIS 4/4H, AVALIAR PROFILAXIA PARA GBS E INDUÇÃO/CONDUTA CONFORME IDADE GESTACIONAL E PROTOCOLO.`
+      )
+    },
   },
   {
+    id: 'dheg',
     titulo: 'Pré-Eclâmpsia / Síndrome Hipertensiva',
     badge: 'Hipertensão / DHEG',
-    texto:
-      'GESTANTE COM QUADRO HIPERTENSIVO ADMITIDA PARA MONITORIZAÇÃO. PA: 150/95 MMHG (CONFIRMADA APÓS REPOUSO). NEGA CEFALEIA, ESCOtOMAS CINTILANTES OU EPIGASTRALGIA. BCF: 144 BPM RÍTMICO. DU AUSENTE. EDEMA MMII (+/4+). REFLEXOS OSTEOTENDINOSOS NORMAIS. CONDUTA: REPOUSO NO LEITO EM DLE, SOLICITADA ROTINA LABORATORIAL DE PRÉ-ECLÂMPSIA (HEMOGRAMA, PLAQUETAS, TGO/TGP, LDH, ÁCIDO ÚRICO, CREATININA, PROTEINÚRIA EM AMOSTRA ISOLADA), MONITORIZAÇÃO PRESSÓRICA HORÁRIA E AVALIAÇÃO DE SINAIS PREMONITÓRIOS.',
+    tipo: 'gestante',
+    gerar: (c) => {
+      const gpaStr = c.gpa ? `${c.gpa}, ` : ''
+      const igStr = c.igTexto ? `IG (DUM): ${c.igTexto}, ` : ''
+      return (
+        `GESTANTE ${gpaStr}${igStr}COM QUADRO HIPERTENSIVO ADMITIDA PARA MONITORIZAÇÃO E CONDUTA.\n` +
+        `PA: ${c.pa || '150/95'} MMHG (CONFIRMADA APÓS REPOUSO). NEGA CEFALEIA EM PRESSÃO, ESCOTOMAS CINTILANTES OU EPIGASTRALGIA (SINAIS PREMONITÓRIOS NEGATIVOS).\n` +
+        `BCF: ${c.bcf || '144'} BPM RÍTMICO. DU: ${c.du || 'AUSENTE'}. EDEMA DE MMII (+/4+). REFLEXOS PROFUNDOS NORMAIS.\n` +
+        `CONDUTA: REPOUSO NO LEITO EM DECÚBITO LATERAL ESQUERDO (DLE), ROTINA LABORATORIAL DE PRÉ-ECLÂMPSIA (HEMOGRAMA, PLAQUETAS, TGO/TGP, LDH, ÁCIDO ÚRICO, CREATININA, PROTEINÚRIA EM AMOSTRA ISOLADA), MONITORIZAÇÃO PRESSÓRICA HORÁRIA E AVALIAÇÃO DE SINAIS PREMONITÓRIOS.`
+      )
+    },
   },
   {
-    titulo: 'Puérpera - Pós-Parto Vaginal (D1/D2)',
-    badge: 'Pós-Parto Vaginal',
-    texto:
-      'PUÉRPERA EM 1º DPO DE PARTO VAGINAL SEM INTERCORRÊNCIAS. BOM ESTADO GERAL, CORADA, HIDRATADA, AFEBRIL. PA: 115/75 MMHG. MAMAS TÚRGIDAS, SECRETANTES (COLOSTRO PRESENTE), MAMILOS ÍNTEGROS, BOA PEGA. ABDOME FLÁCIDO, INDOLOR À PALPAÇÃO. ÚTERO CONTRAÍDO, GLOBO DE SEGURANÇA DE PINARD PALPÁVEL 2 CM ABAIXO DA CICATRIZ UMBILICAL. LÓQUIOS RUBROS EM QUANTIDADE FISIOLÓGICA E SEM ODOR. PERÍNEO ÍNTEGRO / SUTURA SEM SINAIS FLOGÍSTICOS OU HEMATOMAS. DIURESE E EVACUAÇÕES PRESENTES. CONDUTA: MANTER ANALGESIA CONFORME DEMANDA, ESTIMULAR ALEITAMENTO MATERNO EXCLUSIVO E ORIENTAÇÕES PARA ALTA CONFORME PROTOCOLO.',
-  },
-  {
-    titulo: 'Puérpera - Pós-Cesariana (D1/D2)',
-    badge: 'Pós-Cesárea',
-    texto:
-      'PUÉRPERA EM 1º DPO DE CESARIANA POR INDICAÇÃO OBSTÉTRICA. LÚCIDA, ORIENTADA, CORADA, EUPNEICA, AFEBRIL. PA: 120/80 MMHG, FC: 74 BPM. MAMAS SIMÉTRICAS, LACTAÇÃO INICIADA, SEM INGURGITAMENTO PATOLÓGICO. ABDOME FLÁCIDO, RUÍDOS HIDROAÉREOS PRESENTES. ÚTERO FIRME E CONTRAÍDO NA ALTURA DA CICATRIZ UMBILICAL. FERIDA OPERATÓRIA COM CURATIVO LIMPO E SECO, SEM SINAIS FLOGÍSTICOS, DEISCÊNCIAS OU HEMATOMAS. LÓQUIOS RUBROS FISIOLÓGICOS. DIURESE LIVRE E CLARA. CONDUTA: DIETA GERAL, ANALGESIA PROGRAMADA, DEAMBULAÇÃO PRECOCE ESTIMULADA, CUIDADOS COM A FO E APOIO À AMAMENTAÇÃO.',
-  },
-  {
+    id: 'vitalidade_fetal',
     titulo: 'Avaliação de Vitalidade Fetal',
     badge: 'Vitalidade Fetal',
-    texto:
-      'AVALIAÇÃO DE ROTINA DA VITALIDADE FETAL. GESTANTE REFERE BOA MOVIMENTAÇÃO FETAL NAS ÚLTIMAS 24H. AUSCULTA CARDIATOCOGRÁFICA / SONAR: BCF BASAL DE 144 BPM, PRESENÇA DE ACELERAÇÕES TRANSITÓRIAS À MOVIMENTAÇÃO FETAL, AUSÊNCIA DE DESACELERAÇÕES. DINÂMICA UTERINA AUSENTE. SINAIS VITAIS MATERNOS NORMAIS (PA 110/70 MMHG). CONDUTA: SEGUIMENTO DO PRÉ-NATAL/INTERNAÇÃO.',
+    tipo: 'gestante',
+    gerar: (c) => {
+      const gpaStr = c.gpa ? `${c.gpa}, ` : ''
+      const igStr = c.igTexto ? `IG (DUM): ${c.igTexto}, ` : ''
+      const svStr = [c.pa ? `PA ${c.pa} MMHG` : '', c.fc ? `FC ${c.fc} BPM` : '']
+        .filter(Boolean)
+        .join(', ')
+
+      return (
+        `AVALIAÇÃO DE ROTINA DA VITALIDADE FETAL. GESTANTE ${gpaStr}${igStr}REFERE BOA MOVIMENTAÇÃO FETAL NAS ÚLTIMAS 24H.\n` +
+        `SINAIS VITAIS MATERNOS: ${svStr || 'ESTÁVEIS'}.\n` +
+        `AUSCULTA CARDIATOCOGRÁFICA / SONAR: BCF BASAL DE ${c.bcf || '144'} BPM (${c.alertaBcf ? '⚠️ ALERTA DE FREQUÊNCIA' : 'RÍTMICO, PRESENÇA DE ACELERAÇÕES TRANSITÓRIAS, AUSÊNCIA DE DESACELERAÇÕES'}).\n` +
+        `DINÂMICA UTERINA (DU): ${c.du || 'AUSENTE'}. MOVIMENTAÇÃO FETAL: ${c.movFetal.toUpperCase()}.\n` +
+        `CONDUTA: VITALIDADE FETAL PRESERVADA, SEGUIMENTO DO PLANO ASSISTENCIAL OBSTÉTRICO.`
+      )
+    },
+  },
+  {
+    id: 'puerpera_vaginal',
+    titulo: 'Puérpera - Pós-Parto Vaginal (D1/D2)',
+    badge: 'Pós-Parto Vaginal',
+    tipo: 'puerpera',
+    gerar: (c) => {
+      const gpaStr = c.gpa ? `(${c.gpa}) ` : ''
+      const svStr = [
+        c.pa ? `PA: ${c.pa} MMHG` : '',
+        c.fc ? `FC: ${c.fc} BPM` : '',
+        c.tax ? `TAX: ${c.tax}°C` : '',
+      ]
+        .filter(Boolean)
+        .join(', ')
+
+      return (
+        `PUÉRPERA ${gpaStr}EM PÓS-PARTO VAGINAL SEM INTERCORRÊNCIAS. BOM ESTADO GERAL, CORADA, HIDRATADA, AFEBRIL. SINAIS VITAIS: ${svStr || 'ESTÁVEIS'}.\n` +
+        `MAMAS: ${c.mamas || 'TÚRGIDAS, SECRETANTES (COLOSTRO PRESENTE), MAMILOS ÍNTEGROS, BOA PEGA'}.\n` +
+        `ABDOME: FLÁCIDO, INDOLOR À PALPAÇÃO. ÚTERO: ${c.uteroPuerperio.toUpperCase()} (GLOBO DE PINARD PALPÁVEL ABAIXO DA CICATRIZ UMBILICAL).\n` +
+        `LÓQUIOS: ${c.loquios.toUpperCase()}.\n` +
+        `PERÍNEO: ${c.fo.toUpperCase()} (SEM HEMATOMAS OU SINAIS FLOGÍSTICOS). DIURESE E EVACUAÇÕES PRESENTES.\n` +
+        `CONDUTA: MANTER ANALGESIA CONFORME DEMANDA, ESTIMULAR ALEITAMENTO MATERNO EXCLUSIVO E ORIENTAÇÕES PARA ALTA CONFORME PROTOCOLO.`
+      )
+    },
+  },
+  {
+    id: 'puerpera_cesaria',
+    titulo: 'Puérpera - Pós-Cesariana (D1/D2)',
+    badge: 'Pós-Cesárea',
+    tipo: 'puerpera',
+    gerar: (c) => {
+      const gpaStr = c.gpa ? `(${c.gpa}) ` : ''
+      const svStr = [
+        c.pa ? `PA: ${c.pa} MMHG` : '',
+        c.fc ? `FC: ${c.fc} BPM` : '',
+        c.tax ? `TAX: ${c.tax}°C` : '',
+      ]
+        .filter(Boolean)
+        .join(', ')
+
+      return (
+        `PUÉRPERA ${gpaStr}EM PÓS-OPERATÓRIO DE CESARIANA POR INDICAÇÃO OBSTÉTRICA. LÚCIDA, ORIENTADA, CORADA, EUPNEICA, AFEBRIL. SINAIS VITAIS: ${svStr || 'ESTÁVEIS'}.\n` +
+        `MAMAS: ${c.mamas || 'SIMÉTRICAS, LACTAÇÃO INICIADA, SEM INGURGITAMENTO PATOLÓGICO'}.\n` +
+        `ABDOME: FLÁCIDO, RUÍDOS HIDROAÉREOS PRESENTES. ÚTERO: ${c.uteroPuerperio.toUpperCase()}.\n` +
+        `FERIDA OPERATÓRIA (FO): ${c.fo.toUpperCase()} (CURATIVO LIMPO E SECO, SEM SINAIS FLOGÍSTICOS OU DEISCÊNCIA).\n` +
+        `LÓQUIOS: ${c.loquios.toUpperCase()}. DIURESE LIVRE E CLARA.\n` +
+        `CONDUTA: DIETA GERAL, ANALGESIA PROGRAMADA, DEAMBULAÇÃO PRECOCE ESTIMULADA, CUIDADOS COM A FO E APOIO À AMAMENTAÇÃO.`
+      )
+    },
   },
 ]
+
+function extrairDataIso(dataStr?: string | null): string {
+  if (!dataStr?.trim()) return ''
+  const s = dataStr.trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+    const [d, m, y] = s.split('/')
+    return `${y}-${m}-${d}`
+  }
+  try {
+    const d = parseISO(s)
+    if (!isNaN(d.getTime())) return format(d, 'yyyy-MM-dd')
+  } catch {
+    // ignore
+  }
+  return ''
+}
 
 export function FormularioEvolucao({
   atendimentoId,
@@ -109,21 +288,29 @@ export function FormularioEvolucao({
   const [evolucaoRecemSalvaId, setEvolucaoRecemSalvaId] = useState<string | null>(null)
   const [modoObstetricoAtivo, setModoObstetricoAtivo] = useState(obstetrico)
   const [mostrarAssistenteObstetrico, setMostrarAssistenteObstetrico] = useState(false)
+  const [carregandoDadosObstetricos, setCarregandoDadosObstetricos] = useState(false)
+  const [dadosSincronizadosEm, setDadosSincronizadosEm] = useState<Date | null>(null)
+  const [ehPuerperaDetectada, setEhPuerperaDetectada] = useState(false)
 
-  // Assistente de Parâmetros Obstétricos Rápidos
+  // Assistente de Parâmetros Obstétricos Rápidos (Single Source of Truth)
+  const [gpaInput, setGpaInput] = useState('')
   const [dumData, setDumData] = useState('')
   const [igCalculada, setIgCalculada] = useState('')
+  const [paInput, setPaInput] = useState('')
+  const [fcInput, setFcInput] = useState('')
+  const [taxInput, setTaxInput] = useState('')
   const [duInput, setDuInput] = useState('3/10\' 40"')
   const [bcfInput, setBcfInput] = useState('140')
   const [auInput, setAuInput] = useState('33')
   const [dilatacaoInput, setDilatacaoInput] = useState('6')
   const [apagamentoInput, setApagamentoInput] = useState('80%')
-  const [deLeeInput, setDeLeeInput] = useState('Plano 0')
+  const [deLeeInput, setDeLeeInput] = useState('Cefálica em Plano 0')
   const [bolsaInput, setBolsaInput] = useState('Íntegra')
   const [movFetalInput, setMovFetalInput] = useState('Presente')
   const [uteroPuerperio, setUteroPuerperio] = useState('Contraído (Globo de Pinard)')
   const [loquiosInput, setLoquiosInput] = useState('Rubros fisiológicos')
   const [foInput, setFoInput] = useState('Sem sinais flogísticos')
+  const [mamasInput, setMamasInput] = useState('Túrgidas, secretantes, boa pega')
 
   const historicoRef = useRef<HTMLDivElement>(null)
 
@@ -153,22 +340,161 @@ export function FormularioEvolucao({
   }, [preencherAutomaticamente, textoSugerido])
 
   // Cálculo de Idade Gestacional por DUM
-  useEffect(() => {
-    if (!dumData) return
+  const calcularIdadeGestacional = useCallback((dataIso: string) => {
+    if (!dataIso) return ''
     try {
-      const dtDum = new Date(dumData)
+      const dtDum = parseISO(dataIso)
       if (!isNaN(dtDum.getTime())) {
         const dias = differenceInDays(new Date(), dtDum)
         if (dias > 0 && dias < 320) {
           const semanas = Math.floor(dias / 7)
           const diasRest = dias % 7
-          setIgCalculada(`${semanas} semanas e ${diasRest} dias`)
+          return `${semanas} semanas e ${diasRest} dias`
         }
       }
     } catch {
       // ignore
     }
-  }, [dumData])
+    return ''
+  }, [])
+
+  useEffect(() => {
+    if (dumData) {
+      const ig = calcularIdadeGestacional(dumData)
+      setIgCalculada(ig)
+    }
+  }, [dumData, calcularIdadeGestacional])
+
+  // =========================================================================
+  // CARREGAR DADOS DO SISTEMA SEM REDUNDÂNCIA (Single Source of Truth)
+  // =========================================================================
+  const carregarContextoObstetricoAutomatico = useCallback(
+    async (silencioso = false) => {
+      if (!atendimentoId) return
+      if (!silencioso) setCarregandoDadosObstetricos(true)
+      try {
+        const [resObst, resProntuario] = await Promise.allSettled([
+          fetch(`/api/atendimento/${atendimentoId}/internacao-obstetrica`),
+          fetch(`/api/atendimento/${atendimentoId}/prontuario`),
+        ])
+
+        let dadosObst: any = null
+        if (resObst.status === 'fulfilled' && resObst.value.ok) {
+          const jsonO = await resObst.value.json()
+          if (jsonO.sucesso) dadosObst = jsonO.dados?.prefill
+        }
+
+        let dadosPront: any = null
+        if (resProntuario.status === 'fulfilled' && resProntuario.value.ok) {
+          const jsonP = await resProntuario.value.json()
+          if (jsonP.sucesso) dadosPront = jsonP.dados
+        }
+
+        const campos = dadosObst?.campos ?? {}
+        const trabalhoParto = Array.isArray(dadosObst?.trabalhoParto) ? dadosObst.trabalhoParto : []
+        const puerperio = Array.isArray(dadosObst?.puerperio) ? dadosObst.puerperio : []
+        const triagemSv = dadosPront?.atendimento?.triagem?.sinaisVitais
+
+        // 1. DUM & Idade Gestacional
+        const dumOrig = extrairDataIso(campos.ef_ultimasRegras)
+        if (dumOrig) {
+          setDumData(dumOrig)
+          const ig = calcularIdadeGestacional(dumOrig)
+          if (ig) setIgCalculada(ig)
+        }
+
+        // 2. GPA
+        const g = campos.am_gesta || ''
+        const p = campos.am_para || ''
+        const a = campos.ef_abortoProvocado === 'Sim' ? '1' : campos.am_abortos || ''
+        if (g || p) {
+          const gpaFormatado = `G${g || '1'}P${p || '0'}${a ? `A${a}` : ''}`
+          setGpaInput(gpaFormatado)
+        }
+
+        // 3. Sinais Vitais da Triagem ou Exame
+        if (triagemSv?.paSistolica != null && triagemSv?.paDiastolica != null) {
+          setPaInput(`${triagemSv.paSistolica}/${triagemSv.paDiastolica}`)
+        } else if (campos.ef_pa) {
+          setPaInput(campos.ef_pa)
+        }
+
+        if (triagemSv?.frequenciaCardiaca != null) {
+          setFcInput(String(triagemSv.frequenciaCardiaca))
+        }
+        if (triagemSv?.temperatura != null) {
+          setTaxInput(String(triagemSv.temperatura))
+        }
+
+        // 4. Última linha do Partograma / Trabalho de Parto (se houver) ou Ficha
+        const ultimaLinhaTP = trabalhoParto.length > 0 ? trabalhoParto[trabalhoParto.length - 1] : null
+        if (ultimaLinhaTP?.bcp) {
+          setBcfInput(ultimaLinhaTP.bcp)
+        } else if (campos.ef_ausculta) {
+          setBcfInput(campos.ef_ausculta)
+        }
+
+        if (ultimaLinhaTP?.dilatacao) {
+          setDilatacaoInput(ultimaLinhaTP.dilatacao)
+        } else if (campos.ef_dilatacaoColo) {
+          setDilatacaoInput(campos.ef_dilatacaoColo)
+        }
+
+        if (ultimaLinhaTP?.bolsaDagua) {
+          setBolsaInput(ultimaLinhaTP.bolsaDagua)
+        } else if (campos.ef_bcfBolsaAgua) {
+          setBolsaInput(campos.ef_bcfBolsaAgua)
+        }
+
+        if (ultimaLinhaTP?.apresentacao || ultimaLinhaTP?.insinuacao) {
+          const parteApr = [ultimaLinhaTP.apresentacao, ultimaLinhaTP.insinuacao].filter(Boolean).join(' / ')
+          if (parteApr) setDeLeeInput(parteApr)
+        } else if (campos.ef_apresentacao || campos.ef_grauInsinuacao) {
+          const parteApr = [campos.ef_apresentacao, campos.ef_grauInsinuacao].filter(Boolean).join(' / ')
+          if (parteApr) setDeLeeInput(parteApr)
+        }
+
+        if (campos.ef_uteroAltura) {
+          setAuInput(campos.ef_uteroAltura)
+        }
+
+        // 5. Puerpério / Parto Realizado
+        const jaTeveParto =
+          Boolean(campos.parto_hora?.trim()) ||
+          campos.alta_categoria === 'Puérpera' ||
+          puerperio.length > 0
+
+        setEhPuerperaDetectada(jaTeveParto)
+
+        const ultimaLinhaPuerp = puerperio.length > 0 ? puerperio[puerperio.length - 1] : null
+        if (ultimaLinhaPuerp?.utero) {
+          setUteroPuerperio(ultimaLinhaPuerp.utero)
+        }
+        if (ultimaLinhaPuerp?.loquios) {
+          setLoquiosInput(ultimaLinhaPuerp.loquios)
+        }
+        if (ultimaLinhaPuerp?.mamas) {
+          setMamasInput(ultimaLinhaPuerp.mamas)
+        }
+
+        setDadosSincronizadosEm(new Date())
+        if (!silencioso) {
+          toast.success('Dados obstétricos sincronizados da admissão!')
+        }
+      } catch {
+        // falha silenciosa
+      } finally {
+        if (!silencioso) setCarregandoDadosObstetricos(false)
+      }
+    },
+    [atendimentoId, calcularIdadeGestacional]
+  )
+
+  useEffect(() => {
+    if (modoObstetricoAtivo && !dadosSincronizadosEm) {
+      carregarContextoObstetricoAutomatico(true)
+    }
+  }, [modoObstetricoAtivo, dadosSincronizadosEm, carregarContextoObstetricoAutomatico])
 
   const ultimaEvolucao = useMemo(() => {
     if (evolucoes.length === 0) return null
@@ -188,24 +514,79 @@ export function FormularioEvolucao({
   const bcfNum = parseInt(bcfInput, 10)
   const alertaBcf = !isNaN(bcfNum) && (bcfNum < 110 || bcfNum > 160)
 
+  const contextoObstetricoAtual = useMemo<ContextoObstetricoDinamico>(
+    () => ({
+      gpa: gpaInput,
+      dumData,
+      igTexto: igCalculada,
+      pa: paInput,
+      fc: fcInput,
+      tax: taxInput,
+      bcf: bcfInput,
+      alertaBcf,
+      du: duInput,
+      au: auInput,
+      dilatacao: dilatacaoInput,
+      apagamento: apagamentoInput,
+      deLee: deLeeInput,
+      bolsa: bolsaInput,
+      movFetal: movFetalInput,
+      uteroPuerperio,
+      loquios: loquiosInput,
+      fo: foInput,
+      mamas: mamasInput,
+    }),
+    [
+      gpaInput,
+      dumData,
+      igCalculada,
+      paInput,
+      fcInput,
+      taxInput,
+      bcfInput,
+      alertaBcf,
+      duInput,
+      auInput,
+      dilatacaoInput,
+      apagamentoInput,
+      deLeeInput,
+      bolsaInput,
+      movFetalInput,
+      uteroPuerperio,
+      loquiosInput,
+      foInput,
+      mamasInput,
+    ]
+  )
+
+  function aplicarModelo(mod: (typeof MODELOS_OBSTETRICOS_CONFIG)[number]) {
+    const textoGerado = mod.gerar(contextoObstetricoAtual)
+    setConteudo(textoCadastroMaiusculo(textoGerado))
+    toast.success(`Modelo "${mod.titulo}" gerado com os dados da paciente!`)
+  }
+
   function gerarSinteseObstetrica() {
     const partes: string[] = []
+    if (gpaInput) partes.push(`GPA: ${gpaInput.toUpperCase()}`)
     if (igCalculada) partes.push(`IG (DUM): ${igCalculada.toUpperCase()}`)
-    if (bcfInput) partes.push(`BCF: ${bcfInput} BPM (${alertaBcf ? 'ALERTA DE FREQUÊNCIA' : 'RÍTMICO'})`)
+    if (paInput) partes.push(`PA: ${paInput} MMHG`)
+    if (bcfInput) partes.push(`BCF: ${bcfInput} BPM (${alertaBcf ? '⚠️ ALERTA' : 'RÍTMICO'})`)
     if (duInput) partes.push(`DU: ${duInput.toUpperCase()}`)
     if (auInput) partes.push(`AU: ${auInput} CM`)
     if (dilatacaoInput || apagamentoInput || deLeeInput || bolsaInput) {
       partes.push(
-        `TOQUE: COLO ${dilatacaoInput} CM, APAGAMENTO ${apagamentoInput}, DE LEE ${deLeeInput.toUpperCase()}, BOLSA ${bolsaInput.toUpperCase()}`
+        `TOQUE: COLO ${dilatacaoInput || '—'} CM, APAGAMENTO ${apagamentoInput || '—'}, DE LEE ${deLeeInput.toUpperCase() || '—'}, BOLSA ${bolsaInput.toUpperCase() || '—'}`
       )
     }
     if (movFetalInput) partes.push(`MOVIMENTAÇÃO FETAL: ${movFetalInput.toUpperCase()}`)
-    if (uteroPuerperio) partes.push(`ÚTERO: ${uteroPuerperio.toUpperCase()}`)
-    if (loquiosInput) partes.push(`LÓQUIOS: ${loquiosInput.toUpperCase()}`)
-    if (foInput) partes.push(`FERIDA/PERÍNEO: ${foInput.toUpperCase()}`)
+    if (ehPuerperaDetectada || uteroPuerperio) {
+      partes.push(`ÚTERO: ${uteroPuerperio.toUpperCase()}`)
+      if (loquiosInput) partes.push(`LÓQUIOS: ${loquiosInput.toUpperCase()}`)
+      if (foInput) partes.push(`FERIDA/PERÍNEO: ${foInput.toUpperCase()}`)
+    }
 
-    const textoGerado = `[AVALIAÇÃO OBSTÉTRICA]\n${partes.join(' | ')}`
-    setConteudo((prev) => (prev ? `${prev}\n\n${textoGerado}` : textoGerado))
+    const blocoGerado = `[AVALIAÇÃO OBSTÉTRICA CONSOLIDADA]\n${partes.join(' | ')}`
+    setConteudo((prev) => (prev ? `${prev}\n\n${blocoGerado}` : blocoGerado))
     toast.success('Parâmetros obstétricos inseridos na evolução!')
   }
 
@@ -309,63 +690,125 @@ export function FormularioEvolucao({
           </div>
         </div>
 
-        {/* MÓDULO ESPECIALIZADO OBSTÉTRICO */}
+        {/* MÓDULO ESPECIALIZADO OBSTÉTRICO INTELIGENTE (SEM REDUNDÂNCIA) */}
         {modoObstetricoAtivo && (
           <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-3.5 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <HeartPulse className="h-4 w-4 text-rose-500" />
                 <span className="text-xs font-bold text-rose-700 dark:text-rose-300 uppercase tracking-wide">
-                  Modelos Rápidos e Assistente Obstétrico
+                  Modelos Rápidos Especializados & Assistente Obstétrico
                 </span>
+                {ehPuerperaDetectada && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-500/20 text-pink-700 dark:text-pink-300 border border-pink-500/30">
+                    🤱 Paciente em Puerpério
+                  </span>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={() => setMostrarAssistenteObstetrico((v) => !v)}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:underline"
-              >
-                <Activity className="h-3.5 w-3.5" />
-                {mostrarAssistenteObstetrico ? 'Ocultar Parâmetros' : 'Preencher Parâmetros Rápidos'}
-                {mostrarAssistenteObstetrico ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              </button>
-            </div>
 
-            {/* BOTÕES DE 1-CLIQUE DE MODELOS OBSTÉTRICOS */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-muted-foreground font-medium mr-1">Inserir Modelo:</span>
-              {MODELOS_OBSTETRICOS.map((mod) => (
+              <div className="flex items-center gap-2">
                 <button
-                  key={mod.titulo}
                   type="button"
-                  onClick={() => {
-                    setConteudo(mod.texto)
-                    toast.success(`Modelo "${mod.titulo}" carregado!`)
-                  }}
-                  className="px-2.5 py-1 rounded-md border border-border bg-background hover:bg-rose-500/10 hover:border-rose-500/30 text-[11px] font-semibold text-foreground transition-colors"
+                  onClick={() => carregarContextoObstetricoAutomatico(false)}
+                  disabled={carregandoDadosObstetricos}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded border border-rose-500/30 bg-background/80 hover:bg-rose-500/10 text-[11px] font-medium text-rose-600 dark:text-rose-300 transition-colors"
+                  title="Sincronizar com Triagem e Ficha Obstétrica"
                 >
-                  + {mod.badge}
+                  <RotateCw className={cn('h-3 w-3', carregandoDadosObstetricos && 'animate-spin')} />
+                  {carregandoDadosObstetricos ? 'Sincronizando...' : 'Recarregar Dados da Ficha'}
                 </button>
-              ))}
+
+                <button
+                  type="button"
+                  onClick={() => setMostrarAssistenteObstetrico((v) => !v)}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:underline"
+                >
+                  <Activity className="h-3.5 w-3.5" />
+                  {mostrarAssistenteObstetrico ? 'Ocultar Parâmetros' : 'Ver / Ajustar Parâmetros'}
+                  {mostrarAssistenteObstetrico ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </button>
+              </div>
             </div>
 
-            {/* PAINEL DE PARÂMETROS RÁPIDOS */}
+            {/* RESUMO DOS DADOS VITAIS / IG CARREGADOS */}
+            <div className="flex flex-wrap items-center gap-2 text-[11px] bg-background/70 dark:bg-background/40 p-2 rounded-lg border border-rose-500/20">
+              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Sincronizado:
+              </span>
+              {gpaInput && <span className="font-bold text-foreground">GPA: {gpaInput}</span>}
+              {dumData && (
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <Calendar className="h-3 w-3" /> DUM: <strong>{format(parseISO(dumData), 'dd/MM/yyyy')}</strong>
+                </span>
+              )}
+              {igCalculada && (
+                <span className="font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
+                  IG: {igCalculada}
+                </span>
+              )}
+              {paInput && <span className="text-muted-foreground">PA: <strong className="text-foreground">{paInput}</strong></span>}
+              {bcfInput && (
+                <span className={cn('font-semibold', alertaBcf ? 'text-amber-500 font-black' : 'text-foreground')}>
+                  BCF: {bcfInput} bpm {alertaBcf && '⚠️'}
+                </span>
+              )}
+              {dilatacaoInput && (
+                <span className="text-muted-foreground">
+                  Colo: <strong className="text-foreground">{dilatacaoInput} cm</strong>
+                </span>
+              )}
+            </div>
+
+            {/* BOTÕES DE 1-CLIQUE DE MODELOS OBSTÉTRICOS (DINÂMICOS) */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[11px] text-muted-foreground font-medium mr-1">Inserir Modelo com Dados Reais:</span>
+              {MODELOS_OBSTETRICOS_CONFIG.map((mod) => {
+                const destaque = ehPuerperaDetectada ? mod.tipo === 'puerpera' : mod.tipo === 'gestante'
+                return (
+                  <button
+                    key={mod.id}
+                    type="button"
+                    onClick={() => aplicarModelo(mod)}
+                    className={cn(
+                      'px-2.5 py-1 rounded-md border text-[11px] font-semibold transition-all',
+                      destaque
+                        ? 'border-rose-500/40 bg-background hover:bg-rose-500/15 text-rose-700 dark:text-rose-300 font-bold shadow-2xs'
+                        : 'border-border bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    + {mod.badge}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* PAINEL DE PARÂMETROS RÁPIDOS (EDITÁVEL & SINCRONIZADO) */}
             {mostrarAssistenteObstetrico && (
               <div className="pt-2 border-t border-rose-500/20 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 text-xs">
                 <div>
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase">DUM / IG</label>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <input
-                      type="date"
-                      value={dumData}
-                      onChange={(e) => setDumData(e.target.value)}
-                      className="w-full border border-input rounded-md px-2 py-1 text-xs bg-background"
-                    />
-                  </div>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase">DUM (Data)</label>
+                  <input
+                    type="date"
+                    value={dumData}
+                    onChange={(e) => setDumData(e.target.value)}
+                    className="w-full border border-input rounded-md px-2 py-1 text-xs bg-background mt-0.5"
+                  />
                   {igCalculada && (
                     <span className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 mt-0.5 block">
                       IG: {igCalculada}
                     </span>
                   )}
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase">G / P / A (Paridade)</label>
+                  <input
+                    type="text"
+                    value={gpaInput}
+                    onChange={(e) => setGpaInput(e.target.value)}
+                    placeholder="G3P2A0"
+                    className="w-full border border-input rounded-md px-2 py-1 text-xs bg-background mt-0.5"
+                  />
                 </div>
 
                 <div>
@@ -386,6 +829,17 @@ export function FormularioEvolucao({
                       'w-full border rounded-md px-2 py-1 text-xs bg-background mt-0.5',
                       alertaBcf ? 'border-amber-500 text-amber-500 font-bold' : 'border-input'
                     )}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase">Pressão Arterial (PA)</label>
+                  <input
+                    type="text"
+                    value={paInput}
+                    onChange={(e) => setPaInput(e.target.value)}
+                    placeholder="120/80"
+                    className="w-full border border-input rounded-md px-2 py-1 text-xs bg-background mt-0.5"
                   />
                 </div>
 
@@ -437,7 +891,7 @@ export function FormularioEvolucao({
                     type="text"
                     value={deLeeInput}
                     onChange={(e) => setDeLeeInput(e.target.value)}
-                    placeholder="Cefálica / Plano 0"
+                    placeholder="Cefálica em Plano 0"
                     className="w-full border border-input rounded-md px-2 py-1 text-xs bg-background mt-0.5"
                   />
                 </div>
@@ -453,6 +907,37 @@ export function FormularioEvolucao({
                   />
                 </div>
 
+                <div>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase">Útero (Puerpério)</label>
+                  <input
+                    type="text"
+                    value={uteroPuerperio}
+                    onChange={(e) => setUteroPuerperio(e.target.value)}
+                    placeholder="Contraído (Pinard)"
+                    className="w-full border border-input rounded-md px-2 py-1 text-xs bg-background mt-0.5"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase">Lóquios & FO/Períneo</label>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <input
+                      type="text"
+                      value={loquiosInput}
+                      onChange={(e) => setLoquiosInput(e.target.value)}
+                      placeholder="Lóquios rubros"
+                      className="w-1/2 border border-input rounded-md px-2 py-1 text-xs bg-background"
+                    />
+                    <input
+                      type="text"
+                      value={foInput}
+                      onChange={(e) => setFoInput(e.target.value)}
+                      placeholder="FO/Períneo íntegro"
+                      className="w-1/2 border border-input rounded-md px-2 py-1 text-xs bg-background"
+                    />
+                  </div>
+                </div>
+
                 <div className="flex items-end">
                   <button
                     type="button"
@@ -460,7 +945,7 @@ export function FormularioEvolucao({
                     className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition-all"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
-                    Inserir Parâmetros
+                    Inserir Parâmetros na Evolução
                   </button>
                 </div>
               </div>
