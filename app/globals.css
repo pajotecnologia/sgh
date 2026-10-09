@@ -127,6 +127,8 @@
   }
   html {
     @apply font-sans;
+    font-size: 87.5%; /* Base 14px — redimensiona tipografia e espaçamentos rem para visual fluido, compacto e denso */
+    -webkit-text-size-adjust: 100%;
   }
 }
 
@@ -142,7 +144,7 @@
   }
 
   body {
-    @apply bg-background text-foreground text-sm;
+    @apply bg-background text-foreground text-xs leading-relaxed;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-feature-settings: 'cv11', 'ss01';
     -webkit-font-smoothing: antialiased;
@@ -177,15 +179,15 @@
   }
 
   .page-title {
-    @apply text-base font-bold text-foreground;
+    @apply text-sm sm:text-base font-bold text-foreground;
   }
 
   .page-subtitle {
-    @apply text-xs text-muted-foreground mt-0.5;
+    @apply text-[11px] text-muted-foreground mt-0.5;
   }
 
   .section-label {
-    @apply text-[10px] font-semibold text-muted-foreground uppercase tracking-wider;
+    @apply text-[10px] font-bold text-muted-foreground uppercase tracking-wider;
   }
 
   /* Scrollbar — padrão global (Chrome, Edge, Safari) */

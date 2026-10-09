@@ -61,6 +61,10 @@ module.exports = {
           cinza: '#6B7280',
         },
       },
+      fontSize: {
+        '3xs': ['0.625rem', { lineHeight: '0.8rem' }],
+        '2xs': ['0.6875rem', { lineHeight: '0.9rem' }],
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
