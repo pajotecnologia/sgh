@@ -389,12 +389,13 @@ export default function WorkspaceAtendimento({
 
       {/* Navegação por Abas */}
       <div className="p-1.5 bg-muted/40 dark:bg-muted/20 rounded-xl border border-border mt-6">
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
           {abas.map((aba) => {
             const tabHabilitada =
               !atendimentoEncerrado ||
               (modoInternacao && aba.id === 'ENCAMINHAMENTO') ||
               (!modoInternacao && aba.id === 'RECEITA_ALTA')
+            const Icon = aba.icon
             return (
               <button
                 key={aba.id}
@@ -402,13 +403,13 @@ export default function WorkspaceAtendimento({
                 onClick={() => setAbaAtual(aba.id)}
                 disabled={!tabHabilitada}
                 className={cn(
-                  'flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all',
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
                   abaAtual === aba.id
-                    ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                    ? 'bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20'
                     : 'text-muted-foreground hover:text-foreground hover:bg-background/80 bg-transparent disabled:opacity-50 disabled:pointer-events-none'
                 )}
               >
-                <aba.icon className="h-4 w-4 shrink-0" />
+                <Icon className="h-3.5 w-3.5 shrink-0" />
                 <span>{aba.label}</span>
                 {aba.completado && (
                   <CheckCircle2
@@ -524,6 +525,7 @@ export default function WorkspaceAtendimento({
             atendimentoId={atendimento.id}
             prontuarioId={prontuario.id}
             evolucoesIniciais={prontuario.evolucoes ?? []}
+            obstetrico={ehObstetrico}
             onSalvo={carregarDados}
           />
         )}

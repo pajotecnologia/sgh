@@ -347,25 +347,25 @@ export function PainelAdmissoes() {
   return (
     <div className="space-y-6">
       {/* Abas Superiores */}
-      <div className="p-1.5 bg-muted/40 dark:bg-muted/20 rounded-xl border border-border">
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2" role="tablist">
+      <div className="p-1.5 bg-muted/40 dark:bg-muted/20 rounded-xl border border-border/80">
+        <div className="flex flex-wrap items-center gap-1 sm:gap-1.5" role="tablist">
           <button
             type="button"
             role="tab"
             aria-selected={abaAtiva === 'pendentes'}
             onClick={() => setAbaAtiva('pendentes')}
             className={cn(
-              'flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
               abaAtiva === 'pendentes'
-                ? 'bg-primary text-primary-foreground shadow-sm'
+                ? 'bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20'
                 : 'text-muted-foreground hover:text-foreground hover:bg-background/80 bg-transparent'
             )}
           >
-            <Clock className={cn("h-4 w-4 shrink-0", abaAtiva === 'pendentes' ? "text-primary-foreground" : "text-amber-500")} />
+            <Clock className={cn("h-3.5 w-3.5 shrink-0", abaAtiva === 'pendentes' ? "text-primary-foreground" : "text-amber-500")} />
             <span>Aguardando Recepção</span>
             <span
               className={cn(
-                'ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0',
+                'ml-1 text-[10px] font-bold px-1.5 py-0.2 rounded-full shrink-0',
                 abaAtiva === 'pendentes'
                   ? 'bg-primary-foreground/20 text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
@@ -381,17 +381,17 @@ export function PainelAdmissoes() {
             aria-selected={abaAtiva === 'recentes'}
             onClick={() => setAbaAtiva('recentes')}
             className={cn(
-              'flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
               abaAtiva === 'recentes'
-                ? 'bg-primary text-primary-foreground shadow-sm'
+                ? 'bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20'
                 : 'text-muted-foreground hover:text-foreground hover:bg-background/80 bg-transparent'
             )}
           >
-            <CheckCircle2 className={cn("h-4 w-4 shrink-0", abaAtiva === 'recentes' ? "text-primary-foreground" : "text-emerald-500")} />
+            <CheckCircle2 className={cn("h-3.5 w-3.5 shrink-0", abaAtiva === 'recentes' ? "text-primary-foreground" : "text-emerald-500")} />
             <span>Admitidos Recentemente</span>
             <span
               className={cn(
-                'ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0',
+                'ml-1 text-[10px] font-bold px-1.5 py-0.2 rounded-full shrink-0',
                 abaAtiva === 'recentes'
                   ? 'bg-primary-foreground/20 text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
@@ -407,17 +407,17 @@ export function PainelAdmissoes() {
             aria-selected={abaAtiva === 'fichaHospitalar'}
             onClick={() => setAbaAtiva('fichaHospitalar')}
             className={cn(
-              'flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
               abaAtiva === 'fichaHospitalar'
-                ? 'bg-primary text-primary-foreground shadow-sm'
+                ? 'bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20'
                 : 'text-muted-foreground hover:text-foreground hover:bg-background/80 bg-transparent'
             )}
           >
-            <ClipboardList className={cn("h-4 w-4 shrink-0", abaAtiva === 'fichaHospitalar' ? "text-primary-foreground" : "text-violet-500")} />
+            <ClipboardList className={cn("h-3.5 w-3.5 shrink-0", abaAtiva === 'fichaHospitalar' ? "text-primary-foreground" : "text-violet-500")} />
             <span>Ficha Internação e Alta</span>
             <span
               className={cn(
-                'ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0',
+                'ml-1 text-[10px] font-bold px-1.5 py-0.2 rounded-full shrink-0',
                 abaAtiva === 'fichaHospitalar'
                   ? 'bg-primary-foreground/20 text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
@@ -438,18 +438,18 @@ export function PainelAdmissoes() {
               }
             }}
             className={cn(
-              'flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
               abaAtiva === 'hospitalar'
-                ? 'bg-primary text-primary-foreground shadow-sm'
+                ? 'bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20'
                 : 'text-muted-foreground hover:text-foreground hover:bg-background/80 bg-transparent'
             )}
           >
-            <BedDouble className={cn("h-4 w-4 shrink-0", abaAtiva === 'hospitalar' ? "text-primary-foreground" : "text-blue-500")} />
+            <BedDouble className={cn("h-3.5 w-3.5 shrink-0", abaAtiva === 'hospitalar' ? "text-primary-foreground" : "text-blue-500")} />
             <span>Internamento Hospitalar</span>
             {hospitalar.length > 0 && (
               <span
                 className={cn(
-                  'ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0',
+                  'ml-1 text-[10px] font-bold px-1.5 py-0.2 rounded-full shrink-0',
                   abaAtiva === 'hospitalar'
                     ? 'bg-primary-foreground/20 text-primary-foreground'
                     : 'bg-muted text-muted-foreground'

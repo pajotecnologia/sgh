@@ -105,8 +105,8 @@ export const ABAS_PRONTUARIO: AbaConfig[] = [
   { id: 'FICHA_EVOLUCAO', label: 'Evolução Médica', icon: NotebookPen },
   { id: 'PRESCRICAO_ENFERMARIA', label: 'Prescrições', icon: Pill },
   { id: 'EXAMES', label: 'Exames', icon: FlaskConical },
-  { id: 'CONDICOES_ALTA', label: 'Condições de alta', icon: LogOut },
   { id: 'LAUDO_MEDICO', label: 'Laudo Solicitação', icon: Stethoscope },
+  { id: 'CONDICOES_ALTA', label: 'Condições de alta', icon: LogOut },
 ]
 
 export const ABA_INTERNACAO_OBSTETRICA: AbaConfig = {
@@ -133,13 +133,9 @@ export const ABAS_EVOLUCOES: AbaConfig[] = [
 ]
 
 export const parseAbaInternacao = (valor?: string | null): AbaInternacaoId | null => {
-
   if (!valor?.trim()) return null
-
   const v = valor.trim().toUpperCase()
-
   return ABAS_VALIDAS.has(v) ? (v as AbaInternacaoId) : null
-
 }
 
 export const labelAbaInternacao = (
@@ -151,25 +147,33 @@ export const labelAbaInternacao = (
   return abasPorModo(modo, obstetrico).find((item) => item.id === aba)?.label ?? null
 }
 
-
-
 const ROLES_ENFERMAGEM = new Set(['ENFERMEIRO', 'TECNICO_ENFERMAGEM'])
 
-
-
 export const isRoleEnfermagem = (role: string): boolean => ROLES_ENFERMAGEM.has(role)
-
-
 
 export const abasPorModo = (
   modo: ModoWorkspaceInternacao,
   obstetrico = false
 ): AbaConfig[] => {
-  const base = modo === 'prontuario' ? [...ABAS_PRONTUARIO] : [...ABAS_EVOLUCOES]
-  if (!obstetrico) return base
-  // Internação obstétrica aparece nos dois modos; berçário só na enfermagem
-  base.push(ABA_INTERNACAO_OBSTETRICA)
-  if (modo === 'evolucoes') base.push(ABA_MEDICACAO_BERCARIO)
+  if (modo === 'prontuario') {
+    const base: AbaConfig[] = [
+      { id: 'FICHA_EVOLUCAO', label: 'Evolução Médica', icon: NotebookPen },
+      { id: 'PRESCRICAO_ENFERMARIA', label: 'Prescrições', icon: Pill },
+      { id: 'EXAMES', label: 'Exames', icon: FlaskConical },
+      { id: 'LAUDO_MEDICO', label: 'Laudo Solicitação', icon: Stethoscope },
+    ]
+    if (obstetrico) {
+      base.push(ABA_INTERNACAO_OBSTETRICA)
+    }
+    base.push({ id: 'CONDICOES_ALTA', label: 'Condições de alta', icon: LogOut })
+    return base
+  }
+
+  const base = [...ABAS_EVOLUCOES]
+  if (obstetrico) {
+    base.push(ABA_INTERNACAO_OBSTETRICA)
+    base.push(ABA_MEDICACAO_BERCARIO)
+  }
   return base
 }
 
