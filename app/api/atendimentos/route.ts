@@ -3,10 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { StatusAtendimento } from '@prisma/client';
+import { StatusAtendimento, type Role } from '@prisma/client';
 import { gerarNumeroAtendimento } from '@/lib/attendance';
 import { dispararEventoPusher, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher';
 import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao';
+import { temPermissaoUsuario } from '@/lib/permissoes-usuario';
 import type { ApiResponse } from '@/types';
 
 export async function POST(req: NextRequest) {
@@ -19,8 +20,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const rolesPermitidos = ['ADMIN', 'RECEPCIONISTA'];
-  if (!rolesPermitidos.includes(sessao.usuario.role)) {
+  const permitido =
+    sessao.usuario.role === 'ADMIN' ||
+    sessao.usuario.role === 'RECEPCIONISTA' ||
+    (await temPermissaoUsuario(sessao.usuario.id, sessao.usuario.role as Role, 'recepcao'));
+
+  if (!permitido) {
     return NextResponse.json<ApiResponse<never>>(
       { sucesso: false, erro: 'Sem permissão para criar atendimentos.' },
       { status: 403 }

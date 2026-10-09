@@ -9,6 +9,8 @@ import { schemaCriarPaciente, schemaBuscaCpf } from '@/lib/validations/paciente'
 import { criptografar, hashCpf, encryptionKeyConfigurada, mensagemErroEncryptionKey } from '@/lib/encryption';
 import { obterNomeCompletoPaciente } from '@/lib/nome-paciente-exibicao';
 import { gerarNumeroAtendimento } from '@/lib/attendance';
+import { temPermissaoUsuario } from '@/lib/permissoes-usuario';
+import type { Role } from '@prisma/client';
 import type { ApiResponse, PaginacaoParams } from '@/types';
 
 // =============================================================================
@@ -154,8 +156,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const rolesPermitidos = ['ADMIN', 'RECEPCIONISTA'];
-  if (!rolesPermitidos.includes(sessao.usuario.role)) {
+  const permitido =
+    sessao.usuario.role === 'ADMIN' ||
+    sessao.usuario.role === 'RECEPCIONISTA' ||
+    (await temPermissaoUsuario(sessao.usuario.id, sessao.usuario.role as Role, 'recepcao'));
+
+  if (!permitido) {
     return NextResponse.json<ApiResponse<never>>(
       { sucesso: false, erro: 'Sem permissão para cadastrar pacientes.' },
       { status: 403 }
