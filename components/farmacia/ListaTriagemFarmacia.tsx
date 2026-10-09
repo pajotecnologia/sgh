@@ -3,30 +3,27 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { CheckCircle2, XCircle, Loader2, AlertTriangle, Bell, Boxes } from 'lucide-react'
+import {
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  AlertTriangle,
+  Bell,
+  Boxes,
+  ClipboardList,
+  CheckSquare,
+  Square,
+  Copy,
+  Stethoscope,
+  Info,
+  PackageCheck,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EnvoltorioListaPaginada } from '@/components/shared/EnvoltorioListaPaginada'
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao'
 import { getPusherCliente, CANAIS_PUSHER, EVENTOS_PUSHER } from '@/lib/pusher'
 import type { InteracaoCritica } from '@/components/farmacia/ModalInteracaoCritica'
-
-function kitSugerido(nome: string = '', via: string = ''): string | null {
-  const n = nome.toUpperCase();
-  if (n.includes('CURATIVO ESPECIAL') || n.includes('QUEIMADURA')) return 'Kit Curativo Especial / Queimaduras';
-  if (n.includes('CURATIVO')) return 'Kit Curativo Simples / Oclusivo';
-  if (n.includes('SVD') || n.includes('VESICAL DE DEMORA') || n.includes('FOLEY')) return 'Kit Sondagem Vesical de Demora (SVD)';
-  if (n.includes('SVA') || n.includes('VESICAL DE ALIVIO')) return 'Kit Sondagem Vesical de Alívio (SVA)';
-  if (n.includes('SNG') || n.includes('SNE') || n.includes('NASOGASTRICA') || n.includes('NASOENTERAL')) return 'Kit Sondagem Nasogástrica / Enteral';
-  if (n.includes('PONTO') || n.includes('SUTURA')) return 'Kit Retirada de Pontos';
-  if (n.includes('PUNCAO') || n.includes('ACESSO VENOSO')) return 'Kit Acesso Venoso Periférico';
-
-  if (via === 'INTRAVENOSA') return 'Kit Injeção / Aplicação Endovenosa (EV)';
-  if (via === 'INTRAMUSCULAR') return 'Kit Injeção Intramuscular (IM)';
-  if (via === 'SUBCUTANEA') return 'Kit Injeção Subcutânea (SC)';
-  if (via === 'INALATORIA') return 'Kit Inalação / Nebulização';
-
-  return null;
-}
+import type { KitVinculadoFarmacia } from '@/lib/farmacia-kits-match'
 
 type SaldoInfo = {
   saldoAtual: number | null
@@ -42,6 +39,8 @@ type Linha = {
   validadoEm: string | null
   validadoPor: { nome: string } | null
   saldoInfo?: SaldoInfo
+  kitsVinculados?: KitVinculadoFarmacia[]
+  procedimentosObservacoes?: string[]
   item: {
     id: string
     medicamentoNome: string
@@ -50,10 +49,13 @@ type Linha = {
     via: string
     frequencia: string
     quantidadeSolicitada: number
+    observacoes?: string | null
     justificativaMedica: string | null
     alertasInteracao: any
     medicamento?: { id: string; nome: string; saldoAtual: number; estoqueMinimo: number } | null
     prescricao: {
+      observacoes?: string | null
+      criadoPor?: { nome: string } | null
       atendimento: {
         id: string
         numeroAtendimento: string
@@ -87,6 +89,8 @@ export function ListaTriagemFarmacia({
   const [itemModal, setItemModal] = useState<Linha | null>(null)
   const [motivo, setMotivo] = useState('')
   const [salvando, setSalvando] = useState(false)
+  const [itensChecados, setItensChecados] = useState<Record<string, boolean>>({})
+
   useEffect(() => {
     const pusher = getPusherCliente()
     if (!pusher) return
@@ -110,6 +114,27 @@ export function ListaTriagemFarmacia({
     const raw = (itemModal?.item.alertasInteracao as any)?.criticas
     return Array.isArray(raw) ? (raw as InteracaoCritica[]) : []
   }, [itemModal])
+
+  const alternarChecagem = (idItem: string) => {
+    setItensChecados((prev) => ({
+      ...prev,
+      [idItem]: !prev[idItem],
+    }))
+  }
+
+  const copiarListaMateriais = (kit: KitVinculadoFarmacia) => {
+    const texto = [
+      `📦 ${kit.nome}`,
+      kit.descricao ? `(${kit.descricao})` : '',
+      'Materiais para separação:',
+      ...kit.itens.map((it) => `• [ ] ${it.quantidadePadrao} ${it.unidade} — ${it.descricaoItem}`),
+    ]
+      .filter(Boolean)
+      .join('\n')
+
+    navigator.clipboard.writeText(texto)
+    toast.success('Lista de materiais copiada para a área de transferência!')
+  }
 
   async function atualizar(status: 'APROVADO' | 'REJEITADO') {
     if (!itemModal) return
@@ -140,6 +165,7 @@ export function ListaTriagemFarmacia({
       toast.success(status === 'APROVADO' ? 'Item aprovado.' : 'Item rejeitado.')
       setItemModal(null)
       setMotivo('')
+      setItensChecados({})
       router.refresh()
     } catch {
       toast.error('Erro de conexão.')
@@ -160,69 +186,89 @@ export function ListaTriagemFarmacia({
     <>
       <EnvoltorioListaPaginada items={itens} chaveReset={itens.length}>
         {(fatia) => (
-      <ul className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
-        {fatia.map((l) => {
-          const a = l.item.prescricao.atendimento
-          const nomePaciente = nomeCompletoParaExibicao(
-            a.paciente.nomeExibicao,
-            a.paciente.nomeCriptografado ?? '',
-            a.paciente.nomeCompleto
-          )
-          const temCritico = Boolean((l.item.alertasInteracao as any)?.criticas?.length)
-          const semSaldo = l.status === 'AGUARDANDO_TRIAGEM' && l.saldoInfo && !l.saldoInfo.saldoSuficiente
-          return (
-            <li key={l.id} className="p-4 flex flex-col lg:flex-row lg:items-center gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold text-foreground truncate">{nomePaciente}</p>
-                  <BadgeStatus status={l.status} />
-                  {semSaldo ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-700 dark:text-red-200 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 px-2 py-1 rounded-md">
-                      <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
-                      Sem saldo
-                    </span>
-                  ) : null}
-                  {temCritico ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-700 dark:text-red-200 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 px-2 py-1 rounded-md">
-                      <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
-                      Interação crítica
-                    </span>
-                  ) : null}
-                </div>
-                <p className="text-xs font-mono text-muted-foreground mt-0.5">{a.numeroAtendimento}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  <span className="font-medium text-foreground">{l.item.medicamentoNome}</span>
-                  <span className="mx-1">•</span>
-                  {l.item.dose} • {l.item.via} • {l.item.frequencia} • Qtde {l.item.quantidadeSolicitada}
-                </p>
-                {(() => {
-                  const kit = kitSugerido(l.item.medicamentoNome, l.item.via)
-                  if (!kit) return null
-                  return (
-                    <p className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 mt-1 flex items-center gap-1">
-                      <Boxes className="h-3.5 w-3.5 shrink-0 text-blue-600" />
-                      <span>Kit de Insumos: {kit}</span>
+          <ul className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
+            {fatia.map((l) => {
+              const a = l.item.prescricao.atendimento
+              const nomePaciente = nomeCompletoParaExibicao(
+                a.paciente.nomeExibicao,
+                a.paciente.nomeCriptografado ?? '',
+                a.paciente.nomeCompleto
+              )
+              const temCritico = Boolean((l.item.alertasInteracao as any)?.criticas?.length)
+              const semSaldo = l.status === 'AGUARDANDO_TRIAGEM' && l.saldoInfo && !l.saldoInfo.saldoSuficiente
+              const totalKits = l.kitsVinculados?.length ?? 0
+              const totalProcedimentos = l.procedimentosObservacoes?.length ?? 0
+
+              return (
+                <li key={l.id} className="p-4 flex flex-col lg:flex-row lg:items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold text-foreground truncate">{nomePaciente}</p>
+                      <BadgeStatus status={l.status} />
+                      {semSaldo ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-700 dark:text-red-200 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 px-2 py-1 rounded-md">
+                          <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+                          Sem saldo
+                        </span>
+                      ) : null}
+                      {temCritico ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-700 dark:text-red-200 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 px-2 py-1 rounded-md">
+                          <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+                          Interação crítica
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="text-xs font-mono text-muted-foreground mt-0.5">Atendimento nº {a.numeroAtendimento}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      <span className="font-medium text-foreground">{l.item.medicamentoNome}</span>
+                      <span className="mx-1">•</span>
+                      {l.item.dose} • {l.item.via} • {l.item.frequencia} • Qtde {l.item.quantidadeSolicitada}
                     </p>
-                  )
-                })()}
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  {a.setor ? `Ala/Setor: ${a.setor}` : 'Ala/Setor: —'} • {a.sala ? `Leito: ${a.sala}` : 'Leito: —'}
-                  {l.item.medicamento ? ` • Saldo: ${l.item.medicamento.saldoAtual}` : ''}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setItemModal(l)}
-                  className="px-3 py-2 rounded-lg border border-border text-xs font-semibold hover:bg-muted/50"
-                >
-                  Abrir triagem
-                </button>
-              </div>
-            </li>
-          )
-        })}
-      </ul>
+
+                    {/* Exibição dos Kits e Procedimentos Vinculados */}
+                    {totalKits > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {l.kitsVinculados?.map((kit) => (
+                          <span
+                            key={kit.id}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 px-2 py-0.5 rounded-md"
+                            title={`Contém ${kit.itens.length} materiais para separação na farmácia`}
+                          >
+                            <Boxes className="h-3 w-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                            <span>{kit.nome} ({kit.itens.length} materiais)</span>
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {totalProcedimentos > 0 ? (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-md">
+                          <Stethoscope className="h-3 w-3 text-purple-600 dark:text-purple-400 shrink-0" />
+                          <span>{totalProcedimentos} procedimento(s) / cuidado(s) prescrito(s)</span>
+                        </span>
+                      </div>
+                    ) : null}
+
+                    <p className="text-[11px] text-muted-foreground mt-1.5">
+                      {a.setor ? `Ala/Setor: ${a.setor}` : 'Ala/Setor: —'} • {a.sala ? `Leito: ${a.sala}` : 'Leito: —'}
+                      {l.item.medicamento ? ` • Saldo em Estoque: ${l.item.medicamento.saldoAtual}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setItemModal(l)}
+                      className="px-3.5 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 flex items-center gap-1.5 shadow-xs"
+                    >
+                      <PackageCheck className="h-3.5 w-3.5" />
+                      Visualizar & Dispensar
+                    </button>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
         )}
       </EnvoltorioListaPaginada>
 
@@ -230,16 +276,23 @@ export function ListaTriagemFarmacia({
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
           onClick={(e) => {
-            if (e.target === e.currentTarget && !salvando) setItemModal(null)
+            if (e.target === e.currentTarget && !salvando) {
+              setItemModal(null)
+              setItensChecados({})
+            }
           }}
           role="dialog"
           aria-modal="true"
         >
-          <div className="bg-card w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-border overflow-hidden my-auto">
-            <div className="p-5 border-b border-border flex items-start justify-between shrink-0">
+          <div className="bg-card w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-border overflow-hidden my-auto animate-in fade-in zoom-in-95">
+            {/* Cabeçalho do Modal */}
+            <div className="p-4 sm:p-5 border-b border-border flex items-start justify-between shrink-0 bg-muted/30">
               <div>
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Triagem Farmacêutica</p>
-                <h3 className="text-base font-bold text-foreground mt-0.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                  <PackageCheck className="h-4 w-4" />
+                  Triagem & Dispensação Farmacêutica
+                </p>
+                <h3 className="text-base sm:text-lg font-bold text-foreground mt-0.5">
                   {nomeCompletoParaExibicao(
                     itemModal.item.prescricao.atendimento.paciente.nomeExibicao,
                     itemModal.item.prescricao.atendimento.paciente.nomeCriptografado ?? '',
@@ -248,13 +301,16 @@ export function ListaTriagemFarmacia({
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Atendimento: <span className="font-mono font-medium text-foreground">{itemModal.item.prescricao.atendimento.numeroAtendimento}</span>
-                  {itemModal.item.prescricao.atendimento.setor ? ` • Ala/Setor: ${itemModal.item.prescricao.atendimento.setor}` : ''}
+                  {itemModal.item.prescricao.atendimento.setor ? ` • Setor: ${itemModal.item.prescricao.atendimento.setor}` : ''}
                   {itemModal.item.prescricao.atendimento.sala ? ` • Leito: ${itemModal.item.prescricao.atendimento.sala}` : ''}
+                  {itemModal.item.prescricao.criadoPor?.nome ? ` • Prescrito por: Dr(a). ${itemModal.item.prescricao.criadoPor.nome}` : ''}
                 </p>
               </div>
               <BadgeStatus status={itemModal.status} />
             </div>
-            <div className="p-5 space-y-4 overflow-y-auto flex-1">
+
+            {/* Corpo Rolável do Modal */}
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
               {/* Alerta Crítico de Estoque Insuficiente */}
               {itemModal.saldoInfo && (!itemModal.saldoInfo.saldoSuficiente || (itemModal.saldoInfo.saldoAtual ?? 0) < itemModal.item.quantidadeSolicitada) ? (
                 <div className="rounded-xl border-2 border-red-500 bg-red-50 dark:bg-red-950/40 p-4 space-y-3 shadow-sm">
@@ -300,10 +356,38 @@ export function ListaTriagemFarmacia({
                 </div>
               ) : null}
 
+              {/* Informações do Medicamento */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-muted/40 border border-border rounded-xl p-3.5">
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Medicamento Prescrito</p>
+                  <p className="text-sm font-bold text-foreground mt-1">{itemModal.item.medicamentoNome}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {itemModal.item.dose} • {itemModal.item.via} • {itemModal.item.frequencia}
+                  </p>
+                </div>
+                <div className="bg-muted/40 border border-border rounded-xl p-3.5">
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Princípio Ativo & Estoque</p>
+                  <p className="text-sm font-mono font-semibold text-foreground mt-1">{itemModal.item.principioAtivo}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Qtde solicitada: <strong className="text-foreground">{itemModal.item.quantidadeSolicitada} un.</strong>
+                  </p>
+                  {itemModal.saldoInfo ? (
+                    <p className={`text-xs mt-1 font-semibold ${itemModal.saldoInfo.saldoSuficiente ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                      Saldo em estoque: {itemModal.saldoInfo.saldoAtual ?? '—'} un.
+                      {!itemModal.saldoInfo.saldoSuficiente && itemModal.saldoInfo.mensagemSaldo
+                        ? ` — ${itemModal.saldoInfo.mensagemSaldo}`
+                        : ''}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Interações Críticas */}
               {interacoesCriticas.length > 0 ? (
                 <div className="rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50/60 dark:bg-red-950/20 p-4">
-                  <p className="text-xs font-bold text-red-700 dark:text-red-200 uppercase tracking-wide">
-                    Interação crítica (alerta)
+                  <p className="text-xs font-bold text-red-700 dark:text-red-200 uppercase tracking-wide flex items-center gap-1.5">
+                    <AlertTriangle className="h-4 w-4" />
+                    Interação crítica (alerta clínico)
                   </p>
                   <ul className="mt-2 space-y-2">
                     {interacoesCriticas.map((i, idx) => (
@@ -320,46 +404,130 @@ export function ListaTriagemFarmacia({
                 </div>
               ) : null}
 
-              {(() => {
-                const kit = kitSugerido(itemModal.item.medicamentoNome, itemModal.item.via)
-                if (!kit) return null
-                return (
-                  <div className="rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/70 dark:bg-blue-950/30 p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Boxes className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                      <span className="text-xs text-blue-900 dark:text-blue-200">
-                        <strong>Kit de Insumos Vinculado:</strong> {kit} (separar descartáveis correspondentes com a medicação).
-                      </span>
-                    </div>
+              {/* Seção Principal: KITS DE MATERIAIS E INSUMOS DO PROCEDIMENTO */}
+              {itemModal.kitsVinculados && itemModal.kitsVinculados.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-blue-900 dark:text-blue-200 uppercase tracking-wide flex items-center gap-2">
+                      <Boxes className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <span>Kits de Materiais e Insumos do Procedimento / Administração</span>
+                    </h4>
+                    <span className="text-[11px] text-muted-foreground font-medium">
+                      Checklist de separação para a Enfermagem
+                    </span>
                   </div>
-                )
-              })()}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="bg-muted/40 border border-border rounded-lg p-3">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Medicamento</p>
-                  <p className="text-sm font-semibold text-foreground mt-1">{itemModal.item.medicamentoNome}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    {itemModal.item.dose} • {itemModal.item.via} • {itemModal.item.frequencia}
-                  </p>
+                  {itemModal.kitsVinculados.map((kit) => (
+                    <div
+                      key={kit.id}
+                      className="rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 p-4 space-y-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-200/60 dark:border-blue-900/40 pb-2.5">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-blue-950 dark:text-blue-100">
+                              {kit.nome}
+                            </span>
+                            {kit.codigo ? (
+                              <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300">
+                                {kit.codigo}
+                              </span>
+                            ) : null}
+                          </div>
+                          {kit.descricao ? (
+                            <p className="text-xs text-blue-800/80 dark:text-blue-300/80 mt-0.5">
+                              {kit.descricao}
+                            </p>
+                          ) : null}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => copiarListaMateriais(kit)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-white dark:bg-slate-900 border border-blue-300 dark:border-blue-800 text-blue-800 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-950 transition-colors shadow-2xs"
+                          title="Copiar lista dos materiais deste kit"
+                        >
+                          <Copy className="h-3 w-3" />
+                          Copiar Lista
+                        </button>
+                      </div>
+
+                      {/* Lista Estruturada de Insumos */}
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {kit.itens.map((it, idx) => {
+                          const itemKey = `${kit.id}-${idx}`
+                          const estaChecado = Boolean(itensChecados[itemKey])
+
+                          return (
+                            <div
+                              key={idx}
+                              onClick={() => alternarChecagem(itemKey)}
+                              className={cn(
+                                'flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition-colors',
+                                estaChecado
+                                  ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100'
+                                  : 'bg-white/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700'
+                              )}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                {estaChecado ? (
+                                  <CheckSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                ) : (
+                                  <Square className="h-4 w-4 text-slate-400 shrink-0" />
+                                )}
+                                <span className={cn('truncate', estaChecado && 'line-through text-muted-foreground')}>
+                                  {it.descricaoItem}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0 ml-2">
+                                <span className="font-mono font-bold px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-900 dark:text-blue-200 text-[11px]">
+                                  {it.quantidadePadrao} {it.unidade}
+                                </span>
+                                {it.obrigatorio ? (
+                                  <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold">
+                                    Obrigatório
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    Opcional
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="bg-muted/40 border border-border rounded-lg p-3">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Princípio ativo</p>
-                  <p className="text-sm font-mono text-foreground mt-1">{itemModal.item.principioAtivo}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Qtde solicitada: {itemModal.item.quantidadeSolicitada}
-                  </p>
-                  {itemModal.saldoInfo ? (
-                    <p className={`text-[11px] mt-1 font-semibold ${itemModal.saldoInfo.saldoSuficiente ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                      Saldo: {itemModal.saldoInfo.saldoAtual ?? '—'}
-                      {!itemModal.saldoInfo.saldoSuficiente && itemModal.saldoInfo.mensagemSaldo
-                        ? ` — ${itemModal.saldoInfo.mensagemSaldo}`
-                        : ''}
+              ) : null}
+
+              {/* Procedimentos & Cuidados Prescritos nas Observações Médicas */}
+              {(itemModal.procedimentosObservacoes && itemModal.procedimentosObservacoes.length > 0) || itemModal.item.prescricao.observacoes ? (
+                <div className="rounded-xl border border-purple-200 dark:border-purple-900/60 bg-purple-50/40 dark:bg-purple-950/20 p-4 space-y-2">
+                  <h4 className="text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wide flex items-center gap-1.5">
+                    <Stethoscope className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <span>Procedimentos & Cuidados de Enfermagem Prescritos pelo Médico</span>
+                  </h4>
+                  {itemModal.procedimentosObservacoes && itemModal.procedimentosObservacoes.length > 0 ? (
+                    <ul className="space-y-1.5 pt-1">
+                      {itemModal.procedimentosObservacoes.map((proc, idx) => (
+                        <li key={idx} className="text-xs text-purple-950 dark:text-purple-100 flex items-start gap-2">
+                          <span className="h-1.5 w-1.5 rounded-full bg-purple-500 shrink-0 mt-1.5" />
+                          <span>{proc}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-purple-900 dark:text-purple-200 whitespace-pre-line">
+                      {itemModal.item.prescricao.observacoes}
                     </p>
-                  ) : null}
+                  )}
                 </div>
-              </div>
+              ) : null}
 
+              {/* Alocação FEFO */}
               {itemModal.saldoInfo?.alocacaoFefo && itemModal.saldoInfo.alocacaoFefo.length > 0 ? (
                 <div className="rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/60 dark:bg-blue-950/30 p-3">
                   <p className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wide">
@@ -381,22 +549,31 @@ export function ListaTriagemFarmacia({
                 </div>
               ) : null}
 
+              {/* Justificativa de Rejeição */}
               <div>
-                <label className="text-sm font-medium text-foreground">Motivo da rejeição (se rejeitar)</label>
+                <label className="text-xs font-semibold text-foreground block">
+                  Motivo da rejeição (se rejeitar)
+                </label>
                 <textarea
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value)}
-                  rows={3}
-                  className="mt-1 w-full px-3.5 py-2.5 rounded-lg border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  rows={2}
+                  placeholder="Ex.: Falta de medicamento no estoque físico, dosagem necessita de ajuste com prescritor..."
+                  className="mt-1 w-full px-3 py-2 rounded-lg border border-input bg-background text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 />
               </div>
             </div>
+
+            {/* Rodapé Fixo de Ações */}
             <div className="p-4 border-t border-border bg-muted/20 flex flex-wrap gap-2 justify-end shrink-0">
               <button
                 type="button"
-                onClick={() => setItemModal(null)}
+                onClick={() => {
+                  setItemModal(null)
+                  setItensChecados({})
+                }}
                 disabled={salvando}
-                className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted disabled:opacity-50"
+                className="px-4 py-2 rounded-lg border border-border text-xs font-medium hover:bg-muted disabled:opacity-50"
               >
                 Fechar
               </button>
@@ -404,20 +581,20 @@ export function ListaTriagemFarmacia({
                 type="button"
                 onClick={() => atualizar('REJEITADO')}
                 disabled={salvando}
-                className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 inline-flex items-center gap-2"
+                className="px-4 py-2 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 disabled:opacity-50 inline-flex items-center gap-1.5"
               >
-                {salvando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <XCircle className="h-4 w-4" aria-hidden />}
+                {salvando ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <XCircle className="h-3.5 w-3.5" aria-hidden />}
                 Rejeitar
               </button>
               <button
                 type="button"
                 onClick={() => atualizar('APROVADO')}
                 disabled={salvando || (itemModal.saldoInfo != null && !itemModal.saldoInfo.saldoSuficiente)}
-                className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50 inline-flex items-center gap-2"
+                className="px-5 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 inline-flex items-center gap-1.5 shadow-xs"
                 title={itemModal.saldoInfo && !itemModal.saldoInfo.saldoSuficiente ? 'Saldo insuficiente' : undefined}
               >
-                {salvando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <CheckCircle2 className="h-4 w-4" aria-hidden />}
-                Aprovar
+                {salvando ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />}
+                Aprovar & Dispensar
               </button>
             </div>
           </div>
