@@ -20,6 +20,7 @@ import {
   ClipboardList,
   Stethoscope,
   Printer,
+  Baby,
 } from 'lucide-react'
 import { schemaRegistrarTriagem, type RegistrarTriagemForm } from '@/lib/validations/triagem'
 import { registerTextoCadastro } from '@/lib/cadastro-maiusculo'
@@ -62,6 +63,7 @@ interface FormularioTriagemProps {
   alergiasPreCadastro?: string
   medicacoesPreCadastro?: string
   triagemInicial?: Omit<RegistrarTriagemForm, 'atendimentoId'>
+  obstetrico?: boolean
 }
 
 export function FormularioTriagem({
@@ -72,6 +74,7 @@ export function FormularioTriagem({
   alergiasPreCadastro,
   medicacoesPreCadastro,
   triagemInicial,
+  obstetrico,
 }: FormularioTriagemProps) {
   const router = useRouter()
   const [imcInfo, setImcInfo] = useState<{ imc: number; classificacao: string } | null>(null)
@@ -336,6 +339,22 @@ export function FormularioTriagem({
           <BadgeManchester cor={corSelecionada} size="lg" className="shrink-0" />
         ) : null}
       </div>
+
+      {obstetrico && (
+        <div className="rounded-xl border border-pink-300 dark:border-pink-800 bg-pink-50/90 dark:bg-pink-950/40 p-4 shadow-sm flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-pink-500/15 text-pink-700 dark:text-pink-300 shrink-0">
+            <Baby className="h-5 w-5" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-pink-900 dark:text-pink-100">
+              PACIENTE OBSTÉTRICO (GESTANTE / PUÉRPERA)
+            </h4>
+            <p className="text-xs text-pink-800 dark:text-pink-200 mt-0.5">
+              Avaliar sinais de alerta obstétrico (perda líquida/sangramento vaginal, dinâmica uterina, cefaleia/escotomas/epigastralgia, pico pressórico e movimentação fetal).
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Progresso e proteção contra perda acidental */}
       <div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-3" aria-live="polite">

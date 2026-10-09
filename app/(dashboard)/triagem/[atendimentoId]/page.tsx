@@ -98,6 +98,7 @@ export default async function PaginaRealizarTriagem({
           procedenciaTexto={procedenciaTexto}
           alergiasPreCadastro={alergiasPreCadastro || undefined}
           medicacoesPreCadastro={medicacoesPreCadastro || undefined}
+          obstetrico={atendimento.obstetrico}
           triagemInicial={
             atendimento.triagem
               ? {

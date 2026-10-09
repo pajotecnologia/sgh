@@ -5,15 +5,20 @@ import { toast } from 'sonner'
 import { Baby, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+import { useRouter } from 'next/navigation'
+
 export function ToggleObstetrico({
   atendimentoId,
   inicial,
   sexoBiologico,
+  onAlterado,
 }: {
   atendimentoId: string
   inicial?: boolean
   sexoBiologico?: string
+  onAlterado?: (novo: boolean) => void
 }) {
+  const router = useRouter()
   const [obstetrico, setObstetrico] = useState(Boolean(inicial))
   const [salvando, setSalvando] = useState(false)
 
@@ -41,6 +46,8 @@ export function ToggleObstetrico({
         return
       }
       toast.success(novo ? 'Marcado como obstétrico.' : 'Desmarcado obstétrico.')
+      onAlterado?.(novo)
+      router.refresh()
     } catch {
       setObstetrico(!novo)
       toast.error('Erro de conexão.')

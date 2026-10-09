@@ -44,13 +44,13 @@ export async function GET(
 
   try {
     const atendimento = await prisma.atendimento.findFirst({
-      where: { id: atendimentoId, deletedAt: null, status: 'INTERNADO' },
+      where: { id: atendimentoId, deletedAt: null },
       include: includeAtendimentoInternacao,
     })
 
     if (!atendimento) {
       return NextResponse.json(
-        { sucesso: false, erro: 'Atendimento não encontrado ou paciente não está internado.' },
+        { sucesso: false, erro: 'Atendimento não encontrado.' },
         { status: 404 }
       )
     }
@@ -110,7 +110,7 @@ export async function PUT(
     }
 
     const atendimento = await prisma.atendimento.findFirst({
-      where: { id: atendimentoId, deletedAt: null, status: 'INTERNADO' },
+      where: { id: atendimentoId, deletedAt: null },
       select: {
         id: true,
         obstetrico: true,
@@ -120,7 +120,7 @@ export async function PUT(
 
     if (!atendimento) {
       return NextResponse.json(
-        { sucesso: false, erro: 'Atendimento não encontrado ou paciente não está internado.' },
+        { sucesso: false, erro: 'Atendimento não encontrado.' },
         { status: 404 }
       )
     }

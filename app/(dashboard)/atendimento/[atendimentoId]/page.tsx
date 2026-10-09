@@ -18,6 +18,7 @@ import {
   FlaskConical,
   Share2,
   FileSignature,
+  Baby,
 } from 'lucide-react';
 import { FormularioReceitaAlta } from '@/components/atendimento/FormularioReceitaAlta';
 import { ModalFinalizarAtendimento } from '@/components/atendimento/ModalFinalizarAtendimento';
@@ -31,6 +32,7 @@ import { FormularioPrescricao } from '@/components/atendimento/FormularioPrescri
 import { FormularioEvolucao } from '@/components/atendimento/FormularioEvolucao';
 import { FormularioExames } from '@/components/atendimento/FormularioExames';
 import { FormularioEncaminhamento } from '@/components/atendimento/FormularioEncaminhamento';
+import { FormularioInternacaoObstetrica } from '@/components/internamento/FormularioInternacaoObstetrica';
 import { nomeCompletoParaExibicao } from '@/lib/nome-paciente-exibicao';
 import { descricaoLeitoInternacao } from '@/lib/prefill-internamento';
 import { ToggleObstetrico } from '@/components/atendimento/ToggleObstetrico';
@@ -43,6 +45,7 @@ type Aba =
   | 'PRESCRICAO'
   | 'EXAMES'
   | 'EVOLUCAO'
+  | 'INTERNACAO_OBSTETRICA'
   | 'RECEITA_ALTA'
   | 'ENCAMINHAMENTO';
 
@@ -52,6 +55,7 @@ const ABAS_VALIDAS = new Set<string>([
   'PRESCRICAO',
   'EXAMES',
   'EVOLUCAO',
+  'INTERNACAO_OBSTETRICA',
   'RECEITA_ALTA',
   'ENCAMINHAMENTO',
 ]);
@@ -154,6 +158,10 @@ export default function WorkspaceAtendimento({
     prontuario.evolucoes ?? []
   );
   const podeFinalizarAlta = fluxoMedicacao.podeFinalizarAtendimento;
+  const ehObstetrico = Boolean(
+    atendimento.obstetrico &&
+    (paciente.sexoBiologico === 'FEMININO' || paciente.sexoBiologico === 'F')
+  );
 
   const abas: { id: Aba; label: string; icon: typeof FileText; completado: boolean }[] = [
     { id: 'ANAMNESE', label: 'Anamnese', icon: FileText, completado: !!prontuario.anamnese },
@@ -166,6 +174,16 @@ export default function WorkspaceAtendimento({
     },
     { id: 'EXAMES', label: 'Exames', icon: FlaskConical, completado: (prontuario.requisicoes?.length ?? 0) > 0 },
     { id: 'EVOLUCAO', label: 'Evolução', icon: NotebookPen, completado: (prontuario.evolucoes?.length ?? 0) > 0 },
+    ...(ehObstetrico
+      ? [
+          {
+            id: 'INTERNACAO_OBSTETRICA' as Aba,
+            label: 'Ficha Obstétrica',
+            icon: Baby,
+            completado: false,
+          },
+        ]
+      : []),
     ...(!modoInternacao
       ? [
           {
@@ -269,6 +287,11 @@ export default function WorkspaceAtendimento({
                   Procedência: <b className="text-foreground">{procedenciaExibicao}</b>
                 </span>
               ) : null}
+              {ehObstetrico && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border border-pink-300 dark:border-pink-800">
+                  <Baby className="h-3 w-3" /> Paciente Obstétrico (Gestante/Puérpera)
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -291,6 +314,7 @@ export default function WorkspaceAtendimento({
             atendimentoId={atendimento.id}
             inicial={atendimento.obstetrico}
             sexoBiologico={paciente.sexoBiologico}
+            onAlterado={() => carregarDados()}
           />
         </div>
       </div>
@@ -408,6 +432,7 @@ export default function WorkspaceAtendimento({
             queixaTriagem={atendimento.triagem?.queixaPrincipal}
             dadosExistentes={prontuario.anamnese}
             onSalvo={carregarDados}
+            obstetrico={ehObstetrico}
           />
         )}
 
@@ -499,6 +524,13 @@ export default function WorkspaceAtendimento({
             atendimentoId={atendimento.id}
             prontuarioId={prontuario.id}
             evolucoesIniciais={prontuario.evolucoes ?? []}
+            onSalvo={carregarDados}
+          />
+        )}
+
+        {abaAtual === 'INTERNACAO_OBSTETRICA' && (
+          <FormularioInternacaoObstetrica
+            atendimentoId={atendimento.id}
             onSalvo={carregarDados}
           />
         )}

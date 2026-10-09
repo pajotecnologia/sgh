@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Save, Loader2, Cigarette, Wine, Dumbbell } from 'lucide-react';
+import { Save, Loader2, Cigarette, Wine, Dumbbell, Baby } from 'lucide-react';
 import { schemaAnamnese, type AnamneseForm } from '@/lib/validations/atendimento';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +23,7 @@ interface FormularioAnamneseProps {
   queixaTriagem?: string;
   dadosExistentes?: AnamneseExistente | null;
   onSalvo?: () => void;
+  obstetrico?: boolean;
 }
 
 const SISTEMAS = [
@@ -41,6 +42,7 @@ export function FormularioAnamnese({
   queixaTriagem,
   dadosExistentes,
   onSalvo,
+  obstetrico,
 }: FormularioAnamneseProps) {
   const {
     register,
@@ -117,6 +119,19 @@ export function FormularioAnamnese({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {obstetrico && (
+        <div className="rounded-xl border border-pink-300 dark:border-pink-800 bg-pink-50/90 dark:bg-pink-950/40 p-4 shadow-sm flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-pink-500/15 text-pink-700 dark:text-pink-300 shrink-0">
+            <Baby className="h-5 w-5" />
+          </div>
+          <div className="text-xs text-pink-900 dark:text-pink-100">
+            <span className="font-bold text-sm block">Contexto Obstétrico Ativo</span>
+            Para detalhes completos de pré-natal, trabalho de parto, evolução de dilatação, BCF e puerpério, utilize a aba{' '}
+            <strong className="underline">Ficha Obstétrica</strong> no menu acima.
+          </div>
+        </div>
+      )}
+
       {/* 1. Queixa Principal */}
       <div className="bg-card border border-border rounded-xl p-5">
         <SectionHeader title="Queixa Principal" step="1" />

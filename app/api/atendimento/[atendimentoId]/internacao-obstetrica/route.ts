@@ -46,14 +46,13 @@ export async function GET(
       where: {
         id: atendimentoId,
         deletedAt: null,
-        status: { in: ['AGUARDANDO_INTERNACAO', 'INTERNADO'] },
       },
       include: includeAtendimentoInternacao,
     })
 
     if (!atendimento) {
       return NextResponse.json(
-        { sucesso: false, erro: 'Atendimento não encontrado ou paciente não está internado.' },
+        { sucesso: false, erro: 'Atendimento não encontrado.' },
         { status: 404 }
       )
     }
@@ -134,7 +133,6 @@ export async function PUT(
       where: {
         id: atendimentoId,
         deletedAt: null,
-        status: { in: ['AGUARDANDO_INTERNACAO', 'INTERNADO'] },
       },
       select: {
         id: true,
@@ -145,7 +143,7 @@ export async function PUT(
 
     if (!atendimento) {
       return NextResponse.json(
-        { sucesso: false, erro: 'Atendimento não encontrado ou paciente não está internado.' },
+        { sucesso: false, erro: 'Atendimento não encontrado.' },
         { status: 404 }
       )
     }
